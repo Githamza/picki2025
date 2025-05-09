@@ -1,0 +1,55 @@
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.sidenav-container {
+  flex: 1;
+  margin-top: 64px; /* Toolbar height */
+}
+
+.sidenav {
+  width: 250px;
+}
+
+.content-area {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  padding: 20px;
+  flex: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .toolbar {
+    height: 56px;
+  }
+
+  .sidenav-container {
+    margin-top: 56px;
+  }
+
+  .sidenav {
+    width: 80%;
+    max-width: 280px;
+  }
+}
+
+/* For portrait orientation on tablets */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .sidenav {
+    width: 280px;
+  }
+}

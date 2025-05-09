@@ -1,0 +1,14 @@
+<div class="banner" *ngIf="isVisible$ | async">
+  <div class="banner-content">
+    <h1>{{ title$ | async }}</h1>
+    <p>{{ subtitle$ | async }}</p>
+    <div class="banner-controls">
+      <button (click)="toggleVisibility()">Hide Banner</button>
+      <button (click)="updateTitle('Dynamic Title')">Change Title</button>
+      <button (click)="updateSubtitle('Updated with NgRx State Management')">
+        Change Subtitle
+      </button>
+      <button (click)="resetBanner()">Reset</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<div class="category-menu">
+  <h2 class="menu-title">Menu Categories</h2>
+
+  <div *ngIf="loading$ | async" class="loader-container">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="error$ | async as error" class="error-message">
+    <p>{{ error }}</p>
+  </div>
+
+  <mat-nav-list *ngIf="categories$ | async as categories">
+    <a
+      mat-list-item
+      *ngFor="let category of categories"
+      (click)="selectCategory(category.id)"
+      [ngClass]="{
+        'active-category': (selectedCategoryId$ | async) === category.id
+      }"
+    >
+      <mat-icon matListItemIcon>{{ category.icon || "category" }}</mat-icon>
+      <span matListItemTitle>{{ category.name }}</span>
+      <span matListItemLine *ngIf="category.description">{{
+        category.description
+      }}</span>
+    </a>
+  </mat-nav-list>
+</div>

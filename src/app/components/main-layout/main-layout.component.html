@@ -1,0 +1,28 @@
+<div class="layout-container">
+  <mat-toolbar color="primary" class="toolbar">
+    <button mat-icon-button (click)="toggleMenu()">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span>Kiosk Order System</span>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav
+      [mode]="isMobileView ? 'over' : 'side'"
+      [opened]="menuOpened"
+      [fixedInViewport]="true"
+      [fixedTopGap]="64"
+      class="sidenav"
+    >
+      <app-category-menu></app-category-menu>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="content-area">
+      <app-banner></app-banner>
+
+      <div class="main-content">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

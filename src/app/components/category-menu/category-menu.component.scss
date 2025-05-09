@@ -1,0 +1,75 @@
+.category-menu {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  overflow-y: auto;
+
+  .menu-title {
+    padding: 16px;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #333;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .loader-container {
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .error-message {
+    padding: 16px;
+    margin: 16px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border-radius: 4px;
+  }
+
+  mat-nav-list {
+    padding-top: 0;
+
+    a.mat-list-item {
+      height: auto;
+      padding: 8px 0;
+
+      &.active-category {
+        background-color: rgba(0, 0, 0, 0.04);
+        border-left: 4px solid #3f51b5;
+
+        .mat-icon {
+          color: #3f51b5;
+        }
+      }
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.08);
+      }
+
+      .mat-icon {
+        color: #555;
+      }
+    }
+  }
+}
+
+// Make styling work well on both kiosk displays and phones
+@media (max-width: 768px) {
+  .category-menu {
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+
+    .menu-title {
+      font-size: 1.2rem;
+      padding: 12px;
+    }
+
+    mat-nav-list a.mat-list-item {
+      padding: 4px 0;
+    }
+  }
+}

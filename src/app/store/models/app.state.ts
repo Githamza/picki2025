@@ -1,7 +1,10 @@
+import { ProductState } from '../reducers/product.reducer'; // Adjust path as necessary
+
 // App state model
 export interface AppState {
   banner: BannerState;
-  categories: CategoryState;
+  category: CategoryState;
+  product: ProductState; // Added product state
   // Add more state slices as needed
 }
 
@@ -27,3 +30,9 @@ export interface Category {
   icon?: string;
   description?: string;
 }
+
+// Re-exporting individual states for convenience if needed elsewhere
+
+// If ProductState is not in a separate file like banner.state.ts or category.state.ts,
+// then its definition would be directly in product.reducer.ts as we created.
+// No separate product.state.ts file needed if ProductState is defined in product.reducer.ts.

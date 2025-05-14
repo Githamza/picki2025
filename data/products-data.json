@@ -1,0 +1,121 @@
+[
+  {
+    "id": 1,
+    "name": "Bruschetta",
+    "price": 6.99,
+    "imageUrl": "https://foodish-api.com/images/biryani/biryani1.jpg",
+    "categoryId": 1
+  },
+  {
+    "id": 2,
+    "name": "Stuffed Mushrooms",
+    "price": 7.49,
+    "imageUrl": "https://foodish-api.com/images/biryani/biryani2.jpg",
+    "categoryId": 1
+  },
+
+  {
+    "id": 3,
+    "name": "Grilled Salmon",
+    "price": 18.99,
+    "imageUrl": "https://foodish-api.com/images/butter-chicken/butter-chicken1.jpg",
+    "categoryId": 2
+  },
+  {
+    "id": 4,
+    "name": "Ribeye Steak",
+    "price": 24.99,
+    "imageUrl": "https://foodish-api.com/images/butter-chicken/butter-chicken2.jpg",
+    "categoryId": 2
+  },
+
+  {
+    "id": 5,
+    "name": "Classic Burger",
+    "price": 8.99,
+    "imageUrl": "https://foodish-api.com/images/burger/burger1.jpg",
+    "categoryId": 3
+  },
+  {
+    "id": 6,
+    "name": "Bacon Cheeseburger",
+    "price": 10.49,
+    "imageUrl": "https://foodish-api.com/images/burger/burger2.jpg",
+    "categoryId": 3
+  },
+
+  {
+    "id": 7,
+    "name": "Cheese Pizza",
+    "price": 12.99,
+    "imageUrl": "https://foodish-api.com/images/pizza/pizza1.jpg",
+    "categoryId": 4
+  },
+  {
+    "id": 8,
+    "name": "Pepperoni Pizza",
+    "price": 13.99,
+    "imageUrl": "https://foodish-api.com/images/pizza/pizza2.jpg",
+    "categoryId": 4
+  },
+
+  {
+    "id": 9,
+    "name": "Caesar Salad",
+    "price": 7.99,
+    "imageUrl": "https://foodish-api.com/images/rice/rice1.jpg",
+    "categoryId": 5
+  },
+  {
+    "id": 10,
+    "name": "Greek Salad",
+    "price": 8.49,
+    "imageUrl": "https://foodish-api.com/images/rice/rice2.jpg",
+    "categoryId": 5
+  },
+
+  {
+    "id": 11,
+    "name": "French Fries",
+    "price": 3.99,
+    "imageUrl": "https://foodish-api.com/images/samosa/samosa1.jpg",
+    "categoryId": 6
+  },
+  {
+    "id": 12,
+    "name": "Onion Rings",
+    "price": 4.99,
+    "imageUrl": "https://foodish-api.com/images/samosa/samosa2.jpg",
+    "categoryId": 6
+  },
+
+  {
+    "id": 13,
+    "name": "Chocolate Cake",
+    "price": 5.99,
+    "imageUrl": "https://foodish-api.com/images/dessert/dessert1.jpg",
+    "categoryId": 7
+  },
+  {
+    "id": 14,
+    "name": "Ice Cream Sundae",
+    "price": 4.99,
+    "imageUrl": "https://foodish-api.com/images/dessert/dessert2.jpg",
+    "categoryId": 7
+  },
+
+  {
+    "id": 15,
+    "name": "Milkshake",
+    "price": 5.99,
+    "imageUrl": "https://foodish-api.com/images/dosa/dosa1.jpg",
+    "categoryId": 8
+  },
+  {
+    "id": 16,
+    "name": "Lemonade",
+    "price": 2.99,
+    "imageUrl": "https://foodish-api.com/images/dosa/dosa2.jpg",
+    "categoryId": 8
+  }
+]

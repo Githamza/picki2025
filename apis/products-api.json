@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.apifile.schema.json",
+  "baseUrl": "http://localhost:8080/api/products",
+  "auth": "none",
+  "dataFile": "../data/products-data.json",
+  "actions": [
+    {
+      "action": "getAll"
+    }
+  ]
+}

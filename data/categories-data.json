@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "name": "Appetizers",
+    "icon": "restaurant",
+    "description": "Starters and small plates"
+  },
+  {
+    "id": 2,
+    "name": "Main Courses",
+    "icon": "lunch_dining",
+    "description": "Hearty main dishes"
+  },
+  {
+    "id": 3,
+    "name": "Burgers",
+    "icon": "lunch_dining",
+    "description": "Handcrafted burgers"
+  },
+  {
+    "id": 4,
+    "name": "Pizza",
+    "icon": "local_pizza",
+    "description": "Stone-baked pizzas"
+  },
+  {
+    "id": 5,
+    "name": "Salads",
+    "icon": "eco",
+    "description": "Fresh and healthy options"
+  },
+  {
+    "id": 6,
+    "name": "Sides",
+    "icon": "dinner_dining",
+    "description": "Perfect accompaniments"
+  },
+  {
+    "id": 7,
+    "name": "Desserts",
+    "icon": "icecream",
+    "description": "Sweet treats"
+  },
+  {
+    "id": 8,
+    "name": "Drinks",
+    "icon": "local_bar",
+    "description": "Refreshing beverages"
+  }
+]

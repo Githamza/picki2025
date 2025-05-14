@@ -1,7 +1,10 @@
+@use "@angular/material" as mat;
+
 .layout-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background-color: var(--mat-background);
 }
 
 .toolbar {
@@ -10,15 +13,37 @@
   left: 0;
   right: 0;
   z-index: 2;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  // color: var(--mat-on-primary); /* Let mat-toolbar handle text color */
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-left: 8px;
+  // color: inherit; /* Let mat-toolbar handle text color */
+}
+
+.menu-button {
+  margin-right: 8px;
 }
 
 .sidenav-container {
   flex: 1;
-  margin-top: 64px; /* Toolbar height */
 }
 
 .sidenav {
   width: 250px;
+  padding: 16px 8px;
+  border-right: none;
+  color: var(--mat-sys-on-surface);
+  overflow-x: hidden;
 }
 
 .content-area {
@@ -29,6 +54,20 @@
 .main-content {
   padding: 20px;
   flex: 1;
+  margin: 16px;
+  color: var(--mat-sys-on-surface);
+  overflow: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+  @media (prefers-color-scheme: dark) {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Material icon styles */
+.material-symbols-rounded {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
 /* Responsive adjustments */
@@ -42,8 +81,13 @@
   }
 
   .sidenav {
-    width: 80%;
+    width: 85%;
     max-width: 280px;
+  }
+
+  .main-content {
+    margin: 8px;
+    padding: 16px;
   }
 }
 
@@ -51,5 +95,12 @@
 @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
   .sidenav {
     width: 280px;
+  }
+}
+
+// Dark mode specific overrides
+.dark-mode {
+  .main-content {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 }

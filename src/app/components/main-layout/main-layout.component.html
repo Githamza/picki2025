@@ -1,26 +1,29 @@
 <div class="layout-container">
-  <mat-toolbar color="primary" class="toolbar">
-    <button mat-icon-button (click)="toggleMenu()">
-      <mat-icon>menu</mat-icon>
+  <mat-toolbar color="primary" class="toolbar mat-elevation-z2">
+    <button mat-icon-button (click)="toggleMenu()" class="menu-button">
+      <mat-icon class="material-symbols-rounded">menu</mat-icon>
     </button>
-    <span>Kiosk Order System</span>
+    <span class="app-title">Kiosk Order System</span>
+    <span class="toolbar-spacer"></span>
+    <button mat-icon-button (click)="toggleTheme()" aria-label="Toggle theme">
+      <mat-icon class="material-symbols-rounded">{{
+        isDarkTheme ? "light_mode" : "dark_mode"
+      }}</mat-icon>
+    </button>
   </mat-toolbar>
-
+  <app-banner></app-banner>
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav
-      [mode]="isMobileView ? 'over' : 'side'"
-      [opened]="menuOpened"
-      [fixedInViewport]="true"
-      [fixedTopGap]="64"
-      class="sidenav"
+      [mode]="(isHandset$ | async) ? 'over' : 'side'"
+      [opened]="menuOpened && !(isHandset$ | async)"
+      class="sidenav mat-elevation-z1"
+      [class.mat-rounded-medium]="!(isHandset$ | async)"
     >
       <app-category-menu></app-category-menu>
     </mat-sidenav>
 
     <mat-sidenav-content class="content-area">
-      <app-banner></app-banner>
-
-      <div class="main-content">
+      <div class="main-content mat-rounded-medium">
         <router-outlet></router-outlet>
       </div>
     </mat-sidenav-content>

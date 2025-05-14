@@ -3,7 +3,7 @@ import {
   isDevMode,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { provideStore } from '@ngrx/store';
@@ -14,6 +14,7 @@ import { routes } from './app.routes';
 import { reducers, metaReducers } from './store/reducers';
 import { BannerEffects } from './store/effects/banner.effects';
 import { CategoryEffects } from './store/effects/category.effects';
+import { ProductEffects } from './store/effects/product.effects';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,6 +30,6 @@ export const appConfig: ApplicationConfig = {
       trace: false, // If set to true, will include stack trace for every dispatched action
       traceLimit: 75, // maximum stack trace frames to be stored (in case trace option was provided as true)
     }),
-    provideEffects([BannerEffects, CategoryEffects]),
+    provideEffects([BannerEffects, CategoryEffects, ProductEffects]),
   ],
 };

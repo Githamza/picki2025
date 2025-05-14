@@ -13,16 +13,30 @@
     <a
       mat-list-item
       *ngFor="let category of categories"
-      (click)="selectCategory(category.id)"
+      (click)="selectCategory(category)"
       [ngClass]="{
         'active-category': (selectedCategoryId$ | async) === category.id
       }"
     >
-      <mat-icon matListItemIcon>{{ category.icon || "category" }}</mat-icon>
+      <mat-icon matListItemIcon class="material-symbols-rounded">{{
+        category.icon || "category"
+      }}</mat-icon>
       <span matListItemTitle>{{ category.name }}</span>
       <span matListItemLine *ngIf="category.description">{{
         category.description
       }}</span>
+    </a>
+  </mat-nav-list>
+
+  <mat-divider class="menu-divider"></mat-divider>
+
+  <mat-nav-list>
+    <a mat-list-item routerLink="/material3" routerLinkActive="active-category">
+      <mat-icon matListItemIcon class="material-symbols-rounded"
+        >palette</mat-icon
+      >
+      <span matListItemTitle>Material 3 Examples</span>
+      <span matListItemLine>View MDC 3 components</span>
     </a>
   </mat-nav-list>
 </div>

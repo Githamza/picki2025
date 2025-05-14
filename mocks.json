@@ -1,0 +1,147 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/mockresponseplugin.mocksfile.schema.json",
+  "mocks": [
+    {
+      "request": {
+        "url": "http://localhost:8080/api/products",
+        "method": "GET",
+        "responseHeaders": {
+          "Access-Control-Allow-Origin": "*"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": [
+          {
+            "id": 1,
+            "name": "Classic Burger",
+            "price": 8.99,
+            "imageUrl": "https://via.placeholder.com/150",
+            "categoryId": 3
+          },
+          {
+            "id": 2,
+            "name": "Cheese Pizza",
+            "price": 12.99,
+            "imageUrl": "https://via.placeholder.com/150",
+            "categoryId": 4
+          },
+          {
+            "id": 3,
+            "name": "Caesar Salad",
+            "price": 7.99,
+            "imageUrl": "https://via.placeholder.com/150",
+            "categoryId": 5
+          },
+          {
+            "id": 4,
+            "name": "French Fries",
+            "price": 3.99,
+            "imageUrl": "https://via.placeholder.com/150",
+            "categoryId": 6
+          },
+          {
+            "id": 5,
+            "name": "Onion Rings",
+            "price": 4.99,
+            "imageUrl": "https://via.placeholder.com/150",
+            "categoryId": 6
+          },
+          {
+            "id": 6,
+            "name": "Milkshake",
+            "price": 5.99,
+            "imageUrl": "https://via.placeholder.com/150",
+            "categoryId": 8
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "request": {
+        "url": "http://localhost:8080/api/categories",
+        "method": "GET",
+        "responseHeaders": {
+          "Access-Control-Allow-Origin": "*"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": [
+          {
+            "id": 1,
+            "name": "Appetizers",
+            "icon": "restaurant",
+            "description": "Starters and small plates"
+          },
+          {
+            "id": 2,
+            "name": "Main Courses",
+            "icon": "lunch_dining",
+            "description": "Hearty main dishes"
+          },
+          {
+            "id": 3,
+            "name": "Burgers",
+            "icon": "lunch_dining",
+            "description": "Handcrafted burgers"
+          },
+          {
+            "id": 4,
+            "name": "Pizza",
+            "icon": "local_pizza",
+            "description": "Stone-baked pizzas"
+          },
+          {
+            "id": 5,
+            "name": "Salads",
+            "icon": "eco",
+            "description": "Fresh and healthy options"
+          },
+          {
+            "id": 6,
+            "name": "Sides",
+            "icon": "dinner_dining",
+            "description": "Perfect accompaniments"
+          },
+          {
+            "id": 7,
+            "name": "Desserts",
+            "icon": "icecream",
+            "description": "Sweet treats"
+          },
+          {
+            "id": 8,
+            "name": "Drinks",
+            "icon": "local_bar",
+            "description": "Refreshing beverages"
+          }
+        ]
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    }
+  ]
+}

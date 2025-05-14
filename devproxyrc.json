@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/dev-proxy/main/schemas/v0.27.0/rc.schema.json",
+  "port": 8080,
+  "logLevel": "information",
+  "rate": 100,
+  "plugins": [
+    {
+      "name": "CrudApiPlugin",
+      "enabled": true,
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
+      "configSection": "productsApi"
+    },
+    {
+      "name": "CrudApiPlugin",
+      "enabled": true,
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
+      "configSection": "categoriesApi"
+    }
+  ],
+  "urlsToWatch": ["http://localhost:8080/*"],
+  "productsApi": {
+    "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.schema.json",
+    "apiFile": "./apis/products-api.json"
+  },
+  "categoriesApi": {
+    "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.schema.json",
+    "apiFile": "./apis/categories-api.json"
+  }
+}

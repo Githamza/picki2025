@@ -1,5 +1,89 @@
-@import "tailwindcss";
+@use "tailwindcss";
 /* You can add global styles to this file, and also import other style files */
 
-/* Angular Material theme */
-@import "@angular/material/prebuilt-themes/indigo-pink.css";
+/* Angular Material 3 (MDC) theme */
+@use "theme.scss" as theme;
+@use "@angular/material" as mat;
+
+/* Material Symbols font (used by M3 icons) */
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
+
+/* Roboto font for Material typography */
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
+
+/* Global styles for Material 3 */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+/* Material 3 utility classes */
+.mat-elevation-z1 {
+  box-shadow: var(--mat-shadow-1);
+}
+.mat-elevation-z2 {
+  box-shadow: var(--mat-shadow-2);
+}
+.mat-elevation-z3 {
+  box-shadow: var(--mat-shadow-3);
+}
+.mat-elevation-z4 {
+  box-shadow: var(--mat-shadow-4);
+}
+.mat-elevation-z5 {
+  box-shadow: var(--mat-shadow-5);
+}
+
+.mat-rounded-small {
+  border-radius: var(--mat-shape-small);
+}
+.mat-rounded-medium {
+  border-radius: var(--mat-shape-medium);
+}
+.mat-rounded-large {
+  border-radius: var(--mat-shape-large);
+}
+.mat-rounded-xl {
+  border-radius: var(--mat-shape-extra-large);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-from-right {
+  from {
+    transform: translateX(30px);
+  }
+}
+
+@keyframes slide-to-left {
+  to {
+    transform: translateX(-30px);
+  }
+}
+
+::view-transition-old(root) {
+  animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+}
+
+::view-transition-new(root) {
+  animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+}

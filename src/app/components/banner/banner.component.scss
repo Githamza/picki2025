@@ -1,11 +1,13 @@
+@use "@angular/material" as mat;
+
 .banner {
   height: 300px;
   width: 100%;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  background-color: var(--mat-background);
   display: flex;
   justify-content: center;
   align-items: center;
-  color: white;
+  color: var(--mat-on-primary);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
   .banner-content {
@@ -32,7 +34,7 @@
       button {
         background: rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.4);
-        color: white;
+        color: var(--mat-on-primary);
         padding: 8px 12px;
         border-radius: 4px;
         cursor: pointer;

@@ -1,0 +1,40 @@
+<div class="product-details-sheet">
+  <div class="product-header">
+    <h2>{{ data.product.name }}</h2>
+    <button mat-icon-button (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="product-content">
+    <img
+      [src]="data.product.imageUrl"
+      [alt]="data.product.name"
+      title="Product image"
+    />
+    <p class="price">${{ data.product.price.toFixed(2) }}</p>
+
+    <div class="description-container">
+      <p class="short-description" *ngIf="data.product.shortDescription">
+        {{ data.product.shortDescription }}
+      </p>
+      <p class="long-description" *ngIf="data.product.longDescription">
+        {{ data.product.longDescription }}
+      </p>
+      <!-- Fallback to old description field if new fields aren't available -->
+      <p
+        class="description"
+        *ngIf="!data.product.longDescription && data.product.description"
+      >
+        {{ data.product.description }}
+      </p>
+    </div>
+
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="addToCart()">
+        <mat-icon>add_shopping_cart</mat-icon>
+        Add to Cart
+      </button>
+    </div>
+  </div>
+</div>

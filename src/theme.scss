@@ -4,7 +4,7 @@ html {
   color-scheme: light dark;
   @include mat.theme(
     (
-      color: mat.$violet-palette,
+      color: mat.$yellow-palette,
       typography: Roboto,
       density: 0,
     )

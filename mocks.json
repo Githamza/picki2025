@@ -23,42 +23,60 @@
             "name": "Classic Burger",
             "price": 8.99,
             "imageUrl": "https://via.placeholder.com/150",
-            "categoryId": 3
+            "categoryId": 3,
+            "description": "Our signature burger with fresh beef patty, lettuce, tomato, onions, and special sauce on a toasted brioche bun.",
+            "shortDescription": "Beef patty with fresh toppings",
+            "longDescription": "Our signature burger features a juicy half-pound Angus beef patty grilled to perfection. Served on a toasted brioche bun with crisp lettuce, ripe tomato, red onion, pickles, and our special house sauce. Comes with a side of crispy seasoned fries."
           },
           {
             "id": 2,
             "name": "Cheese Pizza",
             "price": 12.99,
             "imageUrl": "https://via.placeholder.com/150",
-            "categoryId": 4
+            "categoryId": 4,
+            "description": "Hand-tossed pizza crust topped with our secret tomato sauce and a blend of mozzarella, cheddar, and parmesan cheeses.",
+            "shortDescription": "Classic pizza with three cheeses",
+            "longDescription": "Our hand-tossed pizza dough topped with our signature tomato sauce and a blend of mozzarella, provolone, and parmesan cheeses. Baked in a stone oven until the crust is perfectly crispy and the cheese is beautifully melted and bubbling."
           },
           {
             "id": 3,
             "name": "Caesar Salad",
             "price": 7.99,
             "imageUrl": "https://via.placeholder.com/150",
-            "categoryId": 5
+            "categoryId": 5,
+            "description": "Crisp romaine lettuce, house-made croutons, shaved parmesan, and our creamy Caesar dressing. Add grilled chicken for $3.",
+            "shortDescription": "Romaine lettuce with parmesan",
+            "longDescription": "Crisp romaine lettuce tossed in our house-made Caesar dressing with garlic croutons, shaved parmesan cheese, and fresh ground black pepper. Add grilled chicken, shrimp, or salmon for an additional charge."
           },
           {
             "id": 4,
             "name": "French Fries",
             "price": 3.99,
             "imageUrl": "https://via.placeholder.com/150",
-            "categoryId": 6
+            "categoryId": 6,
+            "description": "Perfectly crispy on the outside, fluffy on the inside potato fries seasoned with sea salt. Served with ketchup.",
+            "shortDescription": "Crispy golden potato fries",
+            "longDescription": "Hand-cut Idaho potatoes fried to golden perfection and tossed with sea salt. Served with your choice of ketchup, garlic aioli, or our signature fry sauce. Available in regular or large size."
           },
           {
             "id": 5,
             "name": "Onion Rings",
             "price": 4.99,
             "imageUrl": "https://via.placeholder.com/150",
-            "categoryId": 6
+            "categoryId": 6,
+            "description": "Thick-cut onions, battered and fried to a golden brown. Served with our signature dipping sauce.",
+            "shortDescription": "Battered and fried onion rings",
+            "longDescription": "Thick-cut sweet onions dipped in our special beer batter and fried until golden and crispy. Served with a side of tangy chipotle ranch dipping sauce. The perfect crunchy accompaniment to any meal."
           },
           {
             "id": 6,
             "name": "Milkshake",
             "price": 5.99,
             "imageUrl": "https://via.placeholder.com/150",
-            "categoryId": 8
+            "categoryId": 8,
+            "description": "Creamy hand-spun milkshake made with premium ice cream and topped with whipped cream. Available in vanilla, chocolate, or strawberry.",
+            "shortDescription": "Creamy ice cream milkshake",
+            "longDescription": "Hand-spun milkshake made with premium ice cream and your choice of flavor: vanilla, chocolate, strawberry, cookies and cream, or caramel. Topped with whipped cream and appropriate garnishes. Add malt for an additional charge."
           }
         ]
       },

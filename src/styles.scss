@@ -16,6 +16,7 @@ html,
 body {
   height: 100%;
   margin: 0;
+  view-transition-name: none;
 }
 
 body {
@@ -77,13 +78,43 @@ body {
     transform: translateX(-30px);
   }
 }
-
-::view-transition-old(root) {
-  animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
-    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+:root {
+  view-transition-name: none;
+}
+/* Ensure view-transition-name doesn't affect layout */
+::view-transition-old(product-grid) {
+  animation-duration: 0.3s;
 }
 
-::view-transition-new(root) {
-  animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
-    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+::view-transition-new(product-grid) {
+  animation-duration: 0.3s;
+}
+@keyframes move-out {
+  from {
+    transform: translateY(0%);
+  }
+
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes move-in {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0%);
+  }
+}
+//custom view transition
+::view-transition-old(product-add) {
+  animation-duration: 0.3s;
+  animation-name: move-out;
+}
+
+::view-transition-new(product-add) {
+  animation-name: move-in;
+  animation-duration: 0.3s;
 }

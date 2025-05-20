@@ -13,6 +13,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import {
   MatCardActions,
   MatCardContent,
@@ -38,6 +39,7 @@ export const MaterialComponents = [
   MatSnackBarModule,
   MatTableModule,
   MatToolbarModule,
+  MatBottomSheetModule,
   // Direct component imports
   MatCardActions,
   MatCardContent,

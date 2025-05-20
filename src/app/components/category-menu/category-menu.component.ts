@@ -36,7 +36,6 @@ export class KebabCasePipe implements PipeTransform {
     MatIconModule,
     MatDividerModule,
     MatProgressSpinnerModule,
-    KebabCasePipe,
   ],
   templateUrl: './category-menu.component.html',
   styleUrls: ['./category-menu.component.scss'],

@@ -2,6 +2,7 @@
 
 .product-grid-container {
   padding: 16px;
+  view-transition-name: "product-grid";
 }
 
 .category-header {
@@ -46,6 +47,8 @@
 
   img {
     height: 180px;
+    max-width: 100%;
+    width: 100%;
     object-fit: cover;
     border-bottom: 1px solid var(--mat-outline-variant-transparent);
   }
@@ -64,6 +67,28 @@
       font-size: 1.2rem;
       font-weight: bold;
       margin: 8px 0;
+    }
+
+    .short-description {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 8px 0;
+      line-height: 1.4;
+      height: 40px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .description {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 8px 0;
+      line-height: 1.4;
+      height: 40px;
+      overflow: hidden;
     }
   }
 
@@ -125,6 +150,13 @@
         font-size: 1rem;
         margin: 4px 0;
       }
+
+      .short-description,
+      .description {
+        font-size: 0.8rem;
+        margin: 4px 0;
+        height: 32px;
+      }
     }
 
     mat-card-actions {
@@ -150,12 +182,4 @@
   to {
     opacity: 0;
   }
-}
-
-:root::view-transition-old(product-grid) {
-  animation: fadeOut 0.3s ease-in;
-}
-
-:root::view-transition-new(product-grid) {
-  animation: fadeIn 0.3s ease-out;
 }

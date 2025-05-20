@@ -17,7 +17,7 @@
       "configSection": "categoriesApi"
     }
   ],
-  "urlsToWatch": ["http://localhost:8080/*"],
+  "urlsToWatch": ["*"],
   "productsApi": {
     "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.schema.json",
     "apiFile": "./apis/products-api.json"

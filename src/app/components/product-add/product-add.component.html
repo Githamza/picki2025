@@ -1,0 +1,85 @@
+<div style="view-transition-name: product-add">
+  <div class="product-add-container" *ngIf="product">
+    <div class="product-content">
+      <div class="product-image-container">
+        <img
+          [src]="product.imageUrl"
+          [alt]="product.name"
+          title="Product image"
+          class="product-image"
+        />
+      </div>
+
+      <div class="product-details">
+        <div class="product-header">
+          <h1>{{ product.name }}</h1>
+        </div>
+        <div class="product-price">${{ product.price.toFixed(2) }}</div>
+
+        <div class="product-description-container">
+          <p class="product-short-description" *ngIf="product.shortDescription">
+            {{ product.shortDescription }}
+          </p>
+          <p class="product-long-description" *ngIf="product.longDescription">
+            {{ product.longDescription }}
+          </p>
+          <!-- Fallback to old description field if new fields aren't available -->
+          <p
+            class="product-description"
+            *ngIf="!product.longDescription && product.description"
+          >
+            {{ product.description }}
+          </p>
+        </div>
+
+        <div class="quantity-controls">
+          <h3>Quantity</h3>
+          <div class="quantity-buttons">
+            <button
+              mat-fab
+              color="warn"
+              aria-label="Remove item or decrease quantity"
+              (click)="quantity === 1 ? removeItem() : decrementQuantity()"
+              class="quantity-button"
+            >
+              <mat-icon>{{ quantity === 1 ? "delete" : "remove" }}</mat-icon>
+            </button>
+
+            <span class="quantity-value">{{ quantity }}</span>
+
+            <button
+              mat-fab
+              color="primary"
+              aria-label="Increase quantity"
+              (click)="incrementQuantity()"
+              class="quantity-button"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="add-to-cart">
+      <button
+        mat-flat-button
+        color="primary"
+        class="add-to-cart-button"
+        (click)="addToCart(product)"
+      >
+        <mat-icon>shopping_cart</mat-icon>
+        <div class="button-content">
+          <span class="button-text">Add to Cart</span>
+          <span class="button-price"
+            >${{ (product.price * quantity).toFixed(2) }}</span
+          >
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div class="product-not-found" *ngIf="(product$ | async) === undefined">
+    <h2>Product not found</h2>
+    <p>Sorry, we couldn't find the product you're looking for.</p>
+  </div>
+</div>

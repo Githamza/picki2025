@@ -1,4 +1,4 @@
-<div class="product-grid-container">
+<div class="product-grid-container" style="view-transition-name: product-grid">
   <div class="category-header" *ngIf="selectedCategory$ | async as category">
     <h2>{{ category.name }}</h2>
     <p *ngIf="category.description">{{ category.description }}</p>
@@ -10,8 +10,7 @@
 
   <div class="product-grid" [attr.view-transition-name]="'product-grid'">
     <mat-card
-      *ngFor="let product of filteredProducts$ | async"
-      [attr.view-transition-name]="'product-card-' + product.id"
+      *ngFor="let product of filteredProducts"
       class="product-card"
       appearance="outlined"
     >
@@ -19,11 +18,21 @@
         mat-card-image
         [src]="product.imageUrl"
         [alt]="product.name"
-        alt=""
+        title="Product image"
       />
       <mat-card-content>
         <h3>{{ product.name }}</h3>
         <p class="price">${{ product.price.toFixed(2) }}</p>
+        <p class="short-description" *ngIf="product.shortDescription">
+          {{ product.shortDescription }}
+        </p>
+        <p
+          class="description"
+          *ngIf="!product.shortDescription && product.description"
+        >
+          {{ product.description | slice : 0 : 60
+          }}{{ product.description.length > 60 ? "..." : "" }}
+        </p>
       </mat-card-content>
       <mat-card-actions>
         <button
@@ -33,7 +42,7 @@
           (click)="addToCart(product)"
           matTooltip="Add to order"
         >
-          <mat-icon>add_shopping_cart</mat-icon>
+          <mat-icon>add</mat-icon>
         </button>
       </mat-card-actions>
     </mat-card>

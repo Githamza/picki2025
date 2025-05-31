@@ -1,0 +1,81 @@
+<div class="admin-layout">
+  <!-- Admin Toolbar -->
+  <mat-toolbar color="primary" class="admin-toolbar">
+    <div class="toolbar-left">
+      <div class="brand-section">
+        <mat-icon class="brand-icon">admin_panel_settings</mat-icon>
+        <div class="brand-text">
+          <span class="brand-title">Interface Admin</span>
+          <span class="brand-subtitle">Dashboard de gestion</span>
+        </div>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="navigation-buttons">
+        <button
+          mat-raised-button
+          [color]="isCurrentRoute('orders-manager') ? 'accent' : 'primary'"
+          (click)="navigateToOrders()"
+          class="nav-button"
+          [class.active]="isCurrentRoute('orders-manager')"
+          aria-label="Accéder aux commandes live"
+        >
+          <mat-icon>assignment</mat-icon>
+          <span class="button-text">Commandes Live</span>
+          <span class="button-text-short">Commandes</span>
+        </button>
+
+        <button
+          mat-raised-button
+          [color]="isCurrentRoute('stock-manager') ? 'accent' : 'primary'"
+          (click)="navigateToStock()"
+          class="nav-button"
+          [class.active]="isCurrentRoute('stock-manager')"
+          aria-label="Accéder à la gestion des stocks"
+        >
+          <mat-icon>inventory</mat-icon>
+          <span class="button-text">Mes Stocks</span>
+          <span class="button-text-short">Stocks</span>
+        </button>
+      </div>
+
+      <!-- Orders Suspension Toggle -->
+      <div class="orders-control">
+        <div class="toggle-container" [matTooltip]="getOrdersStatusTooltip()">
+          <mat-slide-toggle
+            [checked]="!ordersSuspended"
+            [disabled]="isToggling"
+            (change)="toggleOrdersSuspension()"
+            class="orders-toggle"
+            [class.suspended]="ordersSuspended"
+            [class.active]="!ordersSuspended"
+            aria-label="Suspendre ou activer les commandes"
+          >
+            <div class="toggle-content">
+              <mat-icon class="toggle-icon">
+                {{ ordersSuspended ? "pause_circle" : "play_circle" }}
+              </mat-icon>
+              <span class="toggle-text">{{ getOrdersStatusText() }}</span>
+            </div>
+          </mat-slide-toggle>
+        </div>
+      </div>
+
+      <!-- User Actions -->
+      <div class="user-actions">
+        <button
+          mat-icon-button
+          class="user-menu-button"
+          aria-label="Menu utilisateur"
+        >
+          <mat-icon>account_circle</mat-icon>
+        </button>
+      </div>
+    </div>
+  </mat-toolbar>
+
+  <!-- Content Area -->
+  <div class="admin-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

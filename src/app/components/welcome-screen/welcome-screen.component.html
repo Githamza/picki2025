@@ -1,0 +1,119 @@
+<div class="welcome-screen">
+  <div class="welcome-container">
+    <!-- Header -->
+    <div class="welcome-header">
+      <h1 class="welcome-title">Bienvenue 👋</h1>
+      <p class="welcome-subtitle">
+        Comment aimeriez-vous profiter de votre commande ?
+      </p>
+    </div>
+
+    <!-- Dining Options -->
+    <div class="dining-options">
+      <button
+        mat-fab
+        extended
+        class="dining-option eat-in"
+        [class.selected]="selectedPreference === 'eat-in'"
+        (click)="selectPreference('eat-in')"
+        aria-label="Sur place - Diner dans notre restaurant"
+      >
+        <div class="option-content">
+          <mat-icon class="option-icon">restaurant</mat-icon>
+          <span class="option-text">Sur place</span>
+          <p class="option-description">Diner dans notre restaurant</p>
+        </div>
+      </button>
+
+      <button
+        mat-fab
+        extended
+        class="dining-option take-away"
+        [class.selected]="selectedPreference === 'take-away'"
+        (click)="selectPreference('take-away')"
+        aria-label="À emporter - Commander à emporter"
+      >
+        <div class="option-content">
+          <mat-icon class="option-icon">takeout_dining</mat-icon>
+          <span class="option-text">À emporter</span>
+          <p class="option-description">Commander à emporter</p>
+        </div>
+      </button>
+    </div>
+
+    <!-- Timing Options for Take Away -->
+    <div class="timing-section" *ngIf="selectedPreference === 'take-away'">
+      <h3>When would you like to pick up your order?</h3>
+
+      <mat-button-toggle-group
+        [value]="selectedTiming"
+        (change)="selectTiming($event.value)"
+        aria-label="Select pickup timing"
+      >
+        <mat-button-toggle value="now">Tout de suite</mat-button-toggle>
+        <mat-button-toggle value="later">Plus tard</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <!-- Date and Time Selection -->
+      <div
+        class="schedule-section"
+        *ngIf="selectedTiming === 'later'"
+        [formGroup]="orderForm"
+      >
+        <mat-form-field>
+          <mat-label>Select Date</mat-label>
+          <input
+            title="Select Date"
+            matInput
+            [matDatepicker]="datePicker"
+            formControlName="scheduledDate"
+            [min]="minDate"
+            (click)="openDatePicker()"
+          />
+          <mat-datepicker-toggle
+            matIconSuffix
+            [for]="datePicker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #datePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Select Time</mat-label>
+          <input
+            matInput
+            [matTimepicker]="timepicker"
+            formControlName="scheduledTime"
+            placeholder="Select time"
+          />
+          <mat-timepicker #timepicker />
+          <mat-timepicker-toggle [for]="timepicker" matSuffix />
+          <mat-error
+            *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
+          >
+            Time is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Validation Button -->
+    <div class="validation-section" *ngIf="selectedPreference">
+      <button
+        mat-flat-button
+        color="primary"
+        [disabled]="!canValidate"
+        (click)="onValidate()"
+        class="validate-button"
+      >
+        Continue
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="welcome-footer">
+      <p class="footer-text">
+        Vous pouvez modifier cette préférence plus tard dans votre commande
+      </p>
+    </div>
+  </div>
+</div>

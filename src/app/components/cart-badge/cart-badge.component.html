@@ -1,1 +1,15 @@
-<p>cart-badge works!</p>
+<ng-container *ngIf="showBadge$ | async">
+  <button
+    *ngIf="cartCount$ | async as count; else nothing"
+    class="cart-badge"
+    mat-fab
+    extended
+    color="secondary"
+    aria-label="View cart"
+    (click)="openCartDetails()"
+  >
+    <mat-icon>shopping_cart</mat-icon>
+    <span class="cart-count"> Voir mon panier ({{ count }})</span>
+  </button>
+</ng-container>
+<ng-template #nothing></ng-template>

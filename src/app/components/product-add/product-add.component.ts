@@ -1,4 +1,4 @@
-import { Component, Injector, OnInit } from '@angular/core';
+import { Component, Injector, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +10,8 @@ import { AppState } from '../../store/models/app.state';
 import * as ProductSelectors from '../../store/selectors/product.selectors';
 import { Product } from '../../services/product.service';
 import { UtilsService } from '../../shared/utils.service';
+import { addToCart } from '../../store/actions/cart.actions';
+import { VendorNavigationService } from '../../services/vendor-navigation.service';
 
 @Component({
   selector: 'app-product-add',
@@ -28,33 +30,31 @@ export class ProductAddComponent implements OnInit {
     private store: Store<AppState>,
     private utilsService: UtilsService,
     private injector: Injector,
-    private router: Router
+    private router: Router,
+    private vendorNavigation: VendorNavigationService
   ) {}
 
   ngOnInit(): void {
     // Get product from store based on the route parameter
-    document.startViewTransition(() => {
-      this.route.paramMap
-        .pipe(
-          map((params) =>
-            params.get('productName')?.toLowerCase().replace(/-/g, ' ')
-          ),
-          switchMap((productName) =>
-            this.store.select(ProductSelectors.selectAllProducts).pipe(
-              map((products) => {
-                const product = products.find(
-                  (p) => p.name.toLowerCase() === productName
-                );
-                return product;
-              })
-            )
-          )
+    this.product$ = this.route.paramMap.pipe(
+      map((params) =>
+        params.get('productName')?.toLowerCase().replace(/-/g, ' ')
+      ),
+      switchMap((productName) =>
+        this.store.select(ProductSelectors.selectAllProducts).pipe(
+          map((products) => {
+            const product = products.find(
+              (p) => p.name.toLowerCase() === productName
+            );
+            return product;
+          })
         )
-        .subscribe((product) => {
-          this.product = product;
-          this.utilsService.createRenderPromise(this.injector);
-        });
-    });
+      )
+    );
+    // .subscribe((product) => {
+    //   this.product = product;
+    //   this.utilsService.createRenderPromise(this.injector);
+    // });
   }
 
   incrementQuantity(): void {
@@ -69,22 +69,47 @@ export class ProductAddComponent implements OnInit {
 
   removeItem(): void {
     this.quantity = 0;
-    // In a real app, you would navigate back or remove from cart
-    console.log('Item removed');
+    // Navigate back to products page
+    this.vendorNavigation.navigateWithVendor('products');
   }
 
   addToCart(product: Product): void {
-    // In a real app, you would dispatch an action to add to cart
-    console.log('Added to cart:', product, 'Quantity:', this.quantity);
-
-    // Navigate to the home page with smooth transition
+    this.store.dispatch(addToCart({ product, quantity: this.quantity }));
+    // Navigate to the products page with smooth transition
     if (document.startViewTransition) {
       document.startViewTransition(() => {
-        this.router.navigate(['/']);
+        this.vendorNavigation.navigateWithVendor('products');
       });
     } else {
       // Fallback for browsers that don't support view transitions
-      this.router.navigate(['/']);
+      this.vendorNavigation.navigateWithVendor('products');
     }
   }
+
+  closePage(): void {
+    this.vendorNavigation.navigateWithVendor('products');
+  }
+
+  // Handle swipe gestures on mobile
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent): void {
+    this.touchStartX = event.touches[0].clientX;
+  }
+
+  @HostListener('touchend', ['$event'])
+  onTouchEnd(event: TouchEvent): void {
+    if (!this.touchStartX) return;
+
+    const touchEndX = event.changedTouches[0].clientX;
+    const diff = this.touchStartX - touchEndX;
+
+    // Swipe right to close (if swipe is more than 50px)
+    if (diff < -50) {
+      this.closePage();
+    }
+
+    this.touchStartX = null;
+  }
+
+  private touchStartX: number | null = null;
 }

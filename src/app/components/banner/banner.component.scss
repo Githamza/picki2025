@@ -1,28 +1,53 @@
 @use "@angular/material" as mat;
 
 .banner {
-  height: 300px;
+  height: 200px;
   width: 100%;
-  background-color: var(--mat-background);
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: var(--mat-on-primary);
+  color: white;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border-radius: 12px;
+
+  .banner-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+
+    .banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+  }
 
   .banner-content {
+    position: relative;
+    z-index: 2;
     text-align: center;
     padding: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    backdrop-filter: blur(2px);
 
     h1 {
       margin-bottom: 10px;
       font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
 
     p {
       font-size: 1.2rem;
       opacity: 0.9;
       margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     .banner-controls {
@@ -34,7 +59,7 @@
       button {
         background: rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.4);
-        color: var(--mat-on-primary);
+        color: white;
         padding: 8px 12px;
         border-radius: 4px;
         cursor: pointer;

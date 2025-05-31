@@ -1,0 +1,322 @@
+<div class="orders-manager">
+  <!-- Refresh Section -->
+  <div class="refresh-section">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="refreshOrders()"
+      [disabled]="isLoading()"
+      class="refresh-button"
+    >
+      <mat-icon>refresh</mat-icon>
+      @if (isLoading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+      } @else { Actualiser }
+    </button>
+  </div>
+
+  <div class="orders-container">
+    <!-- Dine-in Orders Column -->
+    <div class="orders-column">
+      <h2 class="column-title">
+        <mat-icon>restaurant</mat-icon>
+        Sur Place
+      </h2>
+
+      <div class="orders-list">
+        <mat-card
+          *ngFor="let order of dineInOrders$ | async; trackBy: trackByOrderId"
+          class="order-card"
+          [class.order-initiated]="order.status === 'initiated'"
+          [class.order-refused]="order.status === 'refused'"
+          [class.order-todo]="order.status === 'todo'"
+          [class.order-ongoing]="order.status === 'ongoing'"
+          [class.order-done]="order.status === 'done'"
+          [class.order-picked]="order.status === 'picked'"
+          [class.order-loading]="isOrderLoading(order.id)"
+        >
+          <mat-card-header>
+            <mat-card-title>
+              <div class="order-header-info">
+                <span class="order-number"
+                  >Commande #{{ order.orderNumber }}</span
+                >
+                <mat-chip [color]="statusColors[order.status]" selected>
+                  {{ statusLabels[order.status] }}
+                </mat-chip>
+                @if (isOrderLoading(order.id)) {
+                <mat-spinner diameter="20" class="order-spinner"></mat-spinner>
+                }
+              </div>
+            </mat-card-title>
+            <mat-card-subtitle>
+              <div class="order-meta-info">
+                <div class="table-info" *ngIf="order.tableNumber">
+                  <mat-icon>table_restaurant</mat-icon>
+                  Table {{ order.tableNumber }}
+                </div>
+              </div>
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="customer-info">
+              <div class="customer-name">
+                <mat-icon>person</mat-icon>
+                {{ order.customer.firstName }} {{ order.customer.lastName }}
+              </div>
+              <div class="customer-contact">
+                <span class="contact-item">
+                  <mat-icon>email</mat-icon>
+                  {{ order.customer.email }}
+                </span>
+                <span class="contact-item" *ngIf="order.customer.phone">
+                  <mat-icon>phone</mat-icon>
+                  {{ order.customer.phone }}
+                </span>
+              </div>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <div class="order-items">
+              <div *ngFor="let item of order.items" class="order-item">
+                <span class="item-quantity">{{ item.quantity }}x</span>
+                <span class="item-name">{{ item.productName }}</span>
+                <span class="item-price">{{
+                  item.price * item.quantity
+                    | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+                }}</span>
+              </div>
+            </div>
+
+            <div class="order-total">
+              <strong>Total:</strong>
+              <span>{{
+                order.totalAmount | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+              }}</span>
+            </div>
+
+            <div class="order-notes" *ngIf="order.notes">
+              <mat-icon>note</mat-icon>
+              {{ order.notes }}
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions>
+            <!-- Validation buttons for initiated orders -->
+            <div class="validation-buttons" *ngIf="canValidateOrder(order)">
+              <button
+                mat-fab
+                extended
+                color="primary"
+                (click)="acceptOrder(order)"
+                [disabled]="isOrderLoading(order.id)"
+                class="order-action-button accept-button"
+              >
+                @if (isOrderLoading(order.id)) {
+                <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                <mat-icon>check_circle</mat-icon>
+                <span class="order-action-button-text">Accepter</span>
+                }
+              </button>
+              <button
+                mat-fab
+                extended
+                color="warn"
+                (click)="refuseOrder(order)"
+                [disabled]="isOrderLoading(order.id)"
+                class="order-action-button refuse-button"
+              >
+                @if (isOrderLoading(order.id)) {
+                <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                <mat-icon>cancel</mat-icon>
+                <span class="order-action-button-text">Refuser</span>
+                }
+              </button>
+            </div>
+
+            <!-- Regular status update button for other statuses -->
+            <button
+              mat-fab
+              extended
+              [color]="buttonColors[order.status]"
+              *ngIf="canUpdateStatus(order)"
+              (click)="updateOrderStatus(order, getNextStatus(order.status)!)"
+              [disabled]="isOrderLoading(order.id)"
+              class="order-action-button"
+            >
+              @if (isOrderLoading(order.id)) {
+              <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+              <mat-icon>{{ buttonIcons[order.status] }}</mat-icon>
+              <span class="order-action-button-text">
+                {{ getNextStatusLabel(order.status) }}
+              </span>
+              }
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Takeaway Orders Column -->
+    <div class="orders-column">
+      <h2 class="column-title">
+        <mat-icon>shopping_bag</mat-icon>
+        À Emporter
+      </h2>
+
+      <div class="orders-list">
+        <mat-card
+          *ngFor="let order of takeawayOrders$ | async; trackBy: trackByOrderId"
+          class="order-card"
+          [class.order-initiated]="order.status === 'initiated'"
+          [class.order-refused]="order.status === 'refused'"
+          [class.order-todo]="order.status === 'todo'"
+          [class.order-ongoing]="order.status === 'ongoing'"
+          [class.order-done]="order.status === 'done'"
+          [class.order-picked]="order.status === 'picked'"
+          [class.order-asap]="order.timing === 'asap'"
+          [class.order-loading]="isOrderLoading(order.id)"
+        >
+          <mat-card-header>
+            <mat-card-title>
+              <div class="order-header-info">
+                <span class="order-number"
+                  >Commande #{{ order.orderNumber }}</span
+                >
+                <mat-chip [color]="statusColors[order.status]" selected>
+                  {{ statusLabels[order.status] }}
+                </mat-chip>
+                @if (isOrderLoading(order.id)) {
+                <mat-spinner diameter="20" class="order-spinner"></mat-spinner>
+                }
+              </div>
+            </mat-card-title>
+            <mat-card-subtitle>
+              <div class="order-meta-info">
+                <div class="timing-info">
+                  <mat-chip color="warn" *ngIf="order.timing === 'asap'">
+                    <mat-icon>schedule</mat-icon>
+                    IMMÉDIAT
+                  </mat-chip>
+                  <div
+                    class="scheduled-time"
+                    *ngIf="order.timing === 'later' && order.scheduledTime"
+                  >
+                    <mat-icon>access_time</mat-icon>
+                    {{ formatScheduledDate(order.scheduledTime) }} à
+                    {{ formatScheduledTime(order.scheduledTime) }}
+                  </div>
+                </div>
+              </div>
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="customer-info">
+              <div class="customer-name">
+                <mat-icon>person</mat-icon>
+                {{ order.customer.firstName }} {{ order.customer.lastName }}
+              </div>
+              <div class="customer-contact">
+                <span class="contact-item">
+                  <mat-icon>email</mat-icon>
+                  {{ order.customer.email }}
+                </span>
+                <span class="contact-item" *ngIf="order.customer.phone">
+                  <mat-icon>phone</mat-icon>
+                  {{ order.customer.phone }}
+                </span>
+              </div>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <div class="order-items">
+              <div *ngFor="let item of order.items" class="order-item">
+                <span class="item-quantity">{{ item.quantity }}x</span>
+                <span class="item-name">{{ item.productName }}</span>
+                <span class="item-price">{{
+                  item.price * item.quantity
+                    | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+                }}</span>
+              </div>
+            </div>
+
+            <div class="order-total">
+              <strong>Total:</strong>
+              <span>{{
+                order.totalAmount | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+              }}</span>
+            </div>
+
+            <div class="order-notes" *ngIf="order.notes">
+              <mat-icon>note</mat-icon>
+              {{ order.notes }}
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions>
+            <!-- Validation buttons for initiated orders -->
+            <div class="validation-buttons" *ngIf="canValidateOrder(order)">
+              <button
+                mat-fab
+                extended
+                color="primary"
+                (click)="acceptOrder(order)"
+                [disabled]="isOrderLoading(order.id)"
+                class="order-action-button accept-button"
+              >
+                @if (isOrderLoading(order.id)) {
+                <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                <mat-icon>check_circle</mat-icon>
+                <span class="order-action-button-text">Accepter</span>
+                }
+              </button>
+              <button
+                mat-fab
+                extended
+                color="warn"
+                (click)="refuseOrder(order)"
+                [disabled]="isOrderLoading(order.id)"
+                class="order-action-button refuse-button"
+              >
+                @if (isOrderLoading(order.id)) {
+                <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                <mat-icon>cancel</mat-icon>
+                <span class="order-action-button-text">Refuser</span>
+                }
+              </button>
+            </div>
+
+            <!-- Regular status update button for other statuses -->
+            <button
+              mat-fab
+              extended
+              [color]="buttonColors[order.status]"
+              *ngIf="canUpdateStatus(order)"
+              (click)="updateOrderStatus(order, getNextStatus(order.status)!)"
+              [disabled]="isOrderLoading(order.id)"
+              class="order-action-button"
+            >
+              @if (isOrderLoading(order.id)) {
+              <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+              <mat-icon>{{ buttonIcons[order.status] }}</mat-icon>
+              <span class="order-action-button-text">
+                {{ getNextStatusLabel(order.status) }}
+              </span>
+              }
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+</div>

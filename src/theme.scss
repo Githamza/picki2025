@@ -1,10 +1,10 @@
 @use "@angular/material" as mat;
 // Define light theme
 html {
-  color-scheme: light dark;
+  color-scheme: light;
   @include mat.theme(
     (
-      color: mat.$yellow-palette,
+      color: mat.$blue-palette,
       typography: Roboto,
       density: 0,
     )

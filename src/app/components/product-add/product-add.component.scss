@@ -1,9 +1,22 @@
+@use "@angular/material" as mat;
+
+.product-add-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: auto;
+}
+
 .product-add-container {
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  padding-bottom: 100px; // Make space for the fixed button
+  min-height: calc(100vh - 64px); // Account for toolbar
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .product-header {
@@ -22,9 +35,11 @@
   display: flex;
   flex-direction: row;
   gap: 48px;
+  flex: 1;
 
   @media (max-width: 768px) {
     flex-direction: column;
+    gap: 24px;
   }
 }
 
@@ -32,13 +47,23 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
 
   .product-image {
     max-width: 400px;
     width: 100%;
     height: auto;
+    max-height: 400px;
+    object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--mat-sys-surface-container);
+  }
+
+  @media (max-width: 768px) {
+    .product-image {
+      max-height: 300px;
+    }
   }
 }
 
@@ -47,11 +72,19 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+
+  @media (max-width: 768px) {
+    gap: 16px;
+  }
 }
 
 .product-price {
   font-size: 2rem;
   font-weight: bold;
+
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
 }
 
 .product-description-container {
@@ -63,18 +96,30 @@
     font-size: 1.2rem;
     font-weight: 500;
     margin: 0;
+
+    @media (max-width: 768px) {
+      font-size: 1.1rem;
+    }
   }
 
   .product-long-description {
     font-size: 1rem;
     line-height: 1.6;
     margin: 0;
+
+    @media (max-width: 768px) {
+      font-size: 0.95rem;
+    }
   }
 
   .product-description {
     line-height: 1.6;
     font-size: 1.1rem;
     margin: 0;
+
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
   }
 }
 
@@ -87,13 +132,18 @@
   .quantity-buttons {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 8px;
 
     .quantity-value {
       font-size: 1.5rem;
       font-weight: bold;
       min-width: 40px;
       text-align: center;
+
+      @media (max-width: 768px) {
+        font-size: 1.25rem;
+        min-width: 35px;
+      }
     }
 
     .quantity-button {
@@ -102,34 +152,34 @@
       &:hover {
         transform: scale(1.05);
       }
+
+      @media (max-width: 768px) {
+        width: 40px;
+        height: 40px;
+
+        mat-icon {
+          font-size: 20px;
+          height: 20px;
+          width: 20px;
+        }
+      }
     }
   }
 }
 
 .add-to-cart {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  right: 0;
-  padding: 16px;
+  margin: 24px -24px -24px -24px;
+  padding: 16px 24px;
+  background-color: var(--mat-sys-surface);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   z-index: 10;
-
-  // Adjust for sidenav
-  left: auto;
-  width: calc(
-    100% - 250px
-  ); // Match the sidenav width of 250px from main-layout
-
-  // Adjust for mobile
-  @media (max-width: 768px) {
-    width: 100%;
-    left: 0;
-  }
 
   .add-to-cart-button {
     width: 100%;
     font-size: 1.2rem;
     padding: 16px 32px;
-    border-radius: 8px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
     font-weight: 500;
@@ -174,6 +224,47 @@
     &:active {
       transform: translateY(1px);
     }
+
+    @media (max-width: 768px) {
+      font-size: 1.1rem;
+      padding: 12px 24px;
+      height: 48px;
+
+      mat-icon {
+        font-size: 22px;
+        height: 22px;
+        width: 22px;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    margin: 16px -16px -16px -16px;
+    padding: 12px 16px;
+  }
+}
+
+.inner-add-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 14px;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 12px;
+
+    .quantity-controls {
+      width: 100%;
+
+      .quantity-buttons {
+        justify-content: center;
+      }
+    }
+
+    .add-to-cart-button {
+      width: 100%;
+    }
   }
 }
 
@@ -183,21 +274,73 @@
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  padding-bottom: 100px; // Make space for the fixed button
+  padding-bottom: 100px;
 
   h2 {
     font-size: 1.8rem;
     margin-bottom: 16px;
+
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+    }
   }
 
   p {
     font-size: 1.1rem;
     color: #666;
+
+    @media (max-width: 768px) {
+      font-size: 1rem;
+    }
   }
 }
 
 @media (max-width: 768px) {
-  .product-details {
-    padding-bottom: 80px; // Add space for fixed add-to-cart button
+  .product-add-container {
+    padding: 16px;
+    min-height: calc(100vh - 56px);
+  }
+
+  .product-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .product-add-container {
+    padding: 12px;
+  }
+
+  .product-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .product-content {
+    gap: 16px;
+  }
+}
+
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: var(--mat-sys-surface, #fff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  @media (max-width: 768px) {
+    top: 8px;
+    right: 8px;
+    width: 40px;
+    height: 40px;
+
+    mat-icon {
+      font-size: 20px;
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
 import { Observable } from 'rxjs';
 import { AppState } from '../../store/models/app.state';
 import * as BannerActions from '../../store/actions/banner.actions';
@@ -11,7 +11,7 @@ import * as BannerSelectors from '../../store/selectors/banner.selectors';
   templateUrl: './banner.component.html',
   styleUrls: ['./banner.component.scss'],
   standalone: true,
-  imports: [AsyncPipe, NgIf],
+  imports: [AsyncPipe, NgIf, NgOptimizedImage],
 })
 export class BannerComponent implements OnInit {
   title$: Observable<string>;

@@ -1,0 +1,129 @@
+<div class="stock-manager">
+  <!-- Search and Statistics Section -->
+  <div class="search-stats-section">
+    <div class="search-container">
+      <mat-form-field class="search-field">
+        <mat-label>Rechercher un produit...</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          [value]="searchTerm()"
+          (input)="onSearchChange($event)"
+          placeholder="Nom, catégorie, description..."
+        />
+        @if (searchTerm()) {
+        <button matSuffix mat-icon-button (click)="clearSearch()">
+          <mat-icon>clear</mat-icon>
+        </button>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="stats-container">
+      <mat-chip-set>
+        <mat-chip>
+          <mat-icon>inventory</mat-icon>
+          Total: {{ totalProducts$ | async }}
+        </mat-chip>
+        <mat-chip color="primary" selected>
+          <mat-icon>check_circle</mat-icon>
+          Disponibles: {{ availableProducts$ | async }}
+        </mat-chip>
+        <mat-chip color="warn" selected>
+          <mat-icon>cancel</mat-icon>
+          Indisponibles: {{ unavailableProducts$ | async }}
+        </mat-chip>
+      </mat-chip-set>
+    </div>
+  </div>
+
+  <!-- Products List -->
+  <div class="products-container">
+    @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Chargement des produits...</p>
+    </div>
+    } @else {
+    <div class="products-grid">
+      @for (product of filteredProducts$ | async; track trackByProductId($index,
+      product)) {
+      <mat-card class="product-card" [class.unavailable]="!product.isAvailable">
+        <mat-card-header>
+          <div class="product-image" mat-card-avatar>
+            @if (product.imageUrl) {
+            <img
+              [alt]="product.name"
+              [src]="product.imageUrl"
+              [title]="product.name"
+            />
+            } @else {
+            <mat-icon>fastfood</mat-icon>
+            }
+          </div>
+
+          <mat-card-title>{{ product.name }}</mat-card-title>
+          <mat-card-subtitle>{{ product.categoryName }}</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="product-info">
+            <div class="price">
+              {{ product.price | currency : "EUR" : "symbol" : "1.2-2" : "fr" }}
+            </div>
+
+            @if (product.description) {
+            <div class="description">
+              {{ product.description }}
+            </div>
+            } @if (product.stockQuantity !== undefined) {
+            <div class="stock-info">
+              <mat-icon>inventory_2</mat-icon>
+              Stock: {{ product.stockQuantity }}
+            </div>
+            }
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <div class="availability-control">
+            <span class="availability-label">Disponibilité:</span>
+            <div class="toggle-container">
+              @if (isProductLoading(product.id)) {
+              <mat-spinner diameter="24"></mat-spinner>
+              } @else {
+              <mat-slide-toggle
+                [checked]="product.isAvailable"
+                (change)="updateProductAvailability(product, $event.checked)"
+                [disabled]="isProductLoading(product.id)"
+                color="primary"
+              >
+                {{ product.isAvailable ? "Disponible" : "Indisponible" }}
+              </mat-slide-toggle>
+              }
+            </div>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+      } @empty {
+      <div class="empty-state">
+        @if (searchTerm()) {
+        <mat-icon>search_off</mat-icon>
+        <h3>Aucun produit trouvé</h3>
+        <p>
+          Aucun produit ne correspond à votre recherche "{{ searchTerm() }}"
+        </p>
+        <button mat-raised-button color="primary" (click)="clearSearch()">
+          Effacer la recherche
+        </button>
+        } @else {
+        <mat-icon>inventory</mat-icon>
+        <h3>Aucun produit</h3>
+        <p>Aucun produit n'est configuré dans le système</p>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div>

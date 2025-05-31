@@ -108,48 +108,56 @@
             "id": 1,
             "name": "Appetizers",
             "icon": "restaurant",
+            "imageUrl": "https://foodish-api.com/images/samosa/samosa1.jpg",
             "description": "Starters and small plates"
           },
           {
             "id": 2,
             "name": "Main Courses",
             "icon": "lunch_dining",
+            "imageUrl": "https://foodish-api.com/images/biryani/biryani1.jpg",
             "description": "Hearty main dishes"
           },
           {
             "id": 3,
             "name": "Burgers",
             "icon": "lunch_dining",
+            "imageUrl": "https://foodish-api.com/images/burger/burger1.jpg",
             "description": "Handcrafted burgers"
           },
           {
             "id": 4,
             "name": "Pizza",
             "icon": "local_pizza",
+            "imageUrl": "https://foodish-api.com/images/pizza/pizza1.jpg",
             "description": "Stone-baked pizzas"
           },
           {
             "id": 5,
             "name": "Salads",
             "icon": "eco",
+            "imageUrl": "https://foodish-api.com/images/rice/rice1.jpg",
             "description": "Fresh and healthy options"
           },
           {
             "id": 6,
             "name": "Sides",
             "icon": "dinner_dining",
+            "imageUrl": "https://foodish-api.com/images/dosa/dosa1.jpg",
             "description": "Perfect accompaniments"
           },
           {
             "id": 7,
             "name": "Desserts",
             "icon": "icecream",
+            "imageUrl": "https://foodish-api.com/images/dessert/dessert1.jpg",
             "description": "Sweet treats"
           },
           {
             "id": 8,
             "name": "Drinks",
             "icon": "local_bar",
+            "imageUrl": "https://foodish-api.com/images/pasta/pasta1.jpg",
             "description": "Refreshing beverages"
           }
         ]

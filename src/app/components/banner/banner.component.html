@@ -1,7 +1,12 @@
 <div class="banner" *ngIf="isVisible$ | async">
-  <div class="banner-content">
-    <h1>{{ title$ | async }}</h1>
-    <p>{{ subtitle$ | async }}</p>
-    <div class="banner-controls"></div>
+  <div class="banner-image">
+    <img
+      ngSrc="/banner.jpg"
+      alt="Banner"
+      class="banner-img"
+      width="1200"
+      height="400"
+      priority
+    />
   </div>
 </div>

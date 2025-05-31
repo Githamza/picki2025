@@ -1,153 +1,182 @@
 [
   {
     "id": 1,
-    "name": "Bruschetta",
-    "price": 6.99,
-    "imageUrl": "https://foodish-api.com/images/biryani/biryani1.jpg",
-    "categoryId": 1,
-    "shortDescription": "Toasted bread with fresh tomatoes and basil",
-    "longDescription": "Classic Italian appetizer featuring toasted bread rubbed with garlic and topped with a mixture of diced tomatoes, fresh basil, and extra virgin olive oil. Finished with a balsamic glaze drizzle and shaved parmesan."
+    "name": "Pizza Margherita",
+    "price": 12.5,
+    "imageUrl": "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop",
+    "categoryId": 4,
+    "shortDescription": "Sauce tomate, mozzarella, basilic frais",
+    "longDescription": "Notre pâte à pizza étalée à la main garnie de notre sauce tomate signature et d'un mélange de mozzarella, provolone et parmesan. Cuite dans un four en pierre jusqu'à ce que la croûte soit parfaitement croustillante et le fromage magnifiquement fondu et bouillonnant."
   },
   {
     "id": 2,
-    "name": "Stuffed Mushrooms",
-    "price": 7.49,
-    "imageUrl": "https://foodish-api.com/images/biryani/biryani2.jpg",
-    "categoryId": 1,
-    "shortDescription": "Savory filled mushroom caps",
-    "longDescription": "Tender mushroom caps filled with a savory mixture of cream cheese, garlic, herbs, and breadcrumbs. Baked until golden brown and served with a side of tangy garlic aioli for dipping."
+    "name": "Burger Classic",
+    "price": 14.9,
+    "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop",
+    "categoryId": 3,
+    "shortDescription": "Bœuf, fromage, laitue, tomate, sauce maison",
+    "longDescription": "Notre burger signature avec un juteux steak haché Angus d'un quart de livre grillé à la perfection. Servi sur un pain brioche grillé avec laitue croquante, tomate mûre, oignon rouge, cornichons et notre sauce maison spéciale. Accompagné de frites assaisonnées croustillantes."
   },
-
   {
     "id": 3,
-    "name": "Grilled Salmon",
-    "price": 18.99,
-    "imageUrl": "https://foodish-api.com/images/butter-chicken/butter-chicken1.jpg",
-    "categoryId": 2,
-    "shortDescription": "Wild-caught salmon with lemon butter",
-    "longDescription": "Wild-caught Atlantic salmon fillet seasoned with herbs and spices, then grilled to perfection. Served with a lemon butter sauce, roasted seasonal vegetables, and your choice of rice pilaf or garlic mashed potatoes."
+    "name": "Salade César",
+    "price": 8.9,
+    "imageUrl": "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop",
+    "categoryId": 5,
+    "shortDescription": "Laitue romaine, parmesan, croûtons, sauce César",
+    "longDescription": "Laitue romaine croquante mélangée dans notre sauce César maison avec croûtons à l'ail, copeaux de parmesan et poivre noir fraîchement moulu. Ajoutez du poulet grillé, des crevettes ou du saumon pour un supplément."
   },
   {
     "id": 4,
-    "name": "Ribeye Steak",
-    "price": 24.99,
-    "imageUrl": "https://foodish-api.com/images/butter-chicken/butter-chicken2.jpg",
-    "categoryId": 2,
-    "shortDescription": "12oz USDA Prime aged beef",
-    "longDescription": "12oz USDA Prime ribeye steak aged for 28 days for maximum flavor and tenderness. Grilled to your preference and finished with herb butter. Served with roasted garlic mashed potatoes and grilled asparagus."
+    "name": "Pâtes Carbonara",
+    "price": 13.5,
+    "imageUrl": "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&h=300&fit=crop",
+    "categoryId": 6,
+    "shortDescription": "Pâtes fraîches, lardons, œuf, parmesan",
+    "longDescription": "Pâtes fraîches mélangées avec des lardons, des œufs, du parmesan et une sauce à la crème. Servies avec une croûte croustillante et des bords de pepperoni croustillants."
   },
-
   {
     "id": 5,
-    "name": "Classic Burger",
-    "price": 8.99,
-    "imageUrl": "https://foodish-api.com/images/burger/burger1.jpg",
-    "categoryId": 3,
-    "shortDescription": "Beef patty with fresh toppings",
-    "longDescription": "Our signature burger features a juicy half-pound Angus beef patty grilled to perfection. Served on a toasted brioche bun with crisp lettuce, ripe tomato, red onion, pickles, and our special house sauce. Comes with a side of crispy seasoned fries."
+    "name": "Frites Maison",
+    "price": 4.5,
+    "imageUrl": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&h=300&fit=crop",
+    "categoryId": 6,
+    "shortDescription": "Pommes de terre fraîches, sel de mer",
+    "longDescription": "Pommes de terre Idaho coupées à la main et frites à la perfection dorée, mélangées avec du sel de mer. Servies avec votre choix de ketchup, aïoli à l'ail ou notre sauce à frites signature. Disponibles en taille normale ou grande."
   },
   {
     "id": 6,
-    "name": "Bacon Cheeseburger",
-    "price": 10.49,
-    "imageUrl": "https://foodish-api.com/images/burger/burger2.jpg",
-    "categoryId": 3,
-    "shortDescription": "Burger with bacon and melted cheese",
-    "longDescription": "A mouthwatering half-pound Angus beef patty topped with crispy applewood smoked bacon and melted cheddar cheese. Served on a toasted brioche bun with lettuce, tomato, onion, pickles, and our signature sauce. Includes a side of golden seasoned fries."
+    "name": "Poulet Rôti",
+    "price": 16.9,
+    "imageUrl": "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400&h=300&fit=crop",
+    "categoryId": 2,
+    "shortDescription": "Poulet fermier, herbes de Provence",
+    "longDescription": "Poulet fermier rôti aux herbes de Provence avec des légumes de saison. Servi avec une purée de pommes de terre à l'ail rôti et asperges grillées."
   },
-
   {
     "id": 7,
-    "name": "Cheese Pizza",
-    "price": 12.99,
-    "imageUrl": "https://foodish-api.com/images/pizza/pizza1.jpg",
-    "categoryId": 4,
-    "shortDescription": "Classic pizza with three cheeses",
-    "longDescription": "Our hand-tossed pizza dough topped with our signature tomato sauce and a blend of mozzarella, provolone, and parmesan cheeses. Baked in a stone oven until the crust is perfectly crispy and the cheese is beautifully melted and bubbling."
+    "name": "Légumes Grillés",
+    "price": 5.9,
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop",
+    "categoryId": 6,
+    "shortDescription": "Assortiment de légumes de saison grillés",
+    "longDescription": "Assortiment de légumes de saison grillés avec votre choix de sauce au choix."
   },
   {
     "id": 8,
-    "name": "Pepperoni Pizza",
-    "price": 13.99,
-    "imageUrl": "https://foodish-api.com/images/pizza/pizza2.jpg",
-    "categoryId": 4,
-    "shortDescription": "Classic pizza with pepperoni slices",
-    "longDescription": "Our traditional hand-tossed pizza topped with our signature tomato sauce, generous amounts of mozzarella cheese, and savory pepperoni slices. Stone-baked to perfection with a crispy crust and oven-crisped pepperoni edges."
+    "name": "Coca-Cola",
+    "price": 3.5,
+    "imageUrl": "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&h=300&fit=crop",
+    "categoryId": 8,
+    "shortDescription": "Boisson gazeuse classique",
+    "longDescription": "Boisson gazeuse classique à la vanille."
   },
-
   {
     "id": 9,
-    "name": "Caesar Salad",
-    "price": 7.99,
-    "imageUrl": "https://foodish-api.com/images/rice/rice1.jpg",
-    "categoryId": 5,
-    "shortDescription": "Romaine lettuce with parmesan",
-    "longDescription": "Crisp romaine lettuce tossed in our house-made Caesar dressing with garlic croutons, shaved parmesan cheese, and fresh ground black pepper. Add grilled chicken, shrimp, or salmon for an additional charge."
+    "name": "Tiramisu",
+    "price": 6.9,
+    "imageUrl": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=300&fit=crop",
+    "categoryId": 7,
+    "shortDescription": "Dessert italien traditionnel au café",
+    "longDescription": "Dessert italien traditionnel au café avec une ganache au chocolat soyeuse et des biscuits au café."
   },
   {
     "id": 10,
-    "name": "Greek Salad",
-    "price": 8.49,
-    "imageUrl": "https://foodish-api.com/images/rice/rice2.jpg",
-    "categoryId": 5,
-    "shortDescription": "Mixed greens with feta and olives",
-    "longDescription": "Fresh mixed greens topped with cucumber, tomato, red onion, kalamata olives, bell peppers, and crumbled feta cheese. Dressed with our Mediterranean olive oil and herb vinaigrette and sprinkled with oregano."
+    "name": "Eau Minérale",
+    "price": 2.5,
+    "imageUrl": "https://images.unsplash.com/photo-1560023907-5f339617ea55?w=400&h=300&fit=crop",
+    "categoryId": 8,
+    "shortDescription": "Eau minérale naturelle",
+    "longDescription": "Eau minérale naturelle filtrée et embouteillée."
   },
-
   {
     "id": 11,
-    "name": "French Fries",
-    "price": 3.99,
-    "imageUrl": "https://foodish-api.com/images/samosa/samosa1.jpg",
-    "categoryId": 6,
-    "shortDescription": "Crispy golden potato fries",
-    "longDescription": "Hand-cut Idaho potatoes fried to golden perfection and tossed with sea salt. Served with your choice of ketchup, garlic aioli, or our signature fry sauce. Available in regular or large size."
+    "name": "Vin Rouge",
+    "price": 18.0,
+    "imageUrl": "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&h=300&fit=crop",
+    "categoryId": 8,
+    "shortDescription": "Sélection du chef",
+    "longDescription": "Sélection du chef de notre vin rouge."
   },
   {
     "id": 12,
-    "name": "Onion Rings",
-    "price": 4.99,
-    "imageUrl": "https://foodish-api.com/images/samosa/samosa2.jpg",
-    "categoryId": 6,
-    "shortDescription": "Battered and fried onion rings",
-    "longDescription": "Thick-cut sweet onions dipped in our special beer batter and fried until golden and crispy. Served with a side of tangy chipotle ranch dipping sauce. The perfect crunchy accompaniment to any meal."
+    "name": "Pizza Quatre Fromages",
+    "price": 14.5,
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop",
+    "categoryId": 4,
+    "shortDescription": "Mozzarella, gorgonzola, parmesan, chèvre",
+    "longDescription": "Notre pâte à pizza étalée à la main garnie de notre sauce tomate signature et d'un mélange de mozzarella, gorgonzola, parmesan et chèvre. Cuite dans un four en pierre jusqu'à ce que la croûte soit parfaitement croustillante et le fromage magnifiquement fondu et bouillonnant."
   },
-
   {
     "id": 13,
-    "name": "Chocolate Cake",
-    "price": 5.99,
-    "imageUrl": "https://foodish-api.com/images/dessert/dessert1.jpg",
-    "categoryId": 7,
-    "shortDescription": "Rich layered chocolate cake",
-    "longDescription": "Decadent triple-layer chocolate cake made with premium cocoa, filled and frosted with silky chocolate ganache. Served with a dollop of fresh whipped cream and a drizzle of raspberry sauce. The perfect dessert for chocolate lovers."
+    "name": "Burger Végétarien",
+    "price": 13.9,
+    "imageUrl": "https://images.unsplash.com/photo-1520072959219-c595dc870360?w=400&h=300&fit=crop",
+    "categoryId": 3,
+    "shortDescription": "Galette de légumes, fromage, avocat",
+    "longDescription": "Galette de légumes, fromage, avocat garnie de bacon fumé au bois de pommier croustillant et de cheddar fondu. Servi sur un pain brioche grillé avec laitue, tomate, oignon, cornichons et notre sauce signature. Inclut un accompagnement de frites dorées assaisonnées."
   },
   {
     "id": 14,
-    "name": "Ice Cream Sundae",
-    "price": 4.99,
-    "imageUrl": "https://foodish-api.com/images/dessert/dessert2.jpg",
-    "categoryId": 7,
-    "shortDescription": "Vanilla ice cream with toppings",
-    "longDescription": "Three scoops of premium vanilla ice cream topped with hot fudge, caramel sauce, whipped cream, crushed nuts, and a maraschino cherry. Customize with your choice of additional toppings for the ultimate dessert experience."
+    "name": "Salade Niçoise",
+    "price": 10.9,
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop",
+    "categoryId": 5,
+    "shortDescription": "Thon, œufs, olives, anchois, légumes frais",
+    "longDescription": "Mesclun frais garni de concombre, tomate, oignon rouge, olives kalamata, poivrons et feta émiettée. Assaisonnée avec notre vinaigrette méditerranéenne à l'huile d'olive et aux herbes et saupoudrée d'origan."
   },
-
   {
     "id": 15,
-    "name": "Milkshake",
-    "price": 5.99,
-    "imageUrl": "https://foodish-api.com/images/dosa/dosa1.jpg",
-    "categoryId": 8,
-    "shortDescription": "Creamy ice cream milkshake",
-    "longDescription": "Hand-spun milkshake made with premium ice cream and your choice of flavor: vanilla, chocolate, strawberry, cookies and cream, or caramel. Topped with whipped cream and appropriate garnishes. Add malt for an additional charge."
+    "name": "Pâtes Bolognaise",
+    "price": 12.5,
+    "imageUrl": "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop",
+    "categoryId": 6,
+    "shortDescription": "Sauce tomate maison, viande hachée, basilic",
+    "longDescription": "Pâtes fraîches mélangées avec une sauce tomate maison, de la viande hachée et du basilic."
   },
   {
     "id": 16,
-    "name": "Lemonade",
-    "price": 2.99,
-    "imageUrl": "https://foodish-api.com/images/dosa/dosa2.jpg",
+    "name": "Steak Frites",
+    "price": 22.9,
+    "imageUrl": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop",
+    "categoryId": 2,
+    "shortDescription": "Entrecôte grillée, frites maison, sauce au choix",
+    "longDescription": "Entrecôte grillée, frites maison, sauce au choix."
+  },
+  {
+    "id": 17,
+    "name": "Crème Brûlée",
+    "price": 7.5,
+    "imageUrl": "https://images.unsplash.com/photo-1470124182917-cc6e71b22ecc?w=400&h=300&fit=crop",
+    "categoryId": 7,
+    "shortDescription": "Dessert français classique à la vanille",
+    "longDescription": "Dessert français classique à la vanille."
+  },
+  {
+    "id": 18,
+    "name": "Jus d'Orange",
+    "price": 4.5,
+    "imageUrl": "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&h=300&fit=crop",
     "categoryId": 8,
-    "shortDescription": "Freshly squeezed lemon drink",
-    "longDescription": "Our signature lemonade made fresh daily with hand-squeezed lemons, filtered water, and pure cane sugar. Available in classic, strawberry, or blueberry flavors. Served over ice with a fresh lemon slice garnish."
+    "shortDescription": "Jus d'orange fraîchement pressé",
+    "longDescription": "Jus d'orange fraîchement pressé."
+  },
+  {
+    "id": 19,
+    "name": "Soupe à l'Oignon",
+    "price": 7.9,
+    "imageUrl": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop",
+    "categoryId": 5,
+    "shortDescription": "Soupe traditionnelle gratinée au fromage",
+    "longDescription": "Soupe traditionnelle gratinée au fromage."
+  },
+  {
+    "id": 20,
+    "name": "Bruschetta",
+    "price": 6.5,
+    "imageUrl": "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=400&h=300&fit=crop",
+    "categoryId": 1,
+    "shortDescription": "Pain grillé, tomates fraîches, basilic, ail",
+    "longDescription": "Pain grillé aux tomates fraîches et basilic."
   }
 ]

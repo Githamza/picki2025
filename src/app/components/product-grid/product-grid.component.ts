@@ -1,5 +1,5 @@
 import { afterNextRender, Component, Injector, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable, combineLatest, map, tap } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
@@ -21,22 +21,36 @@ import * as ProductActions from '../../store/actions/product.actions';
 import { Product } from '../../services/product.service';
 import { ProductDetailsSheetComponent } from '../product-details-sheet/product-details-sheet.component';
 import { UtilsService } from '../../shared/utils.service';
+import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
+import { HorizontalCategoryMenuComponent } from '../horizontal-category-menu/horizontal-category-menu.component';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { VendorNavigationService } from '../../services/vendor-navigation.service';
 
 @Component({
   selector: 'app-product-grid',
   standalone: true,
   imports: [
     CommonModule,
+    NgOptimizedImage,
     MatCardModule,
     MatButtonModule,
     MatGridListModule,
     MatIconModule,
     MatBottomSheetModule,
+    PromotionalBannerComponent,
+    HorizontalCategoryMenuComponent,
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.scss'],
 })
 export class ProductGridComponent implements OnInit {
+  private breakpointObserver = inject(BreakpointObserver);
+  private vendorNavigation = inject(VendorNavigationService);
+
+  // Use BreakpointObserver for responsive design (material design 3 way)
+  isHandset$ = this.breakpointObserver
+    .observe(Breakpoints.Handset)
+    .pipe(map((result) => result.matches));
   filteredProducts$!: Observable<Product[]>;
   selectedCategory$: Observable<any>;
   filteredProducts: Product[] = [];
@@ -94,21 +108,25 @@ export class ProductGridComponent implements OnInit {
     let currentCategory = '';
     const currentUrl = this.router.url;
 
-    // Check if we're in a category view
+    // Check if we're in a category view (updated pattern for vendor routing)
     if (currentUrl.includes('/products')) {
-      // Extract the category from URL
-      const categoryMatch = currentUrl.match(/\/(.+?)\/products/);
+      // Extract the category from URL - pattern: /{vendor-slug}/{category}/products
+      const categoryMatch = currentUrl.match(/\/[^/]+\/(.+?)\/products/);
       if (categoryMatch && categoryMatch[1]) {
         currentCategory = categoryMatch[1];
-        // Navigate to category product page
-        this.router.navigate([`/${currentCategory}/product/${productSlug}`]);
+        // Navigate to vendor category product page
+        this.vendorNavigation.navigateWithVendor([
+          currentCategory,
+          'product',
+          productSlug,
+        ]);
       } else {
         // Default navigation if no category found
-        this.router.navigate([`/product/${productSlug}`]);
+        this.vendorNavigation.navigateWithVendor(['product', productSlug]);
       }
     } else {
-      // No category in URL, use default product route
-      this.router.navigate([`/product/${productSlug}`]);
+      // No category in URL, use default product route with vendor
+      this.vendorNavigation.navigateWithVendor(['product', productSlug]);
     }
   }
 }

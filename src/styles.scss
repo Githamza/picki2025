@@ -15,8 +15,8 @@
 html,
 body {
   height: 100%;
-  margin: 0;
-  view-transition-name: none;
+  max-width: 1440px;
+  margin: auto;
 }
 
 body {
@@ -87,6 +87,7 @@ body {
 }
 
 ::view-transition-new(product-grid) {
+  animation-name: move-in;
   animation-duration: 0.3s;
 }
 @keyframes move-out {
@@ -116,5 +117,144 @@ body {
 
 ::view-transition-new(product-add) {
   animation-name: move-in;
-  animation-duration: 0.3s;
+  animation-duration: 0.2s;
+}
+
+/* Global snackbar styles */
+.success-snackbar {
+  --mdc-snackbar-container-color: #4caf50 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snack-bar-button-color: white !important;
+}
+
+.warning-snackbar {
+  --mdc-snackbar-container-color: #ff9800 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snack-bar-button-color: white !important;
+}
+
+.error-snackbar {
+  --mdc-snackbar-container-color: #f44336 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snack-bar-button-color: white !important;
+}
+
+/* Restaurant Closed Dialog Panel Styles */
+.restaurant-closed-dialog-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 16px !important;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid var(--mat-sys-outline-variant) !important;
+    background: var(--mat-sys-surface-container-high) !important;
+
+    .mdc-dialog__surface {
+      border-radius: 16px !important;
+      background: transparent !important;
+      display: block !important;
+      align-items: unset !important;
+      justify-content: unset !important;
+    }
+  }
+
+  .mat-mdc-dialog-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+  }
+}
+
+/* Custom Material Design theme overrides */
+.mat-mdc-slide-toggle {
+  --mdc-switch-selected-track-color: var(--mat-sys-primary);
+  --mdc-switch-selected-handle-color: var(--mat-sys-on-primary);
+}
+
+/* Animation for smooth transitions */
+* {
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Ensure proper Material Design typography */
+.mat-mdc-form-field {
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--mat-sys-surface-variant, #f1f1f1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mat-sys-outline, #888);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mat-sys-on-surface, #555);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .success-snackbar {
+    --mdc-snackbar-container-color: #2e7d32 !important;
+  }
+
+  .warning-snackbar {
+    --mdc-snackbar-container-color: #f57c00 !important;
+  }
+
+  .error-snackbar {
+    --mdc-snackbar-container-color: #d32f2f !important;
+  }
+
+  .restaurant-closed-dialog-panel {
+    .mat-mdc-dialog-container {
+      border-width: 2px !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+    }
+  }
+}
+
+/* Focus indicators for accessibility */
+button:focus-visible,
+.mat-mdc-slide-toggle:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+/* Dark mode support for dialog */
+@media (prefers-color-scheme: dark) {
+  .restaurant-closed-dialog-panel {
+    .mat-mdc-dialog-container {
+      background: var(--mat-sys-surface-container-high) !important;
+      border-color: var(--mat-sys-outline) !important;
+    }
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .restaurant-closed-dialog-panel {
+    .mat-mdc-dialog-container {
+      animation: none !important;
+    }
+  }
+
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

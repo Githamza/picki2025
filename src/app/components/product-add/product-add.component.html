@@ -1,5 +1,13 @@
-<div style="view-transition-name: product-add">
-  <div class="product-add-container" *ngIf="product">
+<div class="product-add-wrapper">
+  <button
+    mat-icon-button
+    class="close-btn"
+    aria-label="Fermer"
+    (click)="closePage()"
+  >
+    <mat-icon>close</mat-icon>
+  </button>
+  <div class="product-add-container" *ngIf="product$ | async as product">
     <div class="product-content">
       <div class="product-image-container">
         <img
@@ -31,9 +39,11 @@
             {{ product.description }}
           </p>
         </div>
-
+      </div>
+    </div>
+    <div class="add-to-cart">
+      <div class="inner-add-container">
         <div class="quantity-controls">
-          <h3>Quantity</h3>
           <div class="quantity-buttons">
             <button
               mat-fab
@@ -58,23 +68,18 @@
             </button>
           </div>
         </div>
+        <button
+          mat-flat-button
+          color="primary"
+          class="add-to-cart-button"
+          (click)="addToCart(product)"
+        >
+          <mat-icon>shopping_cart</mat-icon>
+          <div class="button-content">
+            <span class="button-text">Ajouter</span>
+          </div>
+        </button>
       </div>
-    </div>
-    <div class="add-to-cart">
-      <button
-        mat-flat-button
-        color="primary"
-        class="add-to-cart-button"
-        (click)="addToCart(product)"
-      >
-        <mat-icon>shopping_cart</mat-icon>
-        <div class="button-content">
-          <span class="button-text">Add to Cart</span>
-          <span class="button-price"
-            >${{ (product.price * quantity).toFixed(2) }}</span
-          >
-        </div>
-      </button>
     </div>
   </div>
 

@@ -1,3 +1,4 @@
+import { Product } from '../../services/product.service';
 import { ProductState } from '../reducers/product.reducer'; // Adjust path as necessary
 
 // App state model
@@ -5,6 +6,7 @@ export interface AppState {
   banner: BannerState;
   category: CategoryState;
   product: ProductState; // Added product state
+  cart: CartState;
   // Add more state slices as needed
 }
 
@@ -28,6 +30,7 @@ export interface Category {
   id: number;
   name: string;
   icon?: string;
+  imageUrl?: string;
   description?: string;
 }
 
@@ -36,3 +39,12 @@ export interface Category {
 // If ProductState is not in a separate file like banner.state.ts or category.state.ts,
 // then its definition would be directly in product.reducer.ts as we created.
 // No separate product.state.ts file needed if ProductState is defined in product.reducer.ts.
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface CartState {
+  items: CartItem[];
+}

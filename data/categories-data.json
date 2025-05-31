@@ -1,50 +1,58 @@
 [
   {
     "id": 1,
-    "name": "Appetizers",
-    "icon": "restaurant",
-    "description": "Starters and small plates"
+    "name": "Entrées",
+    "icon": "restaurant_menu",
+    "imageUrl": "https://foodish-api.com/images/samosa/samosa1.jpg",
+    "description": "Commencez votre repas avec nos délicieuses entrées"
   },
   {
     "id": 2,
-    "name": "Main Courses",
-    "icon": "lunch_dining",
-    "description": "Hearty main dishes"
+    "name": "Plats Principaux",
+    "icon": "dinner_dining",
+    "imageUrl": "https://foodish-api.com/images/biryani/biryani1.jpg",
+    "description": "Plats copieux et satisfaisants pour tous les goûts"
   },
   {
     "id": 3,
     "name": "Burgers",
     "icon": "lunch_dining",
-    "description": "Handcrafted burgers"
+    "imageUrl": "https://foodish-api.com/images/burger/burger1.jpg",
+    "description": "Burgers juteux avec des ingrédients frais"
   },
   {
     "id": 4,
-    "name": "Pizza",
+    "name": "Pizzas",
     "icon": "local_pizza",
-    "description": "Stone-baked pizzas"
+    "imageUrl": "https://foodish-api.com/images/pizza/pizza1.jpg",
+    "description": "Pizzas artisanales cuites au four à bois"
   },
   {
     "id": 5,
-    "name": "Salads",
+    "name": "Salades",
     "icon": "eco",
-    "description": "Fresh and healthy options"
+    "imageUrl": "https://foodish-api.com/images/rice/rice1.jpg",
+    "description": "Options fraîches et saines"
   },
   {
     "id": 6,
-    "name": "Sides",
-    "icon": "dinner_dining",
-    "description": "Perfect accompaniments"
+    "name": "Accompagnements",
+    "icon": "fastfood",
+    "imageUrl": "https://foodish-api.com/images/dosa/dosa1.jpg",
+    "description": "Accompagnements parfaits pour votre repas"
   },
   {
     "id": 7,
     "name": "Desserts",
-    "icon": "icecream",
-    "description": "Sweet treats"
+    "icon": "cake",
+    "imageUrl": "https://foodish-api.com/images/dessert/dessert1.jpg",
+    "description": "Douceurs pour terminer votre repas"
   },
   {
     "id": 8,
-    "name": "Drinks",
-    "icon": "local_bar",
-    "description": "Refreshing beverages"
+    "name": "Boissons",
+    "icon": "local_cafe",
+    "imageUrl": "https://foodish-api.com/images/pasta/pasta1.jpg",
+    "description": "Boissons rafraîchissantes"
   }
 ]

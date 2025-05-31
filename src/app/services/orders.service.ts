@@ -1,0 +1,410 @@
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, from, Observable, of, throwError } from 'rxjs';
+import { map, catchError, timeout, retry, shareReplay } from 'rxjs/operators';
+import { Order, OrderStatus } from '../models/order.model';
+import { SupabaseService } from './supabase.service';
+import { Database } from '../types/supabase.types';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class OrdersService {
+  private supabaseService = inject(SupabaseService);
+  private ordersSubject = new BehaviorSubject<Order[]>([]);
+  public orders$ = this.ordersSubject.asObservable();
+
+  constructor() {
+    this.loadOrders();
+  }
+
+  async loadOrders() {
+    try {
+      const orders = await this.supabaseService.getOrders();
+      const mappedOrders = orders?.map((o) => this.mapDbOrderToOrder(o)) || [];
+
+      console.log(
+        `Loaded ${mappedOrders.length} orders from database:`,
+        mappedOrders.map((o) => ({
+          id: o.id,
+          orderNumber: o.orderNumber,
+          status: o.status,
+        }))
+      );
+
+      this.ordersSubject.next(mappedOrders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    }
+  }
+
+  // Get current orders value
+  getCurrentOrders(): Order[] {
+    return this.ordersSubject.value;
+  }
+
+  // Update orders optimistically (for UI feedback)
+  updateOrdersOptimistically(orders: Order[]): void {
+    this.ordersSubject.next(orders);
+  }
+
+  // Debug method to check order existence
+  async debugOrderExists(orderId: string): Promise<boolean> {
+    try {
+      console.log(`Checking if order ${orderId} exists...`);
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('orders')
+        .select('id, order_number, status, created_at')
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.error(`Order ${orderId} not found:`, error);
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        return false;
+      }
+
+      console.log(`Order ${orderId} exists:`, data);
+      return true;
+    } catch (error) {
+      console.error(`Error checking order ${orderId}:`, error);
+      return false;
+    }
+  }
+
+  // Debug method to list all order IDs
+  async debugListAllOrderIds(): Promise<void> {
+    try {
+      console.log('Fetching all order IDs...');
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('orders')
+        .select('id, order_number, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching order IDs:', error);
+        return;
+      }
+
+      console.log(`Found ${data?.length || 0} orders in database:`, data);
+
+      // Check if the specific order exists
+      const targetOrder = data?.find(
+        (order) => order.id === '17258ad0-3979-46ee-b30b-edc3620339da'
+      );
+      if (targetOrder) {
+        console.log('Target order found:', targetOrder);
+      } else {
+        console.log(
+          'Target order 17258ad0-3979-46ee-b30b-edc3620339da NOT found in recent orders'
+        );
+      }
+    } catch (error) {
+      console.error('Error listing orders:', error);
+    }
+  }
+
+  // Enhanced get order method with better error handling
+  async getOrderById(orderId: string): Promise<Order | null> {
+    console.log(`Getting order by ID: ${orderId}`);
+
+    try {
+      // First check if order exists
+      const exists = await this.debugOrderExists(orderId);
+      if (!exists) {
+        console.warn(`Order ${orderId} does not exist`);
+        return null;
+      }
+
+      console.log(`Order ${orderId} exists, fetching full details...`);
+
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('orders')
+        .select(
+          `
+          *,
+          order_items (
+            *,
+            products (
+              id,
+              name,
+              image_url
+            )
+          )
+        `
+        )
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.error(`Error fetching order ${orderId}:`, error);
+        console.error('Supabase error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        return null;
+      }
+
+      if (!data) {
+        console.error(`No data returned for order ${orderId}`);
+        return null;
+      }
+
+      console.log(`Successfully fetched order ${orderId}:`, {
+        id: data.id,
+        orderNumber: data.order_number,
+        status: data.status,
+        itemCount: data.order_items?.length || 0,
+      });
+
+      return this.mapDbOrderToOrder(data);
+    } catch (error) {
+      console.error(`Error getting order ${orderId}:`, error);
+
+      // Check if it's the specific callback error
+      if (
+        error instanceof Error &&
+        error.message.includes('callback is no longer runnable')
+      ) {
+        console.error(
+          'Detected Angular lifecycle callback error. This may be due to component destruction during async operation.'
+        );
+      }
+
+      return null;
+    }
+  }
+
+  // Safer wrapper that returns an Observable to handle Angular lifecycle better
+  getOrderByIdSafe(orderId: string): Observable<Order | null> {
+    return from(this.getOrderById(orderId)).pipe(
+      map((order) => {
+        console.log(
+          `Observable wrapper: Order ${orderId} result:`,
+          order ? 'found' : 'not found'
+        );
+        return order;
+      })
+    );
+  }
+
+  // Most robust method - handles timeouts, retries, and lifecycle issues
+  getOrderByIdRobust(orderId: string): Observable<Order | null> {
+    console.log(`Getting order ${orderId} with robust method...`);
+
+    return from(
+      (async () => {
+        try {
+          // Use a simpler query first to test connectivity
+          const { data: testData, error: testError } =
+            await this.supabaseService
+              .getClient()
+              .from('orders')
+              .select('id, order_number, status')
+              .eq('id', orderId)
+              .single();
+
+          if (testError) {
+            console.error(
+              `Simple query failed for order ${orderId}:`,
+              testError
+            );
+            throw new Error(`Order not found: ${testError.message}`);
+          }
+
+          if (!testData) {
+            console.warn(`Order ${orderId} not found in database`);
+            return null;
+          }
+
+          console.log(`Order ${orderId} found, fetching full details...`);
+
+          // Now get full order details
+          const { data, error } = await this.supabaseService
+            .getClient()
+            .from('orders')
+            .select(
+              `
+              *,
+              order_items (
+                *,
+                products (
+                  id,
+                  name,
+                  image_url
+                )
+              )
+            `
+            )
+            .eq('id', orderId)
+            .single();
+
+          if (error) {
+            console.error(`Full query failed for order ${orderId}:`, error);
+            throw new Error(`Failed to fetch order details: ${error.message}`);
+          }
+
+          return this.mapDbOrderToOrder(data);
+        } catch (error) {
+          console.error(`Robust method error for order ${orderId}:`, error);
+          throw error;
+        }
+      })()
+    ).pipe(
+      timeout(10000), // 10 second timeout
+      retry({
+        count: 2,
+        delay: 1000, // 1 second delay between retries
+      }),
+      catchError((error) => {
+        console.error(`All retry attempts failed for order ${orderId}:`, error);
+
+        if (error?.name === 'TimeoutError') {
+          return throwError(
+            () => new Error('Request timed out. Please try again.')
+          );
+        }
+
+        if (error?.message?.includes('callback is no longer runnable')) {
+          console.error(
+            'Detected callback lifecycle error, returning null instead of throwing'
+          );
+          return of(null); // Return null instead of throwing for lifecycle errors
+        }
+
+        return throwError(() => error);
+      }),
+      shareReplay(1) // Share the result to avoid multiple requests
+    );
+  }
+
+  async addOrder(order: Order): Promise<Order> {
+    try {
+      // Create order in database
+      const dbOrder = await this.supabaseService.createOrder({
+        order_number: order.orderNumber,
+        customer_email: order.customer.email,
+        customer_first_name: order.customer.firstName,
+        customer_last_name: order.customer.lastName,
+        customer_phone: order.customer.phone,
+        total_amount: order.totalAmount,
+        status: order.status as Database['public']['Enums']['order_status'],
+        order_type:
+          order.orderType as Database['public']['Enums']['order_type'],
+        timing: order.timing as Database['public']['Enums']['order_timing'],
+        scheduled_time: order.scheduledTime?.toISOString(),
+        table_number: order.tableNumber,
+        notes: order.notes,
+      });
+
+      if (dbOrder) {
+        // Create order items
+        const orderItems = order.items.map((item) => ({
+          order_id: dbOrder.id,
+          product_id: parseInt(item.productId),
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+          vendor_id: '00000000-0000-0000-0000-000000000001', // Default vendor for now
+          options: item.options || [],
+        }));
+
+        await this.supabaseService.createOrderItems(orderItems);
+
+        // Reload orders
+        await this.loadOrders();
+
+        // Return the created order with the database ID
+        return {
+          ...order,
+          id: dbOrder.id,
+        };
+      }
+
+      throw new Error('Failed to create order');
+    } catch (error) {
+      console.error('Error adding order:', error);
+      throw error;
+    }
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
+    try {
+      await this.supabaseService.updateOrderStatus(
+        orderId,
+        status as Database['public']['Enums']['order_status']
+      );
+      await this.loadOrders();
+    } catch (error: any) {
+      console.error('Error updating order status:', error);
+
+      // Provide more specific error messages
+      if (error.message?.includes('not found')) {
+        throw new Error(
+          `Commande introuvable. Elle a peut-être été supprimée.`
+        );
+      } else if (error.message?.includes('Failed to update')) {
+        throw new Error(
+          `Impossible de mettre à jour la commande. Veuillez réessayer.`
+        );
+      } else if (error.code === 'PGRST116') {
+        throw new Error(`Commande introuvable dans la base de données.`);
+      } else if (error.message?.includes('network')) {
+        throw new Error(
+          `Erreur de connexion. Vérifiez votre connexion internet.`
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  getOrdersByStatus(status: OrderStatus): Observable<Order[]> {
+    return this.orders$.pipe(
+      map((orders) => orders.filter((order) => order.status === status))
+    );
+  }
+
+  private mapDbOrderToOrder(dbOrder: any): Order {
+    return {
+      id: dbOrder.id,
+      orderNumber: dbOrder.order_number,
+      customer: {
+        firstName: dbOrder.customer_first_name,
+        lastName: dbOrder.customer_last_name,
+        email: dbOrder.customer_email,
+        phone: dbOrder.customer_phone || '',
+      },
+      items:
+        dbOrder.order_items?.map((item: any) => ({
+          productId: item.product_id?.toString() || '',
+          productName: item.product_name,
+          quantity: item.quantity,
+          price: Number(item.unit_price),
+          options: item.options || [],
+        })) || [],
+      totalAmount: Number(dbOrder.total_amount),
+      status: dbOrder.status as OrderStatus,
+      orderType: dbOrder.order_type,
+      timing: dbOrder.timing,
+      scheduledTime: dbOrder.scheduled_time
+        ? new Date(dbOrder.scheduled_time)
+        : undefined,
+      tableNumber: dbOrder.table_number || undefined,
+      createdAt: new Date(dbOrder.created_at),
+      updatedAt: new Date(dbOrder.updated_at),
+      notes: dbOrder.notes || undefined,
+    };
+  }
+}

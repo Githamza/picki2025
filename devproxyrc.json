@@ -15,6 +15,12 @@
       "enabled": true,
       "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
       "configSection": "categoriesApi"
+    },
+    {
+      "name": "CrudApiPlugin",
+      "enabled": true,
+      "pluginPath": "~appFolder/plugins/dev-proxy-plugins.dll",
+      "configSection": "ordersApi"
     }
   ],
   "urlsToWatch": ["*"],
@@ -25,5 +31,9 @@
   "categoriesApi": {
     "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.schema.json",
     "apiFile": "./apis/categories-api.json"
+  },
+  "ordersApi": {
+    "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.schema.json",
+    "apiFile": "./apis/orders-api.json"
   }
 }

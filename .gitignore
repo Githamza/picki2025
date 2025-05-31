@@ -5,16 +5,39 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 dev-debug.log
+lerna-debug.log*
 
 # Dependency directories
 node_modules/
 
 # Environment variables
 .env
+.env.local
+.env.production
 
-# Editor directories and files
-.idea
-.vscode
+# Angular specific
+/dist/
+/tmp/
+/out-tsc/
+/bazel-out/
+.angular/
+src/output.css
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# IDE - IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# IDE - other
 *.suo
 *.ntvs*
 *.njsproj
@@ -23,7 +46,72 @@ node_modules/
 
 # OS specific
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
 # Task files
 tasks.json
-tasks/ 
+tasks/
+
+# Build outputs
+build/
+dist/
+
+# Temporary files
+tmp/
+
+# Test outputs
+/coverage/
+.nyc_output
+
+# Project specific files that shouldn't be tracked
+.taskmasterconfig
+.roomodes
+.windsurfrules
+mocks.json
+devproxyrc.json
+setup-git.sh
+.hintrc
+
+# Local data files
+data/
+apis/
+
+# Generated images in src
+src/app/image.png
+
+# Documentation files (likely project-specific notes)
+*_REQUIREMENTS.md
+*_IMPLEMENTATION_SUMMARY.md
+*_FEATURE.md
+*_REFACTOR.md
+
+# Supabase migration files (if they contain sensitive data)
+supabase_migration_*.sql
+
+# Git
+.gitignore

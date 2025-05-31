@@ -16,25 +16,23 @@
         'active-category': (selectedCategoryId$ | async) === category.id
       }"
     >
-      <mat-icon matListItemIcon class="material-symbols-rounded">{{
-        category.icon || "category"
-      }}</mat-icon>
+      <img
+        *ngIf="category.imageUrl; else iconTemplate"
+        matListItemIcon
+        [src]="category.imageUrl"
+        alt="Category image"
+        [title]="category.name + ' category'"
+        class="category-image"
+      />
+      <ng-template #iconTemplate>
+        <mat-icon matListItemIcon class="material-symbols-rounded">{{
+          category.icon || "category"
+        }}</mat-icon>
+      </ng-template>
       <span matListItemTitle>{{ category.name }}</span>
       <span matListItemLine *ngIf="category.description">{{
         category.description
       }}</span>
-    </a>
-  </mat-nav-list>
-
-  <mat-divider class="menu-divider"></mat-divider>
-
-  <mat-nav-list>
-    <a mat-list-item routerLink="/material3" routerLinkActive="active-category">
-      <mat-icon matListItemIcon class="material-symbols-rounded"
-        >palette</mat-icon
-      >
-      <span matListItemTitle>Material 3 Examples</span>
-      <span matListItemLine>View MDC 3 components</span>
     </a>
   </mat-nav-list>
 </div>

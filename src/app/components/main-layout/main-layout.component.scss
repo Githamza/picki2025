@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: var(--mat-background);
+  background-color: var(--mat-sys-background);
 }
 
 .toolbar {
@@ -13,10 +13,8 @@
   left: 0;
   right: 0;
   z-index: 2;
-  padding: 0 16px;
   display: flex;
   align-items: center;
-  // color: var(--mat-on-primary); /* Let mat-toolbar handle text color */
 }
 
 .toolbar-spacer {
@@ -27,15 +25,51 @@
   font-size: 1.25rem;
   font-weight: 500;
   margin-left: 8px;
-  // color: inherit; /* Let mat-toolbar handle text color */
+  font-family: var(--mat-sys-typescale-title-large-font);
 }
 
 .menu-button {
   margin-right: 8px;
 }
 
+// Dining preference indicator - natural Material button styling
+.dining-preference-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+
+  .preference-icon {
+    margin: 0;
+  }
+
+  .preference-text {
+    white-space: nowrap;
+    margin: 0;
+  }
+
+  .change-icon {
+    margin: 0;
+    opacity: 0.7;
+  }
+
+  &:hover .change-icon {
+    opacity: 1;
+  }
+}
+
+.mobile-category-menu {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background-color: var(--mat-sys-surface);
+}
+
 .sidenav-container {
   flex: 1;
+  margin-top: 64px;
 }
 
 .sidenav {
@@ -57,12 +91,7 @@
   margin: 16px;
   color: var(--mat-sys-on-surface);
   overflow: auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-
-  @media (prefers-color-scheme: dark) {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  }
+  background: var(--mat-sys-surface);
 }
 
 /* Material icon styles */
@@ -89,6 +118,20 @@
     margin: 8px;
     padding: 16px;
   }
+
+  .dining-preference-indicator {
+    margin-right: 8px;
+    gap: 6px;
+  }
+
+  /* Account for the horizontal menu */
+  .mobile-category-menu + .sidenav-container {
+    margin-top: calc(56px + 48px);
+  }
+
+  .mobile-category-menu + .sidenav-container .main-content {
+    margin-top: 16px;
+  }
 }
 
 /* For portrait orientation on tablets */
@@ -98,9 +141,43 @@
   }
 }
 
-// Dark mode specific overrides
-.dark-mode {
+// Dark mode specific overrides using Material theming
+@media (prefers-color-scheme: dark) {
   .main-content {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--mat-sys-elevation-level2);
+  }
+
+  .mobile-category-menu {
+    box-shadow: var(--mat-sys-elevation-level3);
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .dining-preference-indicator {
+    border: 2px solid var(--mat-sys-outline) !important;
+
+    &:hover {
+      border-color: var(--mat-sys-primary) !important;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .dining-preference-indicator {
+    transition: none !important;
+
+    &:hover {
+      transform: none;
+    }
+
+    &:active {
+      transform: none;
+    }
+
+    .change-icon {
+      transition: none !important;
+    }
   }
 }

@@ -1,0 +1,10 @@
+<div class="vendor-layout" *ngIf="currentVendor">
+  <!-- Router outlet for vendor-specific content -->
+  <router-outlet></router-outlet>
+</div>
+
+<!-- Loading state -->
+<div class="loading" *ngIf="!currentVendor">
+  <mat-spinner></mat-spinner>
+  <p>Loading vendor...</p>
+</div>

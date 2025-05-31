@@ -1,14 +1,36 @@
-<div class="product-grid-container" style="view-transition-name: product-grid">
-  <div class="category-header" *ngIf="selectedCategory$ | async as category">
-    <h2>{{ category.name }}</h2>
-    <p *ngIf="category.description">{{ category.description }}</p>
+<app-promotional-banner></app-promotional-banner>
+<!-- Horizontal category menu for mobile only -->
+<div *ngIf="isHandset$ | async" class="mobile-category-menu">
+  <app-horizontal-category-menu></app-horizontal-category-menu>
+</div>
+
+<div class="product-grid-container">
+  <div style="view-transition-name: product-grid-page">
+    <div class="category-header" *ngIf="selectedCategory$ | async as category">
+      <div class="category-header-content">
+        <div class="category-image-container" *ngIf="category.imageUrl">
+          <img
+            ngSrc="{{ category.imageUrl }}"
+            alt="{{ category.name }} category"
+            class="category-image"
+            width="80"
+            height="80"
+            priority
+          />
+        </div>
+        <div class="category-info">
+          <h2>{{ category.name }}</h2>
+          <p *ngIf="category.description">{{ category.description }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-category" *ngIf="!(selectedCategory$ | async)">
+      <h2>Veuillez sélectionner une catégorie dans le menu</h2>
+    </div>
   </div>
 
-  <div class="no-category" *ngIf="!(selectedCategory$ | async)">
-    <h2>Please select a category from the menu</h2>
-  </div>
-
-  <div class="product-grid" [attr.view-transition-name]="'product-grid'">
+  <div class="product-grid" style="view-transition-name: product-grid">
     <mat-card
       *ngFor="let product of filteredProducts"
       class="product-card"

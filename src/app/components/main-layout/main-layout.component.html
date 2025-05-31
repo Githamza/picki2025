@@ -1,17 +1,40 @@
+<!-- Main Layout without overlay -->
 <div class="layout-container">
   <mat-toolbar color="primary" class="toolbar mat-elevation-z2">
-    <button mat-icon-button (click)="toggleMenu()" class="menu-button">
-      <mat-icon class="material-symbols-rounded">menu</mat-icon>
-    </button>
-    <span class="app-title">Kiosk Order System</span>
     <span class="toolbar-spacer"></span>
-    <button mat-icon-button (click)="toggleTheme()" aria-label="Toggle theme">
+
+    <!-- Show dining preference indicator when selected -->
+    <button
+      *ngIf="diningPreferenceService.hasSelectedPreference()"
+      class="dining-preference-indicator"
+      mat-button
+      (click)="changeDiningPreference()"
+      aria-label="Changer la préférence de restauration"
+    >
+      <mat-icon class="preference-icon">
+        {{
+          diningPreferenceService.diningPreference() === "eat-in"
+            ? "restaurant"
+            : "takeout_dining"
+        }}
+      </mat-icon>
+      <span class="preference-text">{{
+        diningPreferenceService.getDiningPreferenceText()
+      }}</span>
+      <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
+    </button>
+
+    <button
+      mat-icon-button
+      (click)="toggleTheme()"
+      aria-label="Basculer le thème"
+    >
       <mat-icon class="material-symbols-rounded">{{
         isDarkTheme ? "light_mode" : "dark_mode"
       }}</mat-icon>
     </button>
   </mat-toolbar>
-  <app-banner></app-banner>
+
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav
       [mode]="(isHandset$ | async) ? 'over' : 'side'"
@@ -28,4 +51,5 @@
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
+  <app-cart-badge></app-cart-badge>
 </div>

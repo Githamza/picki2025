@@ -1,4 +1,4 @@
-import { Component, OnInit, Pipe, PipeTransform } from '@angular/core';
+import { Component, OnInit, Pipe, PipeTransform, inject } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AppState, Category } from '../../store/models/app.state';
 import * as CategoryActions from '../../store/actions/category.actions';
 import * as CategorySelectors from '../../store/selectors/category.selectors';
+import { VendorNavigationService } from '../../services/vendor-navigation.service';
 
 @Pipe({
   name: 'kebabCase',
@@ -46,6 +47,8 @@ export class CategoryMenuComponent implements OnInit {
   loading$: Observable<boolean>;
   error$: Observable<string | null>;
 
+  private vendorNavigation = inject(VendorNavigationService);
+
   constructor(private store: Store<AppState>, private router: Router) {
     this.categories$ = this.store.select(CategorySelectors.selectAllCategories);
     this.selectedCategoryId$ = this.store.select(
@@ -71,6 +74,8 @@ export class CategoryMenuComponent implements OnInit {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    this.router.navigate([`/${kebab}/products`]);
+
+    // Use vendor-aware navigation
+    this.vendorNavigation.navigateWithVendor([kebab, 'products']);
   }
 }

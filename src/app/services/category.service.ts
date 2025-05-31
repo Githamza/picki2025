@@ -1,23 +1,34 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { from, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { SupabaseService } from './supabase.service';
 
 export interface Category {
   id: number;
   name: string;
-  icon: string;
-  description: string;
+  icon?: string;
+  imageUrl?: string;
+  description?: string;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class CategoryService {
-  private categoriesUrl = 'http://localhost:8080/api/categories'; // URL to web api
-
-  constructor(private http: HttpClient) {}
+  private supabaseService = inject(SupabaseService);
 
   getCategories(): Observable<Category[]> {
-    return this.http.get<Category[]>(this.categoriesUrl);
+    return from(this.supabaseService.getCategories()).pipe(
+      map(
+        (categories) =>
+          categories?.map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon || undefined,
+            imageUrl: cat.image_url || undefined,
+            description: cat.description || undefined,
+          })) || []
+      )
+    );
   }
 }

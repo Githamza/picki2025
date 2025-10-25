@@ -2,7 +2,10 @@ import { createAction, props } from '@ngrx/store';
 import { Category } from '../models/app.state';
 
 // Load categories
-export const loadCategories = createAction('[Category] Load Categories');
+export const loadCategories = createAction(
+  '[Category] Load Categories',
+  props<{ vendorId?: string }>()
+);
 
 export const loadCategoriesSuccess = createAction(
   '[Category] Load Categories Success',
@@ -12,6 +15,12 @@ export const loadCategoriesSuccess = createAction(
 export const loadCategoriesFailure = createAction(
   '[Category] Load Categories Failure',
   props<{ error: string }>()
+);
+
+// Load categories by vendor
+export const loadCategoriesByVendor = createAction(
+  '[Category] Load Categories By Vendor',
+  props<{ vendorId: string }>()
 );
 
 // Select category

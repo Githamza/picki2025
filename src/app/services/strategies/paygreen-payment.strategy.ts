@@ -5,10 +5,8 @@ import {
   PaymentRequest,
   PaymentResponse,
 } from '../payment-strategy.interface';
-import {
-  PaygreenService,
-  PayGreenPaymentOrderRequest,
-} from '../paygreen.service';
+import { PayGreenPaymentOrderRequest } from '../paygreen.types';
+import { PaygreenBackendService } from '../paygreen-backend.service';
 
 @Injectable({
   providedIn: 'root',
@@ -17,14 +15,11 @@ export class PaygreenPaymentStrategy implements PaymentStrategy {
   readonly name = 'PayGreen';
   readonly provider = 'paygreen' as const;
 
-  constructor(private paygreenService: PaygreenService) {}
+  constructor(private paygreenBackend: PaygreenBackendService) {}
 
   createPayment(request: PaymentRequest): Observable<PaymentResponse> {
-    // Calculate total amount from items
-    const totalAmount = request.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
+    // Use the amount directly from the request (already calculated)
+    const totalAmount = request.amount;
 
     // Generate return URLs if not provided
     const baseUrl = window.location.origin;
@@ -46,23 +41,28 @@ export class PaygreenPaymentStrategy implements PaymentStrategy {
       mode: 'instant',
       partial_allowed: false,
       plbs: false,
-      amount: this.convertAmount(totalAmount), // Use calculated total
+      amount: this.convertAmount(totalAmount), // Use the provided amount
       return_url: returnUrl,
       reference: request.reference, // Include order reference
     };
 
-    return this.paygreenService.createPaymentOrder(paymentOrderRequest).pipe(
-      map((response) => ({
-        id: response.data.id,
-        status: response.data.status,
-        url: response.data.hosted_payment_url, // Use the hosted payment URL from PayGreen
-        provider: this.provider,
-      }))
-    );
+    if (!request.vendorId) {
+      throw new Error('vendorId is required for PayGreen payments');
+    }
+    return this.paygreenBackend
+      .createPaymentOrder(request.vendorId, paymentOrderRequest)
+      .pipe(
+        map((response) => ({
+          id: response.data.id,
+          status: response.data.status,
+          url: response.data.hosted_payment_url + '?lang=fr', // Use the hosted payment URL from PayGreen
+          provider: this.provider,
+        }))
+      );
   }
 
   convertAmount(amount: number): number {
-    return this.paygreenService.convertToCents(amount);
+    return this.paygreenBackend.convertToCents(amount);
   }
 
   isAvailable(): boolean {

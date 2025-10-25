@@ -16,16 +16,17 @@
     "@angular/compiler": "^19.2.0",
     "@angular/core": "^19.2.0",
     "@angular/forms": "^19.2.0",
-    "@angular/material": "^19.2.15",
+    "@angular/material": "^19.2.19",
     "@angular/platform-browser": "^19.2.0",
     "@angular/platform-browser-dynamic": "^19.2.0",
     "@angular/router": "^19.2.0",
+    "@modelcontextprotocol/sdk": "^1.15.0",
     "@ngrx/effects": "^19.1.0",
     "@ngrx/entity": "^19.1.0",
     "@ngrx/store": "^19.1.0",
-    "@ngrx/store-devtools": "^19.1.0",
+    "@ngrx/store-devtools": "^19.2.1",
     "@stagewise/toolbar": "^0.2.1",
-    "@supabase/supabase-js": "^2.49.8",
+    "@supabase/supabase-js": "^2.57.4",
     "@tailwindcss/cli": "^4.1.6",
     "@tailwindcss/postcss": "^4.1.6",
     "rxjs": "~7.8.0",
@@ -45,7 +46,14 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "postcss": "^8.5.3",
+    "supabase": "^2.23.4",
     "tailwindcss": "^4.1.6",
     "typescript": "~5.7.2"
+  },
+  "overrides": {
+    "@supabase/supabase-js": {
+      "@supabase/supabase-js": "2.31.0",
+      "@supabase/gotrue-js": "2.43.1"
+    }
   }
 }

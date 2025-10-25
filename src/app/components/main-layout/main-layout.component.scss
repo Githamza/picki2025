@@ -21,6 +21,51 @@
   flex: 1 1 auto;
 }
 
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 16px;
+
+  .restaurant-logo {
+    height: 40px;
+    width: 40px;
+    border-radius: 8px;
+    object-fit: contain;
+    padding: 4px;
+
+    &:hover {
+      background: var(--mat-sys-surface-container-high);
+    }
+  }
+
+  .restaurant-logo-fallback {
+    height: 40px;
+    width: 40px;
+    font-size: 24px;
+    color: var(--mat-sys-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mat-sys-surface-container);
+    border-radius: 8px;
+
+    &:hover {
+      background: var(--mat-sys-surface-container-high);
+    }
+  }
+
+  .restaurant-name {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+    font-family: var(--mat-sys-typescale-title-large-font);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .app-title {
   font-size: 1.25rem;
   font-weight: 500;
@@ -86,12 +131,12 @@
 }
 
 .main-content {
-  padding: 20px;
   flex: 1;
-  margin: 16px;
   color: var(--mat-sys-on-surface);
   overflow: auto;
-  background: var(--mat-sys-surface);
+  border-radius: 16px;
+  margin: 16px;
+  background: var(--mat-sys-surface-container);
 }
 
 /* Material icon styles */
@@ -117,6 +162,28 @@
   .main-content {
     margin: 8px;
     padding: 16px;
+  }
+
+  .brand-section {
+    gap: 8px;
+    margin-right: 12px;
+
+    .restaurant-logo {
+      height: 32px;
+      width: 32px;
+      padding: 2px;
+    }
+
+    .restaurant-logo-fallback {
+      height: 32px;
+      width: 32px;
+      font-size: 20px;
+    }
+
+    .restaurant-name {
+      font-size: 1.1rem;
+      max-width: 150px;
+    }
   }
 
   .dining-preference-indicator {
@@ -179,5 +246,27 @@
     .change-icon {
       transition: none !important;
     }
+  }
+}
+
+// Restaurant Info Dialog Styles
+::ng-deep .restaurant-info-dialog-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-content {
+    padding: 24px;
+    margin: 0;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: 16px 24px;
+    margin: 0;
+    border-top: 1px solid var(--mat-sys-outline-variant);
   }
 }

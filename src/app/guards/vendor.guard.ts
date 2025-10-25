@@ -3,6 +3,7 @@ import { CanActivate, ActivatedRouteSnapshot, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { VendorService } from '../services/vendor.service';
+import { SupabaseAuthService } from '../services/supabase-auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -10,6 +11,7 @@ import { VendorService } from '../services/vendor.service';
 export class VendorGuard implements CanActivate {
   private vendorService = inject(VendorService);
   private router = inject(Router);
+  private supabaseAuthService = inject(SupabaseAuthService);
 
   canActivate(route: ActivatedRouteSnapshot): Observable<boolean> {
     const vendorSlug = route.paramMap.get('vendorSlug');
@@ -27,6 +29,8 @@ export class VendorGuard implements CanActivate {
       this.vendorService.getVendorSlug(currentVendor) === vendorSlug
     ) {
       console.log('Vendor already set:', currentVendor.business_name);
+      // Set vendor ID in SupabaseAuthService
+      this.supabaseAuthService.setCurrentVendorId(currentVendor.id);
       return of(true);
     }
 
@@ -35,6 +39,8 @@ export class VendorGuard implements CanActivate {
       map((vendor) => {
         if (vendor) {
           console.log('Vendor set successfully:', vendor.business_name);
+          // Set vendor ID in SupabaseAuthService
+          this.supabaseAuthService.setCurrentVendorId(vendor.id);
           return true;
         } else {
           console.error('Vendor not found:', vendorSlug);

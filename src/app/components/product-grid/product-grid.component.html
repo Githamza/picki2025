@@ -30,21 +30,37 @@
     </div>
   </div>
 
-  <div class="product-grid" style="view-transition-name: product-grid">
+  <!-- Desktop Card Layout -->
+  <div
+    class="product-grid desktop-layout"
+    style="view-transition-name: product-grid"
+    *ngIf="!(isHandset$ | async)"
+  >
     <mat-card
       *ngFor="let product of filteredProducts"
       class="product-card"
+      [class.out-of-stock]="product.stockQuantity === 0"
       appearance="outlined"
+      (click)="
+        product.stockQuantity !== 0 && addToCart(product);
+        $event.stopPropagation()
+      "
     >
       <img
         mat-card-image
         [src]="product.imageUrl"
         [alt]="product.name"
         title="Product image"
+        [class.grayscale]="product.stockQuantity === 0"
       />
       <mat-card-content>
         <h3>{{ product.name }}</h3>
-        <p class="price">${{ product.price.toFixed(2) }}</p>
+        <p
+          class="price"
+          [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
+        >
+          €{{ product.price.toFixed(2) }}
+        </p>
         <p class="short-description" *ngIf="product.shortDescription">
           {{ product.shortDescription }}
         </p>
@@ -55,19 +71,89 @@
           {{ product.description | slice : 0 : 60
           }}{{ product.description.length > 60 ? "..." : "" }}
         </p>
+        <p class="out-of-stock-label" *ngIf="product.stockQuantity === 0">
+          Victime de son succès
+        </p>
       </mat-card-content>
       <mat-card-actions>
         <button
           mat-fab
           color="primary"
           class="add-to-order-fab"
+          [disabled]="product.stockQuantity === 0"
           (click)="addToCart(product)"
-          matTooltip="Add to order"
+          [matTooltip]="
+            product.stockQuantity === 0 ? 'Out of stock' : 'Add to order'
+          "
         >
           <mat-icon>add</mat-icon>
         </button>
       </mat-card-actions>
     </mat-card>
+  </div>
+
+  <!-- Mobile List Layout -->
+  <div
+    class="product-list mobile-layout"
+    style="view-transition-name: product-grid"
+    *ngIf="isHandset$ | async"
+  >
+    <div
+      *ngFor="let product of filteredProducts"
+      class="product-list-item"
+      [class.out-of-stock]="product.stockQuantity === 0"
+      (click)="product.stockQuantity !== 0 && addToCart(product)"
+    >
+      <div class="product-image-container">
+        <img
+          [src]="product.imageUrl"
+          [alt]="product.name"
+          title="Product image"
+          class="product-image"
+          [class.grayscale]="product.stockQuantity === 0"
+        />
+      </div>
+
+      <div class="product-info">
+        <h3 class="product-name">{{ product.name }}</h3>
+        <p
+          class="product-price"
+          [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
+        >
+          €{{ product.price.toFixed(2) }}
+        </p>
+        <p class="product-description" *ngIf="product.shortDescription">
+          {{ product.shortDescription }}
+        </p>
+        <p
+          class="product-description"
+          *ngIf="!product.shortDescription && product.description"
+        >
+          {{ product.description | slice : 0 : 80
+          }}{{ product.description.length > 80 ? "..." : "" }}
+        </p>
+        <p class="out-of-stock-label" *ngIf="product.stockQuantity === 0">
+          Out of Stock
+        </p>
+      </div>
+
+      <div class="product-action">
+        <button
+          mat-mini-fab
+          color="primary"
+          class="add-button"
+          [disabled]="product.stockQuantity === 0"
+          (click)="addToCart(product); $event.stopPropagation()"
+          [matTooltip]="
+            product.stockQuantity === 0
+              ? 'Victime de son succès'
+              : 'Add to order'
+          "
+        >
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    </div>
   </div>
 
   <div class="no-products" *ngIf="(filteredProducts$ | async)?.length === 0">

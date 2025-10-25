@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +17,8 @@ import { SupabaseService } from '../../services/supabase.service';
 import { PaymentService } from '../../services/payment.service';
 import { take, firstValueFrom, interval, Subscription } from 'rxjs';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { VendorService } from '../../services/vendor.service';
+import { EmailService } from '../../services/email.service';
 
 @Component({
   selector: 'app-payment-success',
@@ -64,6 +67,55 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
                   >
                     {{ getStatusText(orderDetails.status) }}
                   </h1>
+                </div>
+              </div>
+
+              <!-- Delivery Information -->
+              <div
+                class="delivery-info"
+                *ngIf="orderDetails?.orderType === 'delivery' && deliveryInfo"
+              >
+                <h3>Informations de livraison</h3>
+                <p>
+                  <strong>Statut:</strong>
+                  {{ getDeliveryStatusText(deliveryInfo?.status) }}
+                </p>
+                <p *ngIf="etaRemainingMinutes !== undefined">
+                  <strong>Arrivée estimée:</strong>
+                  dans {{ etaRemainingMinutes }} min
+                </p>
+                <div
+                  *ngIf="deliveryInfo?.tracking_url"
+                  class="tracking-section"
+                >
+                  <p>
+                    <a
+                      mat-button
+                      [href]="deliveryInfo.tracking_url"
+                      rel="noopener"
+                      target="_blank"
+                      >Ouvrir le suivi dans un nouvel onglet</a
+                    >
+                  </p>
+                  <div
+                    class="tracking-iframe-container"
+                    *ngIf="
+                      getSafeTrackingUrl() &&
+                      !deliveryInfo?.tracking_url?.includes('uber.com')
+                    "
+                  >
+                    <iframe
+                      [src]="getSafeTrackingUrl()"
+                      class="tracking-iframe"
+                      frameborder="0"
+                      allowfullscreen
+                      referrerpolicy="no-referrer-when-downgrade"
+                      sandbox="allow-scripts allow-same-origin allow-forms"
+                      loading="lazy"
+                      title="Suivi de livraison"
+                    >
+                    </iframe>
+                  </div>
                 </div>
               </div>
 
@@ -230,6 +282,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
       .customer-info,
       .order-items,
       .payment-info,
+      .delivery-info,
       .order-notes {
         margin: 20px 0;
         padding: 15px;
@@ -241,6 +294,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
       .customer-info h3,
       .order-items h3,
       .payment-info h3,
+      .delivery-info h3,
       .order-notes h3 {
         color: #333;
         margin: 0 0 15px 0;
@@ -309,6 +363,10 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         background-color: #fff3e0;
         color: #f57c00;
       }
+      .status-paid {
+        background-color: #e8f5e8;
+        color: #2e7d32;
+      }
       .status-refused {
         background-color: #ffebee;
         color: #c62828;
@@ -354,6 +412,27 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         color: #555;
       }
 
+      .tracking-section {
+        margin-top: 15px;
+      }
+
+      .tracking-iframe-container {
+        margin-top: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #fff;
+        min-height: 400px;
+        position: relative;
+      }
+
+      .tracking-iframe {
+        width: 100%;
+        height: 400px;
+        border: none;
+        display: block;
+      }
+
       .action-buttons {
         display: flex;
         gap: 15px;
@@ -388,6 +467,14 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         .order-details {
           padding: 15px;
         }
+
+        .tracking-iframe-container {
+          min-height: 350px;
+        }
+
+        .tracking-iframe {
+          height: 350px;
+        }
       }
 
       @media (max-width: 480px) {
@@ -415,6 +502,14 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
           width: 100%;
           justify-content: space-between;
         }
+
+        .tracking-iframe-container {
+          min-height: 300px;
+        }
+
+        .tracking-iframe {
+          height: 300px;
+        }
       }
     `,
   ],
@@ -428,18 +523,34 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   private supabaseService = inject(SupabaseService);
   private paymentService = inject(PaymentService);
   private vendorNavigation = inject(VendorNavigationService);
+  private vendorService = inject(VendorService);
+  private emailService = inject(EmailService);
+  private sanitizer = inject(DomSanitizer);
 
   isProcessing = true;
   orderNumber?: string;
   orderDetails?: Order;
   paymentDetails?: any;
+  // Delivery display state
+  deliveryInfo?: any;
+  etaRemainingMinutes?: number;
 
   // Auto-refresh subscription
   private autoRefreshSubscription?: Subscription;
+  private deliveryRefreshActive = false;
   private orderId?: string;
 
   ngOnInit() {
-    this.processSuccessfulPayment();
+    // Check if we have an orderId in the URL (coming from tracking link)
+    const orderId = this.route.snapshot.queryParamMap.get('orderId');
+
+    if (orderId) {
+      // User is accessing via tracking link
+      this.loadOrderFromTrackingLink(orderId);
+    } else {
+      // Normal payment success flow
+      this.processSuccessfulPayment();
+    }
   }
 
   ngOnDestroy() {
@@ -459,6 +570,10 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     this.autoRefreshSubscription = interval(10000).subscribe(() => {
       console.log('Auto-refreshing order status...');
       this.refreshOrderStatus();
+      // Also refresh delivery info if applicable
+      if (this.deliveryRefreshActive) {
+        this.refreshDeliveryInfo();
+      }
     });
   }
 
@@ -488,6 +603,54 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       console.error('Error refreshing order status:', error);
       // Continue refreshing even if there's an error
     }
+  }
+
+  private async loadDeliveryInfo(orderId: string) {
+    try {
+      const delivery = await this.supabaseService.getOrderDeliveryByOrderId(
+        orderId
+      );
+      this.deliveryInfo = delivery || undefined;
+      this.updateEtaRemaining();
+      // Enable delivery refresh loop when we have delivery data
+      this.deliveryRefreshActive = !!delivery;
+    } catch (e) {
+      console.error('Failed to load delivery info:', e);
+    }
+  }
+
+  private async refreshDeliveryInfo() {
+    if (!this.orderId) return;
+    try {
+      const delivery = await this.supabaseService.getOrderDeliveryByOrderId(
+        this.orderId
+      );
+      if (delivery) {
+        this.deliveryInfo = delivery;
+        this.updateEtaRemaining();
+        // Stop refreshing if delivered or cancelled
+        const st = String(delivery.status || '').toLowerCase();
+        if (st === 'delivered' || st === 'cancelled') {
+          this.deliveryRefreshActive = false;
+        }
+      }
+    } catch (e) {
+      console.error('Error refreshing delivery info:', e);
+    }
+  }
+
+  private updateEtaRemaining() {
+    const eta = Number(this.deliveryInfo?.eta_minutes);
+    const updatedAtIso = this.deliveryInfo?.updated_at as string | undefined;
+    if (!isFinite(eta) || eta <= 0 || !updatedAtIso) {
+      this.etaRemainingMinutes = undefined;
+      return;
+    }
+    const updatedAt = new Date(updatedAtIso);
+    const elapsedMs = Date.now() - updatedAt.getTime();
+    const elapsedMin = Math.floor(elapsedMs / 60000);
+    const remaining = Math.max(0, eta - elapsedMin);
+    this.etaRemainingMinutes = remaining;
   }
 
   private async processSuccessfulPayment() {
@@ -523,8 +686,16 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         if (poId) {
           paymentProvider = 'paygreen';
           paymentId = poId;
+
+          // Get current vendor for payment details retrieval
+          const currentVendor = this.vendorService.getCurrentVendor();
+          if (!currentVendor) {
+            console.error('No vendor available for PayGreen payment details');
+            throw new Error('Vendor context missing for payment verification');
+          }
+
           paymentDetails = await firstValueFrom(
-            this.paymentService.getPayGreenPayment(poId)
+            this.paymentService.getPayGreenPayment(currentVendor.id, poId)
           );
           console.log('PayGreen payment details:', paymentDetails);
 
@@ -534,6 +705,20 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           // Get order ID from payment reference
           orderId =
             paymentDetails.metadata?.reference || paymentDetails.reference;
+          // Update delivery row status after payment authorised - only if not already progressed
+          try {
+            if (orderId) {
+              await this.updateDeliveryStatusIfNeeded(
+                orderId,
+                'payment_authorized'
+              );
+            }
+          } catch (e) {
+            console.warn(
+              'Failed to update delivery status post-payment (PG):',
+              e
+            );
+          }
         } else if (sessionId) {
           paymentProvider = 'stripe';
           paymentId = sessionId;
@@ -547,6 +732,20 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
           // Get order ID from payment metadata
           orderId = paymentDetails.metadata?.orderId;
+          // Update delivery row status after payment succeeded (Stripe) - only if not already progressed
+          try {
+            if (orderId) {
+              await this.updateDeliveryStatusIfNeeded(
+                orderId,
+                'payment_succeeded'
+              );
+            }
+          } catch (e) {
+            console.warn(
+              'Failed to update delivery status post-payment (Stripe):',
+              e
+            );
+          }
         }
       } catch (error) {
         console.error('Error retrieving payment details:', error);
@@ -565,38 +764,71 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
             // Store order details for template
             this.orderDetails = existingOrder;
 
-            // Don't automatically update order status - let restaurant owner validate first
-            // await this.ordersService.updateOrderStatus(orderId, 'todo');
-            console.log(
-              'Order retrieved - keeping status as initiated for restaurant validation'
-            );
+            // Update order status to 'paid' after successful payment only if existing order status is 'initiated'
+            if (existingOrder.status === 'initiated') {
+              await this.ordersService.updateOrderStatus(orderId, 'paid');
+              console.log(
+                'Order status updated to paid after successful payment'
+              );
 
-            // Keep the original order status for display
-            // this.orderDetails.status = 'todo';
+              // Update the order details for display
+              this.orderDetails.status = 'paid';
+            }
 
             // Set order number for display
             this.orderNumber = existingOrder.orderNumber;
 
+            // Send confirmation email
+            await this.sendConfirmationEmail(existingOrder);
+
             // Check if payment record already exists
             if (paymentDetails) {
-              const existingPayment =
-                await this.supabaseService.getPaymentByOrderId(orderId);
+              try {
+                const existingPayment =
+                  await this.supabaseService.getPaymentByOrderId(orderId);
 
-              if (!existingPayment) {
-                const payment = await this.supabaseService.createPayment({
-                  provider: paymentProvider as 'paygreen' | 'stripe',
-                  provider_payment_id: paymentId,
-                  amount: paymentDetails.amount,
-                  currency: paymentDetails.currency,
-                  status: 'pending',
-                  order_id: orderId,
-                  metadata: {
-                    orderNumber: existingOrder.orderNumber,
-                  },
-                });
-                console.log('Created payment record:', payment);
-              } else {
-                console.log('Payment record already exists:', existingPayment);
+                if (!existingPayment) {
+                  const payment = await this.supabaseService.createPayment({
+                    provider: paymentProvider as 'paygreen' | 'stripe',
+                    provider_payment_id: paymentId,
+                    amount: paymentDetails.amount,
+                    currency: paymentDetails.currency,
+                    status: 'pending',
+                    order_id: orderId,
+                    metadata: {
+                      orderNumber: existingOrder.orderNumber,
+                    },
+                  });
+                  console.log('Created payment record:', payment);
+                } else {
+                  console.log(
+                    'Payment record already exists:',
+                    existingPayment
+                  );
+                }
+              } catch (paymentError) {
+                console.log(
+                  'No existing payment found, creating new payment record'
+                );
+                try {
+                  const payment = await this.supabaseService.createPayment({
+                    provider: paymentProvider as 'paygreen' | 'stripe',
+                    provider_payment_id: paymentId,
+                    amount: paymentDetails.amount,
+                    currency: paymentDetails.currency,
+                    status: 'pending',
+                    order_id: orderId,
+                    metadata: {
+                      orderNumber: existingOrder.orderNumber,
+                    },
+                  });
+                  console.log('Created payment record:', payment);
+                } catch (createPaymentError) {
+                  console.error(
+                    'Error creating payment record:',
+                    createPaymentError
+                  );
+                }
               }
             }
 
@@ -608,6 +840,11 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
             // Start auto-refresh after successfully loading order
             this.startOrderStatusRefresh();
+
+            // If delivery order, load delivery info
+            if (existingOrder.orderType === 'delivery') {
+              await this.loadDeliveryInfo(orderId);
+            }
 
             return; // Exit successfully
           }
@@ -652,6 +889,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           quantity: item.quantity,
           price: item.price,
           options: item.options || [],
+          vendorId: item.vendorId,
         })) || [];
 
       // Calculate scheduled time if needed
@@ -678,7 +916,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         },
         items: orderItems,
         totalAmount: paymentDetails.amount,
-        status: 'initiated',
+        status: 'paid',
         orderType: metadata.diningPreference || 'take-away',
         timing: metadata.timing || 'asap',
         scheduledTime: scheduledDateTime,
@@ -697,6 +935,14 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       // Store order details for template
       if (createdOrder) {
         this.orderDetails = createdOrder;
+
+        // Send confirmation email
+        await this.sendConfirmationEmail(createdOrder);
+
+        // If delivery order, load delivery info
+        if (createdOrder.orderType === 'delivery') {
+          await this.loadDeliveryInfo(createdOrder.id);
+        }
       }
 
       // Create payment record
@@ -755,6 +1001,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           quantity: item.quantity,
           price: item.product.price,
           options: [],
+          vendorId: item.product.vendorId,
         }));
 
         // Calculate total
@@ -775,7 +1022,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           },
           items: orderItems,
           totalAmount,
-          status: 'todo',
+          status: 'paid',
           orderType: diningPref as any,
           timing: timing as any,
           scheduledTime: scheduledDateTime,
@@ -794,6 +1041,14 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         // Store order details for template
         if (createdOrder) {
           this.orderDetails = createdOrder;
+
+          // Send confirmation email
+          await this.sendConfirmationEmail(createdOrder);
+
+          // If delivery order, load delivery info
+          if (createdOrder.orderType === 'delivery') {
+            await this.loadDeliveryInfo(createdOrder.id);
+          }
         }
 
         // Create payment record
@@ -841,6 +1096,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   getStatusText(status: string): string {
     const statusMap: { [key: string]: string } = {
       initiated: 'En attente de validation',
+      paid: 'Payée',
       refused: 'Refusée',
       todo: 'Confirmée',
       'in-progress': 'En préparation',
@@ -890,5 +1146,200 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     }
 
     return 'Carte bancaire';
+  }
+
+  getDeliveryStatusText(status: string | null | undefined): string {
+    const s = String(status || '').toLowerCase();
+    const map: Record<string, string> = {
+      created: 'Créée',
+      assigning: "Recherche d'un coursier",
+      assigned: 'Coursier assigné',
+      picking: 'Récupération en cours',
+      picked: 'Récupérée',
+      delivering: 'En cours de livraison',
+      delivered: 'Livrée',
+      cancelled: 'Annulée',
+    };
+    return map[s] || status || '—';
+  }
+
+  getSafeTrackingUrl(): SafeResourceUrl | null {
+    if (!this.deliveryInfo?.tracking_url) {
+      return null;
+    }
+
+    // Sanitize the URL to prevent XSS attacks
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      this.deliveryInfo.tracking_url
+    );
+  }
+
+  private async updateDeliveryStatusIfNeeded(
+    orderId: string,
+    newStatus: string
+  ) {
+    try {
+      // First, check if delivery information already exists
+      const existingDelivery =
+        await this.supabaseService.getOrderDeliveryByOrderId(orderId);
+
+      if (!existingDelivery) {
+        // No delivery record exists yet, safe to create/update
+        console.log(
+          'No existing delivery record found, updating status to:',
+          newStatus
+        );
+        await this.supabaseService.updateOrderDeliveryAfterCreation(orderId, {
+          status: newStatus,
+        });
+        return;
+      }
+
+      const currentStatus = existingDelivery.status;
+      console.log(
+        'Existing delivery status:',
+        currentStatus,
+        '| Proposed new status:',
+        newStatus
+      );
+
+      // Define status hierarchy - only update if current status is at an early stage
+      const earlyStages = [
+        'created',
+        'pending',
+        'payment_pending',
+        'waiting_payment',
+        'payment_authorized',
+        'payment_succeeded',
+        null,
+        undefined,
+      ];
+
+      // Define advanced stages that should not be overwritten
+      const advancedStages = [
+        'assigned',
+        'en_route_to_pickup',
+        'arrived_at_pickup',
+        'in_transit',
+        'en_route_to_dropoff',
+        'delivered',
+        'cancelled',
+        'returned',
+        'split',
+        'reassigning',
+      ];
+
+      if (earlyStages.includes(currentStatus)) {
+        // Current status is still early, safe to update
+        console.log('Current status is early stage, updating to:', newStatus);
+        await this.supabaseService.updateOrderDeliveryAfterCreation(orderId, {
+          status: newStatus,
+        });
+      } else if (advancedStages.includes(currentStatus)) {
+        // Current status is advanced, don't overwrite
+        console.log(
+          'Current status is advanced stage, skipping update to avoid overwriting progress'
+        );
+      } else {
+        // Unknown status, log but don't update to be safe
+        console.log(
+          'Unknown current status, skipping update to be safe:',
+          currentStatus
+        );
+      }
+    } catch (error) {
+      console.error('Error checking/updating delivery status:', error);
+      // If there's an error checking, don't update to be safe
+    }
+  }
+
+  private async sendConfirmationEmail(order: Order) {
+    try {
+      // Check if confirmation email has already been sent
+      const emailAlreadySent =
+        await this.supabaseService.checkConfirmationEmailSent(order.id);
+
+      if (emailAlreadySent) {
+        console.log(
+          'Confirmation email already sent for order:',
+          order.orderNumber
+        );
+        return;
+      }
+
+      console.log('Sending confirmation email for order:', order.orderNumber);
+
+      // Extract vendor slug from current URL
+      let vendorSlug: string | undefined;
+      const currentPath = window.location.pathname;
+      const vendorMatch = currentPath.match(/^\/([^\/]+)\//);
+      if (vendorMatch && vendorMatch[1]) {
+        vendorSlug = vendorMatch[1];
+      }
+
+      // Generate tracking URL
+      const trackingUrl = this.emailService.generateTrackingUrl(
+        order.id,
+        vendorSlug
+      );
+
+      // Send confirmation email
+      const emailResult = await this.emailService.sendOrderConfirmationEmail(
+        order,
+        trackingUrl
+      );
+
+      if (emailResult.success) {
+        console.log('Order confirmation email sent successfully');
+
+        // Mark email as sent in the database
+        try {
+          await this.supabaseService.markConfirmationEmailSent(order.id);
+          console.log(
+            'Marked confirmation email as sent for order:',
+            order.orderNumber
+          );
+        } catch (markError) {
+          console.error('Failed to mark email as sent:', markError);
+          // Don't throw - the email was sent successfully even if we failed to mark it
+        }
+      } else {
+        console.error('Failed to send confirmation email:', emailResult.error);
+      }
+    } catch (error) {
+      console.error('Error sending confirmation email:', error);
+      // Don't throw - email failure shouldn't break the order flow
+    }
+  }
+
+  private async loadOrderFromTrackingLink(orderId: string) {
+    try {
+      this.isProcessing = true;
+
+      // Load order details
+      const order = await this.ordersService.getOrderById(orderId);
+
+      if (order) {
+        this.orderDetails = order;
+        this.orderNumber = order.orderNumber;
+        this.orderId = orderId;
+
+        // Start auto-refresh for order status
+        this.startOrderStatusRefresh();
+
+        // If delivery order, load delivery info
+        if (order.orderType === 'delivery') {
+          await this.loadDeliveryInfo(orderId);
+        }
+
+        console.log('Order loaded from tracking link:', order);
+      } else {
+        console.error('Order not found:', orderId);
+      }
+    } catch (error) {
+      console.error('Error loading order from tracking link:', error);
+    } finally {
+      this.isProcessing = false;
+    }
   }
 }

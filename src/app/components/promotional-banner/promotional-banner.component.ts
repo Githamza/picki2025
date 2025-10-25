@@ -1,8 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
+import { SupabaseAuthService } from '../../services/supabase-auth.service';
+import { VendorService } from '../../services/vendor.service';
 import { Tables } from '../../types/supabase.types';
-import { interval } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
 
 type Banner = Tables<'banners'>;
 
@@ -133,40 +135,61 @@ type Banner = Tables<'banners'>;
     `,
   ],
 })
-export class PromotionalBannerComponent implements OnInit {
+export class PromotionalBannerComponent implements OnInit, OnDestroy {
   private supabaseService = inject(SupabaseService);
+  private supabaseAuthService = inject(SupabaseAuthService);
+  private vendorService = inject(VendorService);
 
   banners: Banner[] = [];
   currentIndex = 0;
-  private intervalSubscription?: any;
+  private intervalSubscription?: Subscription;
+  private vendorSubscription?: Subscription;
 
   get currentBanner(): Banner {
     return this.banners[this.currentIndex] || ({} as Banner);
   }
 
   async ngOnInit() {
-    await this.loadBanners();
-
-    // Auto-rotate banners every 5 seconds if there are multiple
-    if (this.banners.length > 1) {
-      this.intervalSubscription = interval(5000).subscribe(() => {
-        this.nextBanner();
-      });
-    }
+    // Subscribe to vendor changes
+    this.vendorSubscription = this.vendorService.currentVendor$.subscribe(
+      async (vendor) => {
+        await this.loadBanners(vendor?.id);
+        this.setupAutoRotation();
+      }
+    );
   }
 
   ngOnDestroy() {
     if (this.intervalSubscription) {
       this.intervalSubscription.unsubscribe();
     }
+    if (this.vendorSubscription) {
+      this.vendorSubscription.unsubscribe();
+    }
   }
 
-  async loadBanners() {
+  async loadBanners(vendorId?: string) {
     try {
-      this.banners = (await this.supabaseService.getBanners()) || [];
+      this.banners =
+        (await this.supabaseAuthService.getBanners(vendorId)) || [];
+      this.currentIndex = 0; // Reset to first banner when loading new banners
     } catch (error) {
       console.error('Error loading banners:', error);
       this.banners = [];
+    }
+  }
+
+  private setupAutoRotation() {
+    // Clear existing interval
+    if (this.intervalSubscription) {
+      this.intervalSubscription.unsubscribe();
+    }
+
+    // Auto-rotate banners every 5 seconds if there are multiple
+    if (this.banners.length > 1) {
+      this.intervalSubscription = interval(5000).subscribe(() => {
+        this.nextBanner();
+      });
     }
   }
 

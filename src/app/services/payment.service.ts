@@ -8,7 +8,7 @@ import {
 import { PaygreenPaymentStrategy } from './strategies/paygreen-payment.strategy';
 import { StripePaymentStrategy } from './strategies/stripe-payment.strategy';
 import { HttpClient } from '@angular/common/http';
-import { PaygreenService } from './paygreen.service';
+import { PaygreenBackendService } from './paygreen-backend.service';
 import { map } from 'rxjs/operators';
 import { StripeService } from './stripe.service';
 
@@ -94,7 +94,7 @@ export class PaymentService {
   private readonly paygreenStrategy = inject(PaygreenPaymentStrategy);
   private readonly stripeStrategy = inject(StripePaymentStrategy);
   private readonly http = inject(HttpClient);
-  private readonly paygreenService = inject(PaygreenService);
+  private readonly paygreenBackend = inject(PaygreenBackendService);
   private readonly stripeService = inject(StripeService);
 
   // Default payment provider - can be changed manually
@@ -200,12 +200,22 @@ export class PaymentService {
    * @param paymentId PayGreen payment ID (po_id)
    * @returns Observable with payment details
    */
-  getPayGreenPayment(paymentId: string): Observable<PaymentDetails> {
+  getPayGreenPayment(
+    vendorId: string,
+    paymentId: string
+  ): Observable<PaymentDetails> {
     console.log('Retrieving PayGreen payment:', paymentId);
 
-    return this.paygreenService
-      .getPaymentOrder(paymentId)
-      .pipe(map((response) => this.mapPayGreenResponse(response.data)));
+    if (!vendorId) {
+      console.error('vendorId missing for getPayGreenPayment');
+    }
+    return this.paygreenBackend
+      .getPaymentOrder(vendorId!, paymentId)
+      .pipe(
+        map((response) =>
+          this.mapPayGreenResponse(response.data.data ?? response.data)
+        )
+      );
   }
 
   /**
@@ -376,9 +386,9 @@ export class PaymentService {
    * @param paymentId PayGreen payment ID (po_id)
    * @returns Observable with capture response
    */
-  capturePayGreenPayment(paymentId: string): Observable<any> {
+  capturePayGreenPayment(vendorId: string, paymentId: string): Observable<any> {
     console.log('Capturing PayGreen payment:', paymentId);
-    return this.paygreenService.capturePayment(paymentId);
+    return this.paygreenBackend.capturePayment(vendorId, paymentId);
   }
 
   /**
@@ -388,6 +398,7 @@ export class PaymentService {
    * @returns Observable with capture response
    */
   capturePayment(
+    vendorId: string,
     paymentId: string,
     provider: PaymentProvider = 'paygreen'
   ): Observable<any> {
@@ -395,7 +406,7 @@ export class PaymentService {
 
     switch (provider) {
       case 'paygreen':
-        return this.capturePayGreenPayment(paymentId);
+        return this.capturePayGreenPayment(vendorId, paymentId);
       case 'stripe':
         // For Stripe, capture should be handled on the backend
         // This is a placeholder - implement backend API call

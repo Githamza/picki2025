@@ -1,11 +1,14 @@
 import { Product } from '../../services/product.service';
 import { ProductState } from '../reducers/product.reducer'; // Adjust path as necessary
+import { MultiStepProductState } from '../reducers/multi-step-product.reducer';
+import { ComplementSelection } from '../../models/complement.model';
 
 // App state model
 export interface AppState {
   banner: BannerState;
   category: CategoryState;
   product: ProductState; // Added product state
+  multiStepProduct: MultiStepProductState;
   cart: CartState;
   // Add more state slices as needed
 }
@@ -32,6 +35,7 @@ export interface Category {
   icon?: string;
   imageUrl?: string;
   description?: string;
+  displayOrder?: number;
 }
 
 // Re-exporting individual states for convenience if needed elsewhere
@@ -43,6 +47,10 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
+  comment?: string;
+  selectedComplements?: ComplementSelection[];
+  totalPrice?: number; // Add this for multi-step products
+  metadata?: any; // Add metadata field for multi-step products
 }
 
 export interface CartState {

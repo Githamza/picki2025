@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"]
+  },
+  "imports": {
+    "https://deno.land/std@0.200.0/": "https://deno.land/std@0.200.0/",
+    "https://esm.sh/": "https://esm.sh/"
+  }
+}

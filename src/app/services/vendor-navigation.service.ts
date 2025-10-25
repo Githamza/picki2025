@@ -13,6 +13,7 @@ export class VendorNavigationService {
     const currentVendor = this.vendorService.getCurrentVendor();
     if (!currentVendor) {
       console.error('No vendor context available for navigation');
+      console.error('Current URL:', this.router.url);
       return;
     }
 
@@ -21,7 +22,26 @@ export class VendorNavigationService {
       ? [vendorSlug, ...path]
       : [vendorSlug, path];
 
-    this.router.navigate(fullPath);
+    console.log('VendorNavigationService: Navigating to:', fullPath);
+    console.log(
+      'Current vendor:',
+      currentVendor.business_name,
+      'Slug:',
+      vendorSlug
+    );
+
+    this.router
+      .navigate(fullPath)
+      .then((success) => {
+        if (success) {
+          console.log('Navigation successful to:', fullPath.join('/'));
+        } else {
+          console.error('Navigation failed to:', fullPath.join('/'));
+        }
+      })
+      .catch((error) => {
+        console.error('Navigation error:', error);
+      });
   }
 
   getVendorUrl(path: string | string[]): string {

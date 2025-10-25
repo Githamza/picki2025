@@ -17,7 +17,7 @@
     margin: 8px 16px 16px;
     font-size: 1.25rem;
     font-weight: 500;
-    color: var(--mat-on-surface);
+    color: var(--mat-sys-on-surface);
     flex-shrink: 0;
   }
 
@@ -74,16 +74,16 @@
         border-left: 4px solid var(--mat-primary);
 
         .mat-icon {
-          color: var(--mat-primary);
+          color: var(--mat-sys-primary);
         }
       }
 
       &:hover {
-        background-color: var(--mat-on-surface-transparent);
+        background-color: var(--mat-sys-on-surface-transparent);
       }
 
       .mat-icon {
-        color: var(--mat-on-surface-variant);
+        color: var(--mat-sys-on-surface-variant);
       }
     }
   }

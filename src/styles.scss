@@ -11,6 +11,16 @@
 /* Roboto font for Material typography */
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
 
+/* Image Zoom Dialog Global Styles */
+.image-zoom-dialog .mat-mdc-dialog-container {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.image-zoom-dialog .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  border-radius: 12px;
+}
 /* Global styles for Material 3 */
 html,
 body {
@@ -257,4 +267,7 @@ button:focus-visible,
     transition: none !important;
     animation: none !important;
   }
+}
+.mdc-notched-outline__notch {
+  border-right: none !important;
 }

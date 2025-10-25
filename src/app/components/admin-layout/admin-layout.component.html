@@ -11,36 +11,54 @@
       </div>
     </div>
     <div class="toolbar-right">
-      <div class="navigation-buttons">
+      <!-- Desktop Navigation -->
+      <div class="navigation-buttons" *ngIf="!isMobile">
         <button
           mat-raised-button
           [color]="isCurrentRoute('orders-manager') ? 'accent' : 'primary'"
           (click)="navigateToOrders()"
-          class="nav-button"
-          [class.active]="isCurrentRoute('orders-manager')"
           aria-label="Accéder aux commandes live"
         >
           <mat-icon>assignment</mat-icon>
-          <span class="button-text">Commandes Live</span>
-          <span class="button-text-short">Commandes</span>
+          <span>Live</span>
         </button>
 
         <button
           mat-raised-button
-          [color]="isCurrentRoute('stock-manager') ? 'accent' : 'primary'"
-          (click)="navigateToStock()"
-          class="nav-button"
-          [class.active]="isCurrentRoute('stock-manager')"
-          aria-label="Accéder à la gestion des stocks"
+          [color]="isCurrentRoute('product-manager') ? 'accent' : 'primary'"
+          (click)="navigateToProducts()"
+          aria-label="Accéder à la gestion des produits"
         >
-          <mat-icon>inventory</mat-icon>
-          <span class="button-text">Mes Stocks</span>
-          <span class="button-text-short">Stocks</span>
+          <mat-icon>restaurant_menu</mat-icon>
+          <span>Produits</span>
         </button>
       </div>
 
-      <!-- Orders Suspension Toggle -->
-      <div class="orders-control">
+      <!-- Mobile Navigation -->
+      <div class="navigation-buttons-mobile" *ngIf="isMobile">
+        <button
+          mat-mini-fab
+          [color]="isCurrentRoute('orders-manager') ? 'accent' : 'primary'"
+          (click)="navigateToOrders()"
+          aria-label="Accéder aux commandes live"
+          [matTooltip]="'Commandes Live'"
+        >
+          <mat-icon>assignment</mat-icon>
+        </button>
+
+        <button
+          mat-mini-fab
+          [color]="isCurrentRoute('product-manager') ? 'accent' : 'primary'"
+          (click)="navigateToProducts()"
+          aria-label="Accéder à la gestion des produits"
+          [matTooltip]="'Gérer mes produits'"
+        >
+          <mat-icon>restaurant_menu</mat-icon>
+        </button>
+      </div>
+
+      <!-- Orders Suspension Toggle - Desktop -->
+      <div class="orders-control" *ngIf="!isMobile">
         <div class="toggle-container" [matTooltip]="getOrdersStatusTooltip()">
           <mat-slide-toggle
             [checked]="!ordersSuspended"
@@ -61,15 +79,77 @@
         </div>
       </div>
 
-      <!-- User Actions -->
-      <div class="user-actions">
+      <!-- Orders Suspension Toggle - Mobile -->
+      <div class="orders-control-mobile" *ngIf="isMobile">
+        <button
+          mat-mini-fab
+          [color]="ordersSuspended ? 'warn' : 'accent'"
+          (click)="toggleOrdersSuspension()"
+          [disabled]="isToggling"
+          class="orders-fab"
+          [class.suspended]="ordersSuspended"
+          [class.active]="!ordersSuspended"
+          aria-label="Suspendre ou activer les commandes"
+          [matTooltip]="getOrdersStatusText()"
+        >
+          <mat-icon>
+            {{ ordersSuspended ? "pause_circle" : "play_circle" }}
+          </mat-icon>
+        </button>
+      </div>
+
+      <!-- User Menu -->
+      <div class="user-menu" *ngIf="isAuthenticated()">
+        <div class="user-info" *ngIf="!isMobile" [matMenuTriggerFor]="userMenu">
+          <div class="user-details">
+            <span class="user-name">{{ getUserDisplayName() }}</span>
+            <span class="user-role">{{ getUserRole() }}</span>
+          </div>
+          <div class="user-avatar">
+            <mat-icon>account_circle</mat-icon>
+          </div>
+          <mat-icon class="expand-icon">expand_more</mat-icon>
+        </div>
+
         <button
           mat-icon-button
-          class="user-menu-button"
+          [matMenuTriggerFor]="userMenu"
           aria-label="Menu utilisateur"
+          *ngIf="isMobile"
         >
           <mat-icon>account_circle</mat-icon>
         </button>
+
+        <mat-menu #userMenu="matMenu" class="user-dropdown">
+          <div class="user-menu-header" *ngIf="isMobile">
+            <div class="user-avatar-large">
+              <mat-icon>account_circle</mat-icon>
+            </div>
+            <div class="user-info-mobile">
+              <span class="user-name">{{ getUserDisplayName() }}</span>
+              <span class="user-role">{{ getUserRole() }}</span>
+            </div>
+          </div>
+
+          <mat-divider *ngIf="isMobile"></mat-divider>
+
+          <button mat-menu-item disabled>
+            <mat-icon>business</mat-icon>
+            <span>{{ vendorService.getCurrentVendor()?.business_name }}</span>
+          </button>
+
+          <mat-divider></mat-divider>
+
+          <button mat-menu-item (click)="navigateToRestaurantInfo()">
+            <mat-icon>info</mat-icon>
+            <span>Mes informations</span>
+          </button>
+
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Se déconnecter</span>
+          </button>
+        </mat-menu>
       </div>
     </div>
   </mat-toolbar>

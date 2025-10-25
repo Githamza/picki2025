@@ -27,6 +27,8 @@ import { OrdersService } from '../../services/orders.service';
 import { Order, OrderItem } from '../../models/order.model';
 import { RestaurantStatusService } from '../../services/restaurant-status.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { VendorService } from '../../services/vendor.service';
+import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 
 @Component({
   selector: 'app-cart-details-sheet',
@@ -81,11 +83,38 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         <mat-icon matListItemIcon>shopping_bag</mat-icon>
         <div matListItemTitle>{{ item.product.name }}</div>
         <div matListItemLine>Quantité: {{ item.quantity }}</div>
-        <div matListItemLine>
-          Prix: {{ item.product.price | number : '1.2-2' }} €
+        <div
+          matListItemLine
+          [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+        >
+          Prix: {{ getItemPrice(item) | number : '1.2-2' }} €
+        </div>
+        <!-- Multi-step product details -->
+        <div matListItemLine *ngIf="item.metadata" class="multi-step-details">
+          <div *ngFor="let step of item.metadata.stepSelections" class="step-detail">
+            <span class="step-name">{{ step.stepName }}:</span>
+            <span *ngFor="let option of step.selectedOptions; let last = last" class="option-name">
+              {{ option.optionName }}<span *ngIf="!last">, </span>
+            </span>
+          </div>
+        </div>
+        <div matListItemLine *ngIf="item.comment" class="item-comment">
+          <mat-icon>comment</mat-icon>
+          {{ item.comment }}
         </div>
       </mat-list-item>
       <mat-divider></mat-divider>
+      <!-- Delivery info -->
+      <div
+        class="delivery-summary"
+        *ngIf="deliverySelection.bestOption() as best"
+      >
+        <mat-icon>local_shipping</mat-icon>
+        <span
+          >Livraison: {{ best.totalAmount / 100 | number : '1.2-2' }} €</span
+        >
+        <span *ngIf="best.etaMinutes"> • {{ best.etaMinutes }} min</span>
+      </div>
       <div class="total-row">
         <span>Total:</span>
         <span class="total-price"
@@ -178,6 +207,43 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         font-weight: bold;
         margin-top: 8px;
       }
+      .item-comment {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-style: italic;
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 0.9em;
+      }
+      .item-comment mat-icon {
+        font-size: 16px;
+        height: 16px;
+        width: 16px;
+      }
+      .multi-step-details {
+        margin-top: 8px;
+        padding-left: 8px;
+        border-left: 2px solid var(--mat-sys-primary);
+      }
+      .step-detail {
+        margin-bottom: 4px;
+        font-size: 0.85em;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .step-name {
+        font-weight: 500;
+        color: var(--mat-sys-primary);
+      }
+      .option-name {
+        color: var(--mat-sys-on-surface);
+      }
+      .delivery-summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        color: var(--mat-sys-on-surface-variant);
+      }
     `,
   ],
 })
@@ -192,16 +258,32 @@ export class CartDetailsSheetComponent {
   private dialog = inject(MatDialog);
   private ordersService = inject(OrdersService);
   private restaurantStatusService = inject(RestaurantStatusService);
+  private vendorService = inject(VendorService);
+  readonly deliverySelection = inject(DeliverySelectionService);
 
   constructor(private store: Store<AppState>) {
     this.cartItems$ = this.store.select(selectCartItems);
   }
 
   getTotal(items: CartItem[]): number {
-    return items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
+    const itemsTotal = items.reduce((sum, item) => {
+      // Use stored totalPrice for multi-step products, otherwise calculate normally
+      const itemTotal = item.totalPrice || item.product.price * item.quantity;
+      return sum + itemTotal;
+    }, 0);
+
+    // Add delivery fee when delivery is selected and a quote exists
+    const isDelivery =
+      this.diningPreferenceService.diningPreference() === 'delivery';
+    const best = this.deliverySelection.bestOption();
+    const deliveryFee = isDelivery && best ? best.totalAmount / 100 : 0;
+
+    return itemsTotal + deliveryFee;
+  }
+
+  getItemPrice(item: CartItem): number {
+    // Use stored totalPrice for multi-step products, otherwise use product price
+    return item.totalPrice || item.product.price;
   }
 
   goToCartDetails() {
@@ -302,13 +384,25 @@ export class CartDetailsSheetComponent {
       const orderNumber = this.generateOrderNumber();
 
       // Create order items
-      const orderItems: OrderItem[] = items.map((item) => ({
-        productId: item.product.id.toString(),
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        options: [],
-      }));
+      const orderItems: OrderItem[] = items.map((item) => {
+        // For multi-step products, use the calculated totalPrice instead of base product price
+        const itemPrice = item.totalPrice || item.product.price;
+        
+        // Store multi-step metadata in options field
+        const options = item.metadata ? 
+          [item.metadata] : // Store CartMultiStepMetadata
+          item.selectedComplements || []; // Store complements if available
+
+        return {
+          productId: item.product.id.toString(),
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: itemPrice, // Use calculated price for multi-step products
+          options: options, // Store multi-step metadata or complements
+          vendorId: item.product.vendorId,
+          comment: item.comment,
+        };
+      });
 
       // Create order with "initiated" status
       const order: Order = {
@@ -342,7 +436,59 @@ export class CartDetailsSheetComponent {
         throw new Error('Failed to create order');
       }
 
-      // 2. Now create payment with order reference
+      // 2. Persist delivery selection for later creation on acceptance
+      try {
+        const isDeliveryMode =
+          this.diningPreferenceService.diningPreference() === 'delivery';
+        const bestOption = this.deliverySelection.bestOption();
+        if (isDeliveryMode && bestOption) {
+          const vendorInfo = await this.vendorService
+            .getRestaurantInfo()
+            .toPromise();
+          const pickup = vendorInfo
+            ? {
+                line1: vendorInfo.address.street,
+                postal_code: vendorInfo.address.postal_code,
+                city: vendorInfo.address.city,
+                country_code: 'FR',
+                lat: undefined,
+                lng: undefined,
+              }
+            : {
+                line1: '83 Bis Rue Du Commerce',
+                postal_code: '37000',
+                city: 'Tours',
+                country_code: 'FR',
+                lat: undefined,
+                lng: undefined,
+              };
+          const drop = this.deliverySelection.selectedAddress();
+          if (drop) {
+            await this.ordersService['supabaseService'].upsertOrderDelivery({
+              order_id: createdOrder.id,
+              provider: bestOption.providerId,
+              quote_amount_minor: bestOption.totalAmount,
+              currency: bestOption.currency,
+              eta_minutes: bestOption.etaMinutes ?? null,
+              status: 'waiting_payment',
+              pickup,
+              dropoff: {
+                line1: drop.line1,
+                postal_code: drop.postalCode,
+                city: drop.city,
+                country_code: drop.countryCode,
+                lat: drop.coordinates?.lat ?? null,
+                lng: drop.coordinates?.lng ?? null,
+              },
+              raw: bestOption.raw ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to persist delivery selection (sheet):', e);
+      }
+
+      // 3. Now create payment with order reference
       // Build return URLs with vendor context
       const baseUrl = window.location.origin;
       const vendorSlug = this.vendorNavigation.getVendorSlug();
@@ -353,21 +499,44 @@ export class CartDetailsSheetComponent {
         ? `${baseUrl}/${vendorSlug}/failedPayment`
         : `${baseUrl}/failedPayment`;
 
+      // Get current vendor for payment
+      const currentVendor = this.vendorService.getCurrentVendor();
+      if (!currentVendor) {
+        throw new Error('No vendor selected for payment');
+      }
+
+      // Prepare payment items and include delivery as a separate line when applicable
+      const paymentItems = items.map((item) => ({
+        name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price,
+      }));
+
+      const isDeliveryMode =
+        this.diningPreferenceService.diningPreference() === 'delivery';
+      const bestOption = this.deliverySelection.bestOption();
+      const deliveryFeeSheet =
+        isDeliveryMode && bestOption ? bestOption.totalAmount / 100 : 0;
+      if (deliveryFeeSheet > 0) {
+        paymentItems.push({
+          name: 'Livraison',
+          quantity: 1,
+          price: deliveryFeeSheet,
+        });
+      }
+
       // Create unified payment request with order reference
       const paymentRequest: PaymentRequest = {
         amount: totalAmount,
         currency: 'EUR',
+        vendorId: currentVendor.id, // Add vendor ID for secure payment processing
         buyer: {
           email: userInfo.email,
           firstName: userInfo.prenom,
           lastName: userInfo.nom,
           phone: userInfo.phone,
         },
-        items: items.map((item) => ({
-          name: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price,
-        })),
+        items: paymentItems,
         returnUrl,
         cancelUrl,
         reference: createdOrder.id, // Pass the created order ID as reference
@@ -376,6 +545,15 @@ export class CartDetailsSheetComponent {
           orderNumber: createdOrder.orderNumber,
           diningPreference: diningPref,
           orderSource: 'cart-sheet',
+          delivery: bestOption
+            ? {
+                providerId: bestOption.providerId,
+                providerName: bestOption.providerName,
+                amountMinor: bestOption.totalAmount,
+                currency: bestOption.currency,
+                etaMinutes: bestOption.etaMinutes ?? null,
+              }
+            : null,
           userInfo: {
             nom: userInfo.nom,
             prenom: userInfo.prenom,

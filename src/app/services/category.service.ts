@@ -9,6 +9,7 @@ export interface Category {
   icon?: string;
   imageUrl?: string;
   description?: string;
+  displayOrder?: number;
 }
 
 @Injectable({
@@ -27,6 +28,23 @@ export class CategoryService {
             icon: cat.icon || undefined,
             imageUrl: cat.image_url || undefined,
             description: cat.description || undefined,
+            displayOrder: cat.display_order || 0,
+          })) || []
+      )
+    );
+  }
+
+  getCategoriesByVendor(vendorId: string): Observable<Category[]> {
+    return from(this.supabaseService.getCategoriesByVendor(vendorId)).pipe(
+      map(
+        (categories) =>
+          categories?.map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon || undefined,
+            imageUrl: cat.image_url || undefined,
+            description: cat.description || undefined,
+            displayOrder: cat.display_order || 0,
           })) || []
       )
     );

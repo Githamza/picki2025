@@ -39,18 +39,36 @@
           <p class="option-description">Commander à emporter</p>
         </div>
       </button>
+
+      <button
+        mat-fab
+        extended
+        disabled
+        class="dining-option delivery"
+        [class.selected]="selectedPreference === 'delivery'"
+        (click)="selectPreference('delivery')"
+        aria-label="Livraison - Se faire livrer - Bientôt disponible"
+      >
+        <div class="option-content">
+          <mat-icon class="option-icon">local_shipping</mat-icon>
+          <span class="option-text">Livraison</span>
+          <p class="option-description">
+            Se faire livrer <br />(Bientôt disponible)
+          </p>
+        </div>
+      </button>
     </div>
 
     <!-- Timing Options for Take Away -->
     <div class="timing-section" *ngIf="selectedPreference === 'take-away'">
-      <h3>When would you like to pick up your order?</h3>
+      <h3>Quand souhaitez-vous récupérer votre commande ?</h3>
 
       <mat-button-toggle-group
         [value]="selectedTiming"
         (change)="selectTiming($event.value)"
         aria-label="Select pickup timing"
       >
-        <mat-button-toggle value="now">Tout de suite</mat-button-toggle>
+        <mat-button-toggle value="asap">Tout de suite</mat-button-toggle>
         <mat-button-toggle value="later">Plus tard</mat-button-toggle>
       </mat-button-toggle-group>
 
@@ -85,7 +103,7 @@
             formControlName="scheduledTime"
             placeholder="Select time"
           />
-          <mat-timepicker #timepicker />
+          <mat-timepicker #timepicker interval="5m" />
           <mat-timepicker-toggle [for]="timepicker" matSuffix />
           <mat-error
             *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
@@ -93,6 +111,85 @@
             Time is required
           </mat-error>
         </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Timing Options for Delivery -->
+    <div class="timing-section" *ngIf="selectedPreference === 'delivery'">
+      <h3>When would you like your delivery?</h3>
+
+      <mat-button-toggle-group
+        [value]="selectedTiming"
+        (change)="selectTiming($event.value)"
+        aria-label="Select delivery timing"
+      >
+        <mat-button-toggle value="asap">Tout de suite</mat-button-toggle>
+        <mat-button-toggle value="later">Plus tard</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <!-- Date and Time Selection for Delivery -->
+      <div
+        class="schedule-section"
+        *ngIf="selectedTiming === 'later'"
+        [formGroup]="orderForm"
+      >
+        <mat-form-field>
+          <mat-label>Select Date</mat-label>
+          <input
+            title="Select Date"
+            matInput
+            [matDatepicker]="datePicker2"
+            formControlName="scheduledDate"
+            [min]="minDate"
+            (click)="openDatePicker()"
+          />
+          <mat-datepicker-toggle
+            matIconSuffix
+            [for]="datePicker2"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #datePicker2></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Select Time</mat-label>
+          <input
+            matInput
+            [matTimepicker]="timepicker2"
+            formControlName="scheduledTime"
+            placeholder="Select time"
+          />
+          <mat-timepicker #timepicker2 />
+          <mat-timepicker-toggle [for]="timepicker2" matSuffix />
+          <mat-error
+            *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
+          >
+            Time is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+      <!-- Delivery Address Autocomplete + Best Option -->
+      <div class="delivery-section" *ngIf="showDelivery">
+        <h3>Livraison</h3>
+        <app-address-autocomplete
+          (placeSelected)="onAddressSelected($event)"
+          [address]="deliverySelection.selectedAddress()"
+        ></app-address-autocomplete>
+        <div class="delivery-quote" *ngIf="deliverySelection.loading()">
+          Calcul du tarif de livraison...
+        </div>
+        <div class="delivery-quote" *ngIf="deliverySelection.error()">
+          {{ deliverySelection.error() }}
+        </div>
+        <div
+          class="delivery-quote"
+          *ngIf="deliverySelection.bestOption() as best"
+        >
+          <span>
+            Prix et délai de livraison approximatif:
+            {{ best.totalAmount / 100 | number : "1.2-2" }} €
+          </span>
+          <span *ngIf="best.etaMinutes">{{ best.etaMinutes }} min</span>
+        </div>
       </div>
     </div>
 
@@ -108,7 +205,6 @@
         Continue
       </button>
     </div>
-
     <!-- Footer -->
     <div class="welcome-footer">
       <p class="footer-text">

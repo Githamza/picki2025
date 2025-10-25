@@ -1,0 +1,133 @@
+<div class="product-add-container">
+  <div class="product-content">
+    <div class="flex">
+      <div class="product-image-container">
+        <img
+          [src]="product.imageUrl"
+          [alt]="product.name"
+          title="Product image"
+          class="product-image"
+        />
+      </div>
+
+      <div class="product-details">
+        <div class="product-header">
+          <h1>{{ product.name }}</h1>
+        </div>
+        <div
+          class="product-price"
+          [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
+        >
+          €{{ product.price.toFixed(2) }}
+        </div>
+
+        <div class="product-description-container">
+          <p class="product-short-description" *ngIf="product.shortDescription">
+            {{ product.shortDescription }}
+          </p>
+          <p class="product-long-description" *ngIf="product.longDescription">
+            {{ product.longDescription }}
+          </p>
+          <!-- Fallback to old description field if new fields aren't available -->
+          <p
+            class="product-description"
+            *ngIf="!product.longDescription && product.description"
+          >
+            {{ product.description }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Single-Step Product Options -->
+    <div
+      class="step-options-section"
+      *ngIf="isSingleStepProduct && currentStep"
+    >
+      <div class="step-header">
+        <h3 class="step-title">{{ currentStep.name }}</h3>
+        <div class="step-description" *ngIf="currentStep.description">
+          <p>{{ currentStep.description }}</p>
+        </div>
+        <div class="selection-info">
+          <p class="selection-hint">{{ getSelectionHint() }}</p>
+        </div>
+      </div>
+
+      <!-- Options List -->
+      <div class="options-container">
+        <div class="option-cards-grid">
+          <app-product-option-card
+            *ngFor="let option of stepOptions; trackBy: trackByOptionId"
+            [option]="option"
+            [step]="currentStep!"
+            [isSelected]="isOptionSelected(option.id)"
+            [isDisabled]="!option.isAvailable"
+            (optionClicked)="onOptionCardClicked($event)"
+            (imageClicked)="onImageClicked($event)"
+          ></app-product-option-card>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment Section -->
+  <div class="comment-section">
+    <mat-form-field class="comment-field">
+      <mat-label>Commentaires pour ce produit (optionnel)</mat-label>
+      <textarea
+        matInput
+        [ngModel]="comment()"
+        (ngModelChange)="comment.set($event)"
+        placeholder="Ex: Sans oignons, bien cuit, sauce à part..."
+        rows="3"
+        maxlength="500"
+      >
+      </textarea>
+      <mat-hint>Précisez vos préférences pour ce produit</mat-hint>
+    </mat-form-field>
+  </div>
+  <div class="add-to-cart">
+    <div class="inner-add-container">
+      <div class="quantity-controls">
+        <div class="quantity-buttons">
+          <button
+            mat-fab
+            color="warn"
+            aria-label="Remove item or decrease quantity"
+            (click)="quantity === 1 ? onRemoveItem() : onDecrementQuantity()"
+            class="quantity-button"
+          >
+            <mat-icon>{{ quantity === 1 ? "delete" : "remove" }}</mat-icon>
+          </button>
+
+          <span class="quantity-value">{{ quantity }}</span>
+
+          <button
+            mat-fab
+            color="primary"
+            aria-label="Increase quantity"
+            (click)="onIncrementQuantity()"
+            class="quantity-button"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+      </div>
+      <button
+        mat-flat-button
+        color="primary"
+        class="add-to-cart-button"
+        (click)="onAddToCart()"
+      >
+        <mat-icon>shopping_cart</mat-icon>
+        <div class="button-content">
+          <span class="button-text">Ajouter au panier</span>
+          <span class="" *ngIf="isSingleStepProduct && totalPrice > 0">
+            {{ formatPrice(totalPrice) }}
+          </span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { FrenchDateService } from './french-date.service';
 
-export type DiningPreference = 'eat-in' | 'take-away' | null;
+export type DiningPreference = 'eat-in' | 'take-away' | 'delivery' | null;
 export type OrderTiming = 'asap' | 'later';
 
 export interface DiningPreferenceData {
@@ -81,6 +81,26 @@ export class DiningPreferenceService {
         break;
       case 'take-away':
         text = 'À emporter';
+        if (
+          data.timing === 'later' &&
+          data.scheduledDate &&
+          data.scheduledTime
+        ) {
+          const date = new Date(data.scheduledDate);
+          const time = new Date(data.scheduledTime);
+          date.setHours(time.getHours(), time.getMinutes());
+
+          const dateStr =
+            this.frenchDateService.formatDiningPreferenceDate(date);
+          const timeStr =
+            this.frenchDateService.formatDiningPreferenceTime(date);
+          text += ` - ${dateStr} à ${timeStr}`;
+        } else if (data.timing === 'asap') {
+          text += ' - Dès que possible';
+        }
+        break;
+      case 'delivery':
+        text = 'Livraison';
         if (
           data.timing === 'later' &&
           data.scheduledDate &&

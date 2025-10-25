@@ -12,6 +12,7 @@ import { AppState, Category } from '../../store/models/app.state';
 import * as CategoryActions from '../../store/actions/category.actions';
 import * as CategorySelectors from '../../store/selectors/category.selectors';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { VendorService } from '../../services/vendor.service';
 
 @Pipe({
   name: 'kebabCase',
@@ -48,6 +49,7 @@ export class CategoryMenuComponent implements OnInit {
   error$: Observable<string | null>;
 
   private vendorNavigation = inject(VendorNavigationService);
+  private vendorService = inject(VendorService);
 
   constructor(private store: Store<AppState>, private router: Router) {
     this.categories$ = this.store.select(CategorySelectors.selectAllCategories);
@@ -61,8 +63,19 @@ export class CategoryMenuComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Dispatch action to load categories when component initializes
-    this.store.dispatch(CategoryActions.loadCategories());
+    // Get current vendor and load vendor-specific categories
+    const currentVendor = this.vendorService.getCurrentVendor();
+    if (currentVendor) {
+      this.store.dispatch(
+        CategoryActions.loadCategoriesByVendor({ vendorId: currentVendor.id })
+      );
+    } else {
+      // If no vendor is selected, you might want to wait or show a message
+      // For now, we'll dispatch without vendor ID which will load all categories
+      this.store.dispatch(
+        CategoryActions.loadCategories({ vendorId: undefined })
+      );
+    }
   }
 
   selectCategory(category: Category) {

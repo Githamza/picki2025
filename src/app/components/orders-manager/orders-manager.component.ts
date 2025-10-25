@@ -15,9 +15,18 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { OrdersService } from '../../services/orders.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { PaymentService } from '../../services/payment.service';
 import { SupabaseService } from '../../services/supabase.service';
+import { SupabaseAuthService } from '../../services/supabase-auth.service';
+import { EmailService } from '../../services/email.service';
+import { VendorService } from '../../services/vendor.service';
+import { SoundNotificationService } from '../../services/sound-notification.service';
 import { Order, OrderStatus } from '../../models/order.model';
 import {
   Observable,
@@ -29,6 +38,8 @@ import {
   Subscription,
 } from 'rxjs';
 import '@angular/common/locales/global/fr';
+
+export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
 
 @Component({
   selector: 'app-orders-manager',
@@ -42,6 +53,9 @@ import '@angular/common/locales/global/fr';
     MatDividerModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
+    MatSelectModule,
+    MatFormFieldModule,
   ],
   templateUrl: './orders-manager.component.html',
   styleUrl: './orders-manager.component.scss',
@@ -52,7 +66,12 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   private frenchDateService = inject(FrenchDateService);
   private paymentService = inject(PaymentService);
   private supabaseService = inject(SupabaseService);
+  private supabaseAuthService = inject(SupabaseAuthService);
+  private emailService = inject(EmailService);
+  private vendorService = inject(VendorService);
+  public soundNotificationService = inject(SoundNotificationService);
   private changeDetectorRef = inject(ChangeDetectorRef);
+  private http = inject(HttpClient);
 
   // Loading states for individual orders
   private loadingOrdersSubject = new BehaviorSubject<Set<string>>(new Set());
@@ -61,14 +80,30 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   // Global loading state
   isLoading = signal(false);
 
+  // Period filter
+  periodFilter = signal<PeriodFilter>('today');
+  periodFilterOptions = [
+    { value: 'today', label: "Aujourd'hui" },
+    { value: 'yesterday', label: 'Depuis hier' },
+    { value: '7days', label: 'Depuis 7j' },
+    { value: 'month', label: 'Ce mois-ci' },
+    { value: 'all', label: 'Tout afficher' },
+  ];
+
   // Auto-refresh subscription
   private autoRefreshSubscription?: Subscription;
 
+  // Order count tracking for new order detection
+  private previousOrderCount = 0;
+  private previousOrderIds = new Set<string>();
+
   dineInOrders$!: Observable<Order[]>;
   takeawayOrders$!: Observable<Order[]>;
+  combinedPickupDeliveryOrders$!: Observable<Order[]>;
 
   statusLabels: Record<OrderStatus, string> = {
     initiated: 'En attente de validation',
+    paid: 'Payée',
     refused: 'Refusée',
     todo: 'À traiter',
     ongoing: 'En cours',
@@ -79,6 +114,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   // Using Material 3 appropriate color mappings
   statusColors: Record<OrderStatus, string> = {
     initiated: 'warn', // Orange/Warning for orders needing validation
+    paid: 'accent', // Blue/Tertiary for paid orders
     refused: '', // Red/Error for refused orders
     todo: 'accent', // Blue/Tertiary for confirmed orders
     ongoing: 'accent', // Will use tertiary color in Material 3
@@ -89,6 +125,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   // Button colors for each status transition
   buttonColors: Record<OrderStatus, string> = {
     initiated: '', // No single button color for initiated (has accept/refuse buttons)
+    paid: 'accent', // Blue/Tertiary for "À traiter" button
     refused: '', // No button for refused status
     todo: 'accent', // Blue/Tertiary for "En cours" button
     ongoing: 'primary', // Primary for "Prête" button
@@ -99,6 +136,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   // Button icons for each status transition
   buttonIcons: Record<OrderStatus, string> = {
     initiated: '', // No single icon for initiated (has accept/refuse buttons)
+    paid: 'play_arrow', // Play icon for "À traiter"
     refused: '', // No button for refused status
     todo: 'play_arrow', // Play icon for "En cours"
     ongoing: 'check_circle', // Check icon for "Prête"
@@ -109,6 +147,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.setupOrderStreams();
     this.startAutoRefresh();
+    this.initializeOrderTracking();
   }
 
   ngOnDestroy() {
@@ -131,10 +170,40 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       // Silently refresh without showing loading indicator or messages
       await this.ordersService.loadOrders();
       console.log('Orders refreshed successfully');
+
+      // Check for new orders and play sound if found
+      await this.checkForNewOrders();
     } catch (error) {
       console.error('Error auto-refreshing orders:', error);
       // Don't show error message for auto-refresh failures
     }
+  }
+
+  private filterOrdersByPeriod(orders: Order[]): Order[] {
+    const period = this.periodFilter();
+    if (period === 'all') return orders;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    console.log('today', today);
+    console.log('period', period);
+    let startDate: Date;
+    
+    if (period === 'today') {
+      startDate = today;
+    } else if (period === 'yesterday') {
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 1);
+    } else if (period === '7days') {
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 7);
+    } else if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      return orders;
+    }
+
+    return orders.filter(order => order.updatedAt >= startDate);
   }
 
   private setupOrderStreams() {
@@ -144,34 +213,23 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       this.loadingOrders$,
     ]).pipe(
       map(([orders, loadingOrders]) => {
-        const dineInOrders = orders.filter(
-          (order) => order.orderType === 'eat-in'
+        let dineInOrders = orders.filter(
+          (order) =>
+            order.orderType === 'eat-in' && order.status !== 'initiated'
         );
 
-        // Separate orders by status
-        const initiatedOrders = dineInOrders
-          .filter((order) => order.status === 'initiated')
-          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        // Apply period filter
+        dineInOrders = this.filterOrdersByPeriod(dineInOrders);
 
-        const activeOrders = dineInOrders
-          .filter((order) => ['todo', 'ongoing', 'done'].includes(order.status))
-          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        // Sort orders: picked orders at bottom, others by updatedAt (most recent first)
+        return dineInOrders.sort((a, b) => {
+          // If one is picked and the other isn't, picked goes to bottom
+          if (a.status === 'picked' && b.status !== 'picked') return 1;
+          if (a.status !== 'picked' && b.status === 'picked') return -1;
 
-        const pickedOrders = dineInOrders
-          .filter((order) => order.status === 'picked')
-          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()); // Most recently picked first
-
-        const refusedOrders = dineInOrders
-          .filter((order) => order.status === 'refused')
-          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()); // Most recently refused first
-
-        // Order priority: initiated first (need validation), then active orders, then picked, then refused at bottom
-        return [
-          ...initiatedOrders,
-          ...activeOrders,
-          ...pickedOrders,
-          ...refusedOrders,
-        ];
+          // If both have same picked status, sort by updatedAt
+          return b.updatedAt.getTime() - a.updatedAt.getTime();
+        });
       })
     );
 
@@ -180,50 +238,58 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       this.loadingOrders$,
     ]).pipe(
       map(([orders, loadingOrders]) => {
-        const takeaway = orders.filter(
-          (order) => order.orderType === 'take-away'
+        let takeaway = orders.filter(
+          (order) =>
+            order.orderType === 'take-away' && order.status !== 'initiated'
         );
 
-        // Separate orders by status
-        const initiatedOrders = takeaway
-          .filter((order) => order.status === 'initiated')
-          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        // Apply period filter
+        takeaway = this.filterOrdersByPeriod(takeaway);
 
-        const activeOrders = takeaway.filter((order) =>
-          ['todo', 'ongoing', 'done'].includes(order.status)
-        );
+        // Sort orders: picked orders at bottom, others by updatedAt (most recent first)
+        return takeaway.sort((a, b) => {
+          // If one is picked and the other isn't, picked goes to bottom
+          if (a.status === 'picked' && b.status !== 'picked') return 1;
+          if (a.status !== 'picked' && b.status === 'picked') return -1;
 
-        // Sort active orders: ASAP first, then later orders
-        const asapOrders = activeOrders
-          .filter((order) => order.timing === 'asap')
-          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-        const laterOrders = activeOrders
-          .filter((order) => order.timing === 'later')
-          .sort((a, b) => {
-            const timeA = a.scheduledTime?.getTime() || 0;
-            const timeB = b.scheduledTime?.getTime() || 0;
-            return timeA - timeB;
-          });
-
-        const pickedOrders = takeaway
-          .filter((order) => order.status === 'picked')
-          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-        const refusedOrders = takeaway
-          .filter((order) => order.status === 'refused')
-          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-        // Order priority: initiated first, then ASAP orders, then later orders, then picked, then refused at bottom
-        return [
-          ...initiatedOrders,
-          ...asapOrders,
-          ...laterOrders,
-          ...pickedOrders,
-          ...refusedOrders,
-        ];
+          // If both have same picked status, sort by updatedAt
+          return b.updatedAt.getTime() - a.updatedAt.getTime();
+        });
       })
     );
+
+    // Combined pickup and delivery orders for tablet view
+    this.combinedPickupDeliveryOrders$ = combineLatest([
+      this.ordersService.orders$,
+      this.loadingOrders$,
+    ]).pipe(
+      map(([orders, loadingOrders]) => {
+        let pickupAndDelivery = orders.filter(
+          (order) =>
+            (order.orderType === 'take-away' ||
+              order.orderType === 'delivery') &&
+            order.status !== 'initiated'
+        );
+
+        // Apply period filter
+        pickupAndDelivery = this.filterOrdersByPeriod(pickupAndDelivery);
+
+        // Sort orders: picked orders at bottom, others by updatedAt (most recent first)
+        return pickupAndDelivery.sort((a, b) => {
+          // If one is picked and the other isn't, picked goes to bottom
+          if (a.status === 'picked' && b.status !== 'picked') return 1;
+          if (a.status !== 'picked' && b.status === 'picked') return -1;
+
+          // If both have same picked status, sort by updatedAt
+          return b.updatedAt.getTime() - a.updatedAt.getTime();
+        });
+      })
+    );
+  }
+
+  onPeriodFilterChange(period: PeriodFilter) {
+    this.periodFilter.set(period);
+    this.setupOrderStreams();
   }
 
   async updateOrderStatus(order: Order, newStatus: OrderStatus) {
@@ -279,6 +345,143 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
       console.log(`Successfully updated order ${order.id} to ${newStatus}`);
 
+      // If order is ready (status -> done) and order type is delivery, create delivery now
+      try {
+        if (newStatus === 'done' && order.orderType === 'delivery') {
+          const delivery =
+            await this.supabaseAuthService.getOrderDeliveryByOrderId(order.id);
+          if (delivery && !delivery.delivery_id) {
+            // Build DeliveryRequest from saved selection
+            const providerId = String(delivery.provider);
+            const pickup = {
+              address: {
+                line1: delivery.pickup_line1,
+                postalCode: delivery.pickup_postal_code,
+                city: delivery.pickup_city,
+                countryCode: delivery.pickup_country_code,
+                coordinates:
+                  delivery.pickup_lat && delivery.pickup_lng
+                    ? {
+                        lat: Number(delivery.pickup_lat),
+                        lng: Number(delivery.pickup_lng),
+                      }
+                    : undefined,
+              },
+            };
+            const dropoff = {
+              address: {
+                line1: delivery.dropoff_line1,
+                postalCode: delivery.dropoff_postal_code,
+                city: delivery.dropoff_city,
+                countryCode: delivery.dropoff_country_code,
+                coordinates:
+                  delivery.dropoff_lat && delivery.dropoff_lng
+                    ? {
+                        lat: Number(delivery.dropoff_lat),
+                        lng: Number(delivery.dropoff_lng),
+                      }
+                    : undefined,
+              },
+            };
+
+            // Call Edge Function directly based on provider
+            if (providerId === 'stuart') {
+              const data = (await this.http
+                .post(
+                  `${environment.backendUrl}/functions/v1/stuart-delivery`,
+                  {
+                    action: 'create',
+                    pickup,
+                    dropoff,
+                    vendorId: this.vendorService.getCurrentVendor()?.id,
+                  },
+                  {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      apikey: environment.supabase.anonKey,
+                      Authorization: `Bearer ${environment.supabase.anonKey}`,
+                    },
+                  }
+                )
+                .toPromise()) as any;
+              await this.supabaseAuthService.updateOrderDeliveryAfterCreation(
+                order.id,
+                {
+                  job_id: data.jobId ?? null,
+                  delivery_id: data.deliveryId ?? null,
+                  tracking_url: data.trackingUrl ?? null,
+                  status: 'created',
+                  raw: data.raw ?? null,
+                }
+              );
+            } else if (providerId === 'uber') {
+              // Add required contact information and manifest items for Uber Direct
+              const pickupWithContact = {
+                ...pickup,
+                contact: {
+                  name: 'Restaurant', // TODO: Get from vendor settings
+                  phone_number: '+33123456789', // TODO: Get from vendor settings
+                },
+              };
+
+              const dropoffWithContact = {
+                ...dropoff,
+                contact: {
+                  name: `${order.customer.firstName} ${order.customer.lastName}`,
+                  phone_number: order.customer.phone,
+                },
+              };
+
+              const manifest_items = order.items.map((item) => ({
+                name: item.productName,
+                quantity: item.quantity,
+                size: 'medium' as const,
+              }));
+
+              const data = (await this.http
+                .post(
+                  `${environment.backendUrl}/functions/v1/uber-direct-delivery`,
+                  {
+                    action: 'create',
+                    pickup: pickupWithContact,
+                    dropoff: dropoffWithContact,
+                    manifest_items,
+                    // Test specifications are now handled automatically by the edge function
+                  },
+                  {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      apikey: environment.supabase.anonKey,
+                      Authorization: `Bearer ${environment.supabase.anonKey}`,
+                    },
+                  }
+                )
+                .toPromise()) as any;
+              await this.supabaseAuthService.updateOrderDeliveryAfterCreation(
+                order.id,
+                {
+                  job_id: data.jobId ?? null,
+                  delivery_id: data.deliveryId ?? null,
+                  tracking_url: data.trackingUrl ?? null,
+                  status: 'created',
+                  raw: data.raw ?? null,
+                }
+              );
+            }
+          }
+        }
+      } catch (deliveryError) {
+        console.error(
+          'Delivery creation on order ready failed:',
+          deliveryError
+        );
+      }
+
+      // Send ready notification email if status is changing to 'done'
+      if (newStatus === 'done') {
+        await this.sendReadyNotificationEmail(order);
+      }
+
       // Show success message
       this.showSuccessMessage(order, newStatus);
     } catch (error: any) {
@@ -290,6 +493,72 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       // Show error message
       this.showErrorMessage(error);
       throw error; // Re-throw to be handled by caller
+    }
+  }
+
+  private async sendReadyNotificationEmail(order: Order) {
+    try {
+      // Check if ready email has already been sent
+      const readyEmailAlreadySent =
+        await this.supabaseAuthService.checkReadyEmailSent(order.id);
+
+      if (readyEmailAlreadySent) {
+        console.log(
+          'Ready notification email already sent for order:',
+          order.orderNumber
+        );
+        return;
+      }
+
+      console.log(
+        'Sending ready notification email for order:',
+        order.orderNumber
+      );
+
+      // Extract vendor slug from current URL (assuming we're in the vendor dashboard)
+      let vendorSlug: string | undefined;
+      const currentPath = window.location.pathname;
+      const vendorMatch = currentPath.match(/^\/([^\/]+)\//);
+      if (vendorMatch && vendorMatch[1]) {
+        vendorSlug = vendorMatch[1];
+      }
+
+      // Generate tracking URL
+      const trackingUrl = this.emailService.generateTrackingUrl(
+        order.id,
+        vendorSlug
+      );
+
+      // Send ready notification email
+      const emailResult = await this.emailService.sendOrderReadyEmail(
+        order,
+        trackingUrl
+      );
+
+      if (emailResult.success) {
+        console.log('Ready notification email sent successfully');
+
+        // Mark ready email as sent in the database
+        try {
+          await this.supabaseAuthService.markReadyEmailSent(order.id);
+          console.log(
+            'Marked ready email as sent for order:',
+            order.orderNumber
+          );
+        } catch (markError) {
+          console.error('Failed to mark ready email as sent:', markError);
+          // Don't throw - the email was sent successfully even if we failed to mark it
+        }
+      } else {
+        console.error(
+          'Failed to send ready notification email:',
+          emailResult.error
+        );
+        // Don't throw - order update should still succeed even if email fails
+      }
+    } catch (error) {
+      console.error('Error sending ready notification email:', error);
+      // Don't throw - email failure shouldn't break the order status update
     }
   }
 
@@ -348,6 +617,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   getNextStatus(currentStatus: OrderStatus): OrderStatus | null {
     const statusFlow: Record<OrderStatus, OrderStatus | null> = {
       initiated: null, // Initiated orders need manual validation (accept/refuse)
+      paid: 'todo', // Paid orders can be accepted to todo
       refused: null, // Refused orders have no next status
       todo: 'ongoing',
       ongoing: 'done',
@@ -364,7 +634,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
   canUpdateStatus(order: Order): boolean {
     // For initiated orders, we show accept/refuse buttons instead of next status
-    if (order.status === 'initiated') {
+    if (order.status === 'paid') {
       return false; // Use separate validation methods
     }
     return (
@@ -375,7 +645,10 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
   // New methods for order validation
   canValidateOrder(order: Order): boolean {
-    return order.status === 'initiated' && !this.isOrderLoading(order.id);
+    return (
+      (order.status === 'initiated' || order.status === 'paid') &&
+      !this.isOrderLoading(order.id)
+    );
   }
 
   async acceptOrder(order: Order) {
@@ -387,7 +660,9 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     try {
       // 1. First, capture the payment
       console.log('Retrieving payment for order:', order.id);
-      const payment = await this.supabaseService.getPaymentByOrderId(order.id);
+      const payment = await this.supabaseAuthService.getPaymentByOrderId(
+        order.id
+      );
 
       if (!payment) {
         throw new Error('Aucun paiement trouvé pour cette commande');
@@ -400,8 +675,15 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
         console.log('Capturing PayGreen payment:', payment.provider_payment_id);
 
         try {
+          // Get current vendor for payment capture
+          const currentVendor = this.vendorService.getCurrentVendor();
+          if (!currentVendor) {
+            throw new Error('No vendor context available for payment capture');
+          }
+
           const captureResponse = await firstValueFrom(
             this.paymentService.capturePayment(
+              currentVendor.id,
               payment.provider_payment_id,
               'paygreen'
             )
@@ -410,7 +692,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
           console.log('Payment capture response:', captureResponse);
 
           // Update payment status in database
-          await this.supabaseService.updatePaymentStatus(
+          await this.supabaseAuthService.updatePaymentStatus(
             payment.id,
             'completed'
           );
@@ -536,6 +818,10 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     try {
       await this.ordersService.loadOrders();
+
+      // Check for new orders and play sound if found
+      await this.checkForNewOrders();
+
       this.snackBar.open('Commandes actualisées', 'OK', { duration: 2000 });
     } catch (error) {
       console.error('Error refreshing orders:', error);
@@ -552,6 +838,18 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     return order.id;
   }
 
+  // Sound notification toggle method
+  toggleSoundNotifications() {
+    const currentState = this.soundNotificationService.isSoundEnabled();
+    this.soundNotificationService.setEnabled(!currentState);
+
+    // Show feedback message
+    const message = !currentState
+      ? 'Notifications sonores activées'
+      : 'Notifications sonores désactivées';
+    this.snackBar.open(message, 'OK', { duration: 2000 });
+  }
+
   // Debug method to track status changes
   debugOrderStatus(order: Order): string {
     const statusLabel = this.statusLabels[order.status];
@@ -559,5 +857,67 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       `Order ${order.id} (${order.orderNumber}) status: ${order.status} -> "${statusLabel}"`
     );
     return statusLabel;
+  }
+
+  // Order tracking methods for new order detection
+  private initializeOrderTracking() {
+    // Subscribe to orders changes to track initial state
+    this.ordersService.orders$.subscribe((orders) => {
+      if (this.previousOrderCount === 0) {
+        // First load - initialize tracking
+        this.previousOrderCount = orders.length;
+        this.previousOrderIds = new Set(orders.map((order) => order.id));
+        console.log(
+          `Initialized order tracking with ${this.previousOrderCount} orders`
+        );
+      }
+    });
+  }
+
+  private async checkForNewOrders() {
+    try {
+      const currentOrders = this.ordersService.getCurrentOrders();
+      const currentOrderCount = currentOrders.filter(order => order.status !== 'initiated').length;
+      const currentOrderIds = new Set(currentOrders.filter(order => order.status !== 'initiated').map((order) => order.id));
+
+      // Check if there are new orders
+      const newOrderCount = currentOrderCount - this.previousOrderCount;
+
+      if (newOrderCount > 0) {
+        // Find which orders are new
+        const newOrderIds = new Set(
+          [...currentOrderIds].filter((id) => !this.previousOrderIds.has(id))
+        );
+
+        if (newOrderIds.size > 0) {
+          console.log(
+            `🎵 New orders detected: ${newOrderIds.size} new order(s)`
+          );
+
+          // Play notification sound
+          await this.soundNotificationService.playNewOrderSound();
+
+          // Show notification in snackbar
+          this.snackBar.open(
+            `${newOrderIds.size} nouvelle${
+              newOrderIds.size > 1 ? 's' : ''
+            } commande${newOrderIds.size > 1 ? 's' : ''} reçue${
+              newOrderIds.size > 1 ? 's' : ''
+            } !`,
+            'OK',
+            {
+              duration: 4000,
+              panelClass: ['new-order-snackbar'],
+            }
+          );
+        }
+      }
+
+      // Update tracking state
+      this.previousOrderCount = currentOrderCount;
+      this.previousOrderIds = currentOrderIds;
+    } catch (error) {
+      console.error('Error checking for new orders:', error);
+    }
   }
 }

@@ -1,11 +1,12 @@
-import { afterNextRender, Component, Injector, OnInit } from '@angular/core';
+import { Component, Injector, OnInit } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Store } from '@ngrx/store';
-import { Observable, combineLatest, map, tap } from 'rxjs';
+import { Observable, combineLatest, map } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   MatBottomSheetModule,
   MatBottomSheet,
@@ -25,6 +26,7 @@ import { PromotionalBannerComponent } from '../promotional-banner/promotional-ba
 import { HorizontalCategoryMenuComponent } from '../horizontal-category-menu/horizontal-category-menu.component';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { VendorService } from '../../services/vendor.service';
 
 @Component({
   selector: 'app-product-grid',
@@ -36,6 +38,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
     MatButtonModule,
     MatGridListModule,
     MatIconModule,
+    MatTooltipModule,
     MatBottomSheetModule,
     PromotionalBannerComponent,
     HorizontalCategoryMenuComponent,
@@ -46,6 +49,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 export class ProductGridComponent implements OnInit {
   private breakpointObserver = inject(BreakpointObserver);
   private vendorNavigation = inject(VendorNavigationService);
+  private vendorService = inject(VendorService);
 
   // Use BreakpointObserver for responsive design (material design 3 way)
   isHandset$ = this.breakpointObserver
@@ -84,18 +88,40 @@ export class ProductGridComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Get current vendor and load vendor-specific products
+    const currentVendor = this.vendorService.getCurrentVendor();
+
     this.store
       .select(ProductSelectors.selectAllProducts)
       .subscribe((products) => {
         if (!products || products.length === 0) {
-          this.store.dispatch(ProductActions.loadProducts());
+          if (currentVendor) {
+            this.store.dispatch(
+              ProductActions.loadProductsByVendor({
+                vendorId: currentVendor.id,
+              })
+            );
+          } else {
+            // If no vendor is selected, wait or show a message
+            // For now, we'll dispatch without vendor ID
+            this.store.dispatch(
+              ProductActions.loadProducts({ vendorId: undefined })
+            );
+          }
         }
       });
   }
 
   filterProducts(products: Product[], selectedCategoryId: number | null) {
     if (selectedCategoryId) {
-      return products.filter((p) => p.categoryId === selectedCategoryId);
+      // Filter products by category id and sort by displayOrder
+      return products
+        .filter((p) => p.categoryId === selectedCategoryId)
+        .sort((a, b) => {
+          const displayOrderA = a.displayOrder ?? 0;
+          const displayOrderB = b.displayOrder ?? 0;
+          return displayOrderA - displayOrderB;
+        });
     }
     return products;
   }

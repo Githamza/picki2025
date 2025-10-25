@@ -1,3 +1,5 @@
+@use "@angular/material" as mat;
+
 .admin-layout {
   height: 100vh;
   display: flex;
@@ -48,8 +50,17 @@
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
     z-index: 1;
+  }
+  .navigation-buttons-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ordersSuspended mat-icon {
+    color: red;
   }
 
   .brand-section {
@@ -93,111 +104,11 @@
   .navigation-buttons {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 
-    .nav-button {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 20px;
-      font-weight: 500;
-      font-size: 15px;
-      letter-spacing: 0.3px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-      // Hover effect overlay
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.1);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-
+    button {
       mat-icon {
-        font-size: 22px;
-        width: 22px;
-        height: 22px;
-        z-index: 1;
-      }
-
-      .button-text {
-        z-index: 1;
-        display: block;
-      }
-
-      .button-text-short {
-        z-index: 1;
-        display: none;
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-
-        &::before {
-          opacity: 1;
-        }
-      }
-
-      &:active {
-        transform: translateY(-1px);
-      }
-
-      &.active {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2);
-
-        &::before {
-          opacity: 0.5;
-        }
-      }
-
-      // Focus state for accessibility
-      &:focus-visible {
-        outline: 2px solid rgba(255, 255, 255, 0.8);
-        outline-offset: 2px;
-      }
-    }
-  }
-
-  .user-actions {
-    display: flex;
-    align-items: center;
-
-    .user-menu-button {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-      mat-icon {
-        font-size: 24px;
-        width: 24px;
-        height: 24px;
-        color: var(--mat-sys-on-primary);
-      }
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-
-      &:focus-visible {
-        outline: 2px solid rgba(255, 255, 255, 0.8);
-        outline-offset: 2px;
+        margin-right: 8px;
       }
     }
   }
@@ -210,7 +121,7 @@
     .toggle-container {
       display: flex;
       align-items: center;
-      padding: 8px 16px;
+      padding: 8px 8px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 12px;
       backdrop-filter: blur(10px);
@@ -292,9 +203,39 @@
 }
 
 // Responsive design
+@media (max-width: 1024px) {
+  .admin-toolbar {
+    padding: 0 18px;
+
+    .toolbar-right {
+      gap: 14px;
+    }
+
+    .brand-section {
+      .brand-text {
+        .brand-title {
+          font-size: 26px;
+        }
+      }
+    }
+
+    .navigation-buttons {
+      gap: 10px;
+    }
+
+    .orders-control {
+      margin: 0 10px;
+    }
+  }
+}
+
 @media (max-width: 1200px) {
   .admin-toolbar {
-    padding: 0 24px;
+    padding: 0 20px;
+
+    .toolbar-right {
+      gap: 12px;
+    }
 
     .brand-section {
       gap: 12px;
@@ -317,22 +258,11 @@
     }
 
     .navigation-buttons {
-      gap: 12px;
-
-      .nav-button {
-        padding: 10px 16px;
-        font-size: 14px;
-
-        mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-      }
+      gap: 8px;
     }
 
     .orders-control {
-      margin: 0 12px;
+      margin: 0 8px;
 
       .toggle-container {
         padding: 6px 12px;
@@ -357,11 +287,11 @@
 
 @media (max-width: 768px) {
   .admin-toolbar {
-    padding: 0 20px;
+    padding: 0 16px;
     min-height: 70px;
 
     .toolbar-right {
-      gap: 16px;
+      gap: 12px;
     }
 
     .brand-section {
@@ -385,30 +315,11 @@
     }
 
     .navigation-buttons {
-      gap: 8px;
-
-      .nav-button {
-        padding: 8px 12px;
-        font-size: 13px;
-
-        .button-text {
-          display: none;
-        }
-
-        .button-text-short {
-          display: block;
-        }
-
-        mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-      }
+      gap: 6px;
     }
 
     .orders-control {
-      margin: 0 8px;
+      margin: 0 6px;
 
       .toggle-container {
         padding: 4px 8px;
@@ -429,28 +340,19 @@
       }
     }
 
-    .user-actions {
-      .user-menu-button {
-        width: 44px;
-        height: 44px;
-
-        mat-icon {
-          font-size: 22px;
-          width: 22px;
-          height: 22px;
-        }
-      }
+    .user-menu {
+      margin-left: 8px;
     }
   }
 }
 
 @media (max-width: 480px) {
   .admin-toolbar {
-    padding: 0 16px;
+    padding: 0 12px;
     min-height: 64px;
 
     .toolbar-right {
-      gap: 12px;
+      gap: 8px;
     }
 
     .brand-section {
@@ -470,27 +372,11 @@
     }
 
     .navigation-buttons {
-      gap: 6px;
-
-      .nav-button {
-        padding: 6px 10px;
-        border-radius: 8px;
-
-        .button-text,
-        .button-text-short {
-          display: none;
-        }
-
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-        }
-      }
+      gap: 4px;
     }
 
     .orders-control {
-      margin: 0 6px;
+      margin: 0 4px;
 
       .toggle-container {
         padding: 4px 6px;
@@ -512,18 +398,192 @@
       }
     }
 
-    .user-actions {
-      .user-menu-button {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
+    .user-menu {
+      margin-left: 4px;
+    }
+  }
+}
 
+// User Menu Styles
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 16px;
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+
+      .user-name {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--mat-sys-on-primary);
+        line-height: 1.2;
+      }
+
+      .user-role {
+        font-size: 12px;
+        color: var(--mat-sys-on-primary-container);
+        opacity: 0.8;
+        text-transform: capitalize;
+        line-height: 1.2;
+      }
+    }
+
+    .user-avatar {
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        color: var(--mat-sys-on-primary);
+        opacity: 0.9;
+      }
+    }
+
+    .expand-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: white;
+      opacity: 0.9;
+      transition: all 0.3s ease;
+    }
+
+    &:hover .expand-icon {
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// User Dropdown Menu Styles
+:host ::ng-deep {
+  .user-dropdown {
+    margin-top: 8px;
+    border-radius: 12px;
+    box-shadow: var(--mat-sys-elevation-level3);
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    min-width: 280px;
+
+    .mat-mdc-menu-content {
+      padding: 0;
+    }
+
+    .user-menu-header {
+      padding: 20px;
+      background: var(--mat-sys-primary-container);
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .user-avatar-large {
         mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          color: var(--mat-sys-on-primary-container);
         }
       }
+
+      .user-info-mobile {
+        display: flex;
+        flex-direction: column;
+
+        .user-name {
+          max-width: 100px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--mat-sys-on-primary-container);
+          line-height: 1.3;
+        }
+
+        .user-role {
+          font-size: 14px;
+          color: var(--mat-sys-on-primary-container);
+          opacity: 0.8;
+          text-transform: capitalize;
+          line-height: 1.3;
+        }
+      }
+    }
+
+    .mat-mdc-menu-item {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      color: var(--mat-sys-on-surface);
+      transition: all 0.2s ease;
+
+      &:hover:not([disabled]) {
+        background: var(--mat-sys-surface-container-high);
+      }
+
+      &[disabled] {
+        color: var(--mat-sys-on-surface-variant);
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: inherit;
+      }
+
+      // Logout button specific styles
+      &:last-child {
+        color: var(--mat-sys-error);
+        border-radius: 0 0 12px 12px;
+
+        &:hover {
+          background: var(--mat-sys-error-container);
+          color: var(--mat-sys-on-error-container);
+        }
+
+        mat-icon {
+          color: var(--mat-sys-error);
+        }
+
+        &:hover mat-icon {
+          color: var(--mat-sys-on-error-container);
+        }
+      }
+    }
+
+    mat-divider {
+      border-color: var(--mat-sys-outline-variant);
+      margin: 8px 0;
     }
   }
 }

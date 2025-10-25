@@ -3,11 +3,11 @@ import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 import { environment } from './environments/environment';
 
-if (!environment.production) {
-  import('@stagewise/toolbar').then(({ initToolbar }) => {
-    initToolbar({ plugins: [] });
-  });
-}
+// if (!environment.production) {
+//   import('@stagewise/toolbar').then(({ initToolbar }) => {
+//     initToolbar({ plugins: [] });
+//   });
+// }
 
 bootstrapApplication(AppComponent, appConfig).catch((err) =>
   console.error(err)

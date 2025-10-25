@@ -12,7 +12,12 @@
       [alt]="data.product.name"
       title="Product image"
     />
-    <p class="price">${{ data.product.price.toFixed(2) }}</p>
+    <p
+      class="price"
+      [style.visibility]="data.product.price > 0 ? 'visible' : 'hidden'"
+    >
+      €{{ data.product.price.toFixed(2) }}
+    </p>
 
     <div class="description-container">
       <p class="short-description" *ngIf="data.product.shortDescription">
@@ -30,8 +35,108 @@
       </p>
     </div>
 
+    <!-- Complements Section -->
+    <div class="complements-section" *ngIf="complements().length > 0">
+      <mat-divider></mat-divider>
+      <h3>Complements</h3>
+
+      <div class="complement-loading" *ngIf="isLoading()">
+        <p>Loading complements...</p>
+      </div>
+
+      <div class="complement-group" *ngFor="let complement of complements()">
+        <div class="complement-item">
+          <div class="complement-info">
+            <div class="complement-header">
+              <span class="complement-name">{{
+                complement.complement_product?.name || "Unknown"
+              }}</span>
+              <span class="complement-price">
+                @if (complement.is_free) {
+                <span class="free-label">Free</span>
+                } @else { €{{ getComplementPrice(complement).toFixed(2) }}
+                }
+              </span>
+            </div>
+
+            <p
+              class="complement-description"
+              *ngIf="complement.complement_product?.short_description"
+            >
+              {{ complement.complement_product?.short_description }}
+            </p>
+
+            <div class="complement-required" *ngIf="complement.is_required">
+              <small class="required-label">Required</small>
+            </div>
+          </div>
+
+          <div class="complement-selection">
+            <!-- Single selection (radio button) -->
+            <mat-radio-group
+              *ngIf="complement.selection_type === 'single'"
+              [value]="isComplementSelected(complement.complement_product_id)"
+              (change)="
+                onComplementSelectionChange(
+                  complement.complement_product_id,
+                  $event.value
+                )
+              "
+            >
+              <mat-radio-button [value]="true">Select</mat-radio-button>
+            </mat-radio-group>
+
+            <!-- Multiple selection (checkbox) -->
+            <mat-checkbox
+              *ngIf="complement.selection_type === 'multiple'"
+              [checked]="isComplementSelected(complement.complement_product_id)"
+              (change)="
+                onComplementSelectionChange(
+                  complement.complement_product_id,
+                  $event.checked
+                )
+              "
+            >
+            </mat-checkbox>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation errors -->
+      <div class="validation-errors" *ngIf="validationErrors().length > 0">
+        <div class="error-message" *ngFor="let error of validationErrors()">
+          <mat-icon>error</mat-icon>
+          <span>{{ error }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="comment-section">
+      <mat-form-field class="comment-field" appearance="fill">
+        <mat-label>Commentaires (optionnel)</mat-label>
+        <textarea
+          matInput
+          [ngModel]="comment()"
+          (ngModelChange)="comment.set($event)"
+          placeholder="Ex: Sans oignons, bien cuit, sauce à part..."
+          rows="3"
+          maxlength="500"
+        >
+        </textarea>
+        <mat-hint>Précisez vos préférences pour ce produit</mat-hint>
+      </mat-form-field>
+    </div>
+
     <div class="actions">
-      <button mat-raised-button color="primary" (click)="addToCart()">
+      <div class="total-price">
+        <strong>Total: €{{ getTotalPrice().toFixed(2) }}</strong>
+      </div>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="addToCart()"
+        [disabled]="!canAddToCart()"
+      >
         <mat-icon>add_shopping_cart</mat-icon>
         Add to Cart
       </button>

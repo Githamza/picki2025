@@ -1,0 +1,541 @@
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  signal,
+  Input,
+  ViewChild,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { FormsModule } from '@angular/forms';
+import { Store } from '@ngrx/store';
+import { Observable, Subject, combineLatest } from 'rxjs';
+import {
+  takeUntil,
+  map,
+  filter,
+  distinctUntilChanged,
+  startWith,
+  skip,
+} from 'rxjs/operators';
+import {
+  BreakpointObserver,
+  Breakpoints,
+  LayoutModule,
+} from '@angular/cdk/layout';
+
+// Material imports
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatListModule } from '@angular/material/list';
+import { MatRippleModule } from '@angular/material/core';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatStepper } from '@angular/material/stepper';
+import { MatDialog } from '@angular/material/dialog';
+
+// Store imports
+import * as MultiStepProductActions from '../../store/actions/multi-step-product.actions';
+import * as MultiStepProductSelectors from '../../store/selectors/multi-step-product.selectors';
+import { AppState } from '../../store/models/app.state';
+
+// Models
+import {
+  ProductStep,
+  ProductStepOption,
+} from '../../models/multi-step-product.model';
+import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { ProductOptionCardComponent } from './product-option-card/product-option-card.component';
+import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
+
+@Component({
+  selector: 'app-add-product-multi-step',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    MatStepperModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatRadioModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatBadgeModule,
+    MatListModule,
+    MatRippleModule,
+    MatInputModule,
+    MatFormFieldModule,
+    LayoutModule,
+    ProductOptionCardComponent,
+  ],
+  templateUrl: './add-product-multi-step.component.html',
+  styleUrls: ['./add-product-multi-step.component.scss'],
+})
+export class AddProductMultiStepComponent implements OnInit, OnDestroy {
+  // Add input property to receive product ID from parent
+  @Input() productId!: number;
+
+  // ViewChild to access the stepper
+  @ViewChild('stepper', { static: false }) stepper!: MatStepper;
+
+  private destroy$ = new Subject<void>();
+  private fb = inject(FormBuilder);
+  private store = inject(Store<AppState>);
+  private vendorNavigation = inject(VendorNavigationService);
+  private breakpointObserver = inject(BreakpointObserver);
+  private dialog = inject(MatDialog);
+
+  // Observables
+  configuration$ = this.store.select(
+    MultiStepProductSelectors.selectMultiStepConfiguration
+  );
+  loading$ = this.store.select(
+    MultiStepProductSelectors.selectMultiStepLoading
+  );
+  error$ = this.store.select(MultiStepProductSelectors.selectMultiStepError);
+  baseProduct$ = this.store.select(MultiStepProductSelectors.selectBaseProduct);
+  steps$ = this.store.select(MultiStepProductSelectors.selectProductSteps);
+  currentStepIndex$ = this.store.select(
+    MultiStepProductSelectors.selectCurrentStepIndex
+  );
+  currentStep$ = this.store.select(MultiStepProductSelectors.selectCurrentStep);
+  currentStepSelection$ = this.store.select(
+    MultiStepProductSelectors.selectCurrentStepSelection
+  );
+  stepSelections$ = this.store.select(
+    MultiStepProductSelectors.selectStepSelections
+  );
+  canGoNext$ = this.store.select(MultiStepProductSelectors.selectCanGoNext);
+  canGoPrevious$ = this.store.select(
+    MultiStepProductSelectors.selectCanGoPrevious
+  );
+  isLastStep$ = this.store.select(MultiStepProductSelectors.selectIsLastStep);
+  isConfigurationComplete$ = this.store.select(
+    MultiStepProductSelectors.selectIsConfigurationComplete
+  );
+  totalPrice$ = this.store.select(MultiStepProductSelectors.selectTotalPrice);
+  previousStepsSummary$ = this.store.select(
+    MultiStepProductSelectors.selectPreviousStepsSummary
+  );
+
+  stepperOrientation$: Observable<'horizontal' | 'vertical'>;
+
+  // Add mobile detection observable
+  isMobile$: Observable<boolean>;
+
+  constructor() {
+    // Set orientation observable
+    this.stepperOrientation$ = this.breakpointObserver
+      .observe([Breakpoints.Handset])
+      .pipe(
+        map((result) => (result.matches ? 'vertical' : 'horizontal')),
+        startWith<'horizontal' | 'vertical'>('horizontal'),
+        distinctUntilChanged()
+      );
+
+    // Add mobile detection
+    this.isMobile$ = this.breakpointObserver
+      .observe([Breakpoints.Handset])
+      .pipe(
+        map((result) => result.matches),
+        startWith(false),
+        distinctUntilChanged()
+      );
+  }
+
+  // Combined observable for showing add-to-cart section
+  showAddToCartSection$ = combineLatest([
+    this.isConfigurationComplete$,
+    this.steps$,
+    this.currentStepIndex$,
+    this.currentStep$,
+  ]).pipe(
+    map(([isComplete, steps, currentIndex, currentStep]) => {
+      // Track current step as visited
+      if (currentIndex !== null && steps.length > 0) {
+        this.visitedSteps.add(currentIndex);
+      }
+
+      // Check if all steps have been visited
+      const allStepsVisited = this.areAllStepsVisited(steps.length);
+
+      // Check if current step is summary step
+      const isOnSummaryStep = currentStep?.stepType === 'summary';
+
+      // Show if user is on summary step OR (all required steps are complete OR all steps have been visited)
+      return isOnSummaryStep || isComplete || allStepsVisited;
+    })
+  );
+
+  // Local state
+  stepForms: { [stepId: number]: FormGroup } = {};
+  quantity: number = 1;
+  visitedSteps: Set<number> = new Set(); // Track which steps have been visited
+  comment = signal(''); // Comment for the menu
+
+  ngOnInit(): void {
+    this.store.dispatch(
+      MultiStepProductActions.initializeMultiStepProduct({
+        productId: this.productId,
+      })
+    );
+
+    // Setup reactive form handling
+    this.setupStepForms();
+
+    // Mark initial step as visited
+    this.currentStepIndex$
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((index) => index !== null)
+      )
+      .subscribe((index) => {
+        if (index !== null) {
+          this.visitedSteps.add(index);
+        }
+      });
+
+    // Setup auto-scroll for mobile when step changes
+    // combineLatest([this.currentStepIndex$, this.isMobile$])
+    //   .pipe(
+    //     takeUntil(this.destroy$),
+    //     filter(([stepIndex, isMobile]) => stepIndex !== null && isMobile),
+    //     // Skip the first emission to avoid scrolling on initial load
+    //     skip(1)
+    //   )
+    //   .subscribe(() => {
+    //     // Use setTimeout to ensure the DOM has updated after the step change
+    //     setTimeout(() => {
+    //       this.scrollToCurrentStep();
+    //     }, 150);
+    //   });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.visitedSteps.clear(); // Clear visited steps tracking
+    this.store.dispatch(MultiStepProductActions.resetConfiguration());
+  }
+
+  private setupStepForms(): void {
+    this.steps$
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((steps) => steps.length > 0)
+      )
+      .subscribe((steps) => {
+        steps.forEach((step) => {
+          this.createStepForm(step);
+        });
+      });
+  }
+
+  private createStepForm(step: ProductStep): void {
+    const validators = step.isRequired ? [Validators.required] : [];
+
+    if (step.stepType === 'single-select') {
+      this.stepForms[step.id] = this.fb.group({
+        selectedOption: ['', validators],
+      });
+    } else {
+      // multi-select
+      const optionsGroup = this.fb.group({});
+      step.options.forEach((option) => {
+        optionsGroup.addControl(option.id.toString(), this.fb.control(false));
+      });
+
+      this.stepForms[step.id] = this.fb.group({
+        options: optionsGroup,
+      });
+    }
+
+    // Subscribe to form changes
+    this.stepForms[step.id].valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.updateStepSelection(step);
+      });
+  }
+
+  private updateStepSelection(step: ProductStep): void {
+    const form = this.stepForms[step.id];
+    if (!form) return;
+
+    let selectedOptionIds: number[] = [];
+
+    if (step.stepType === 'single-select') {
+      const selectedOption = form.get('selectedOption')?.value;
+      if (selectedOption) {
+        selectedOptionIds = [parseInt(selectedOption)];
+      }
+    } else {
+      // multi-select
+      const optionsControl = form.get('options');
+      if (optionsControl) {
+        Object.keys(optionsControl.value).forEach((optionIdStr) => {
+          if (optionsControl.value[optionIdStr]) {
+            selectedOptionIds.push(parseInt(optionIdStr));
+          }
+        });
+      }
+    }
+
+    this.store.dispatch(
+      MultiStepProductActions.updateStepSelection({
+        stepId: step.id,
+        selectedOptionIds,
+      })
+    );
+  }
+
+  // Navigation methods
+  onStepChange(stepIndex: number): void {
+    // Track the step as visited
+    this.visitedSteps.add(stepIndex);
+    this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
+  }
+
+  goNext(): void {
+    this.store.dispatch(MultiStepProductActions.nextStep());
+  }
+
+  goPrevious(): void {
+    this.store.dispatch(MultiStepProductActions.previousStep());
+  }
+
+  // Add to cart
+  addToCart(): void {
+    combineLatest([this.configuration$, this.isConfigurationComplete$])
+      .pipe(
+        takeUntil(this.destroy$),
+        filter(([config, isComplete]) => !!config && isComplete)
+      )
+      .subscribe(([configuration]) => {
+        if (configuration) {
+          // Create multiple dispatch calls for quantity > 1
+          for (let i = 0; i < this.quantity; i++) {
+            this.store.dispatch(
+              MultiStepProductActions.addMultiStepProductToCart({
+                configuration,
+                comment: this.comment().trim() || undefined,
+              })
+            );
+          }
+
+          // Navigate back to products or show success message
+          this.vendorNavigation.navigateWithVendor(['products']);
+        }
+      });
+  }
+
+  // Quantity control methods
+  incrementQuantity(): void {
+    this.quantity++;
+  }
+
+  decrementQuantity(): void {
+    if (this.quantity > 1) {
+      this.quantity--;
+    }
+  }
+
+  removeItem(): void {
+    this.quantity = 0;
+    // Navigate back to products page
+    this.vendorNavigation.navigateWithVendor(['products']);
+  }
+
+  // Helper methods for template
+  getStepForm(stepId: number): FormGroup | null {
+    return this.stepForms[stepId] || null;
+  }
+
+  formatPrice(price: number): string {
+    return `${(price || 0).toFixed(2)} €`;
+  }
+
+  getOptionDisplayText(option: ProductStepOption): string {
+    if (!option) return '';
+    const adjustment = option.priceAdjustment;
+    if (adjustment > 0) {
+      return `${option.name} (+${this.formatPrice(adjustment)})`;
+    } else if (adjustment < 0) {
+      return `${option.name} (${this.formatPrice(adjustment)})`;
+    } else {
+      return option.name;
+    }
+  }
+
+  // Card selection methods
+  onSingleSelectCard(step: ProductStep, optionId: number): void {
+    const form = this.stepForms[step.id];
+    if (form) {
+      form.get('selectedOption')?.setValue(optionId.toString());
+      
+      // Automatically advance to next step after a brief delay for visual feedback
+       // this.goNext();
+    }
+  }
+
+  onMultiSelectCard(step: ProductStep, optionId: number): void {
+    const form = this.stepForms[step.id];
+    if (form) {
+      const optionsControl = form.get('options');
+      if (optionsControl) {
+        const currentValue = optionsControl.get(optionId.toString())?.value;
+        optionsControl.get(optionId.toString())?.setValue(!currentValue);
+        
+        // Count selected options after toggle
+        const selectedCount = Object.keys(optionsControl.value).filter(
+          (key) => optionsControl.value[key] === true
+        ).length;
+        
+        // If max selections reached, auto-advance to next step
+        // if (step.maxSelections && selectedCount === step.maxSelections) {
+        //   setTimeout(() => {
+        //     this.goNext();
+        //   }, 500);
+        // }
+      }
+    }
+  }
+
+  // Handle option click from child component
+  onOptionClicked(event: { step: ProductStep; optionId: number }): void {
+    const { step, optionId } = event;
+    if (step.stepType === 'single-select') {
+      this.onSingleSelectCard(step, optionId);
+    } else if (step.stepType === 'multi-select') {
+      this.onMultiSelectCard(step, optionId);
+    }
+  }
+
+  isOptionSelected(step: ProductStep, optionId: number): boolean {
+    const form = this.stepForms[step.id];
+    if (!form) return false;
+
+    if (step.stepType === 'single-select') {
+      return form.get('selectedOption')?.value === optionId.toString();
+    } else {
+      return form.get('options')?.get(optionId.toString())?.value || false;
+    }
+  }
+
+  // Check if all steps have been visited
+  areAllStepsVisited(totalSteps: number): boolean {
+    return totalSteps > 0 && this.visitedSteps.size >= totalSteps;
+  }
+
+  // Get summary data for the summary step
+  getSummaryData(): Observable<any[]> {
+    return combineLatest([this.steps$, this.stepSelections$]).pipe(
+      map(([steps, selections]) => {
+        return steps
+          .filter(
+            (step) =>
+              step.stepType !== 'summary' &&
+              selections[step.id]?.selectedOptionIds?.length > 0
+          )
+          .map((step) => ({
+            step,
+            selectedOptions:
+              selections[step.id]?.selectedOptionIds
+                ?.map((optionId) =>
+                  step.options.find((option) => option.id === optionId)
+                )
+                .filter((option) => option) || [],
+          }));
+      })
+    );
+  }
+
+  // Open image zoom dialog
+  openImageZoom(imageUrl: string, imageName: string): void {
+    this.dialog.open(ImageZoomDialogComponent, {
+      data: { imageUrl, imageName } as ImageZoomDialogData,
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'image-zoom-dialog-panel',
+    });
+  }
+
+  // Handle image click from child component
+  onImageClicked(event: { imageUrl: string; imageName: string }): void {
+    this.openImageZoom(event.imageUrl, event.imageName);
+  }
+
+  // Helper method to scroll to current step content
+  private scrollToCurrentStep(): void {
+    if (!this.stepper) return;
+
+    // Get the selected step index
+    const selectedIndex = this.stepper.selectedIndex;
+    if (selectedIndex === null || selectedIndex === undefined) return;
+
+    // Find the step header to ensure the step name is visible
+    const stepHeaders = document.querySelectorAll('.mat-step-header');
+    const activeStepHeader = stepHeaders[selectedIndex] as HTMLElement;
+
+    if (!activeStepHeader) return;
+
+    // Account for sticky elements
+    const stickyHeaderHeight = 39; // .step-actions sticky bar
+    const additionalOffset = 190; // Extra padding for visibility
+    const totalOffset = stickyHeaderHeight + additionalOffset;
+
+    // Try to find scrollable parent container
+    let scrollableContainer: HTMLElement | null = null;
+    let parent = activeStepHeader.parentElement;
+    
+    while (parent && parent !== document.body) {
+      const overflow = window.getComputedStyle(parent).overflowY;
+      if (overflow === 'auto' || overflow === 'scroll') {
+        scrollableContainer = parent;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+
+    if (scrollableContainer) {
+      // Scroll within container
+      const containerRect = scrollableContainer.getBoundingClientRect();
+      const elementRect = activeStepHeader.getBoundingClientRect();
+      const relativeTop = elementRect.top - containerRect.top;
+      const targetScrollTop = scrollableContainer.scrollTop + relativeTop - totalOffset;
+
+      scrollableContainer.scrollTo({
+        top: targetScrollTop,
+        behavior: 'smooth'
+      });
+    } else {
+      // Scroll the window
+      const elementRect = activeStepHeader.getBoundingClientRect();
+      const absoluteTop = window.pageYOffset + elementRect.top;
+      
+      window.scrollTo({
+        top: absoluteTop - totalOffset,
+        behavior: 'smooth'
+      });
+    }
+  }
+}

@@ -1,15 +1,39 @@
 export const environment = {
   production: false,
-  PayGreenShopId: 'sh_0866086bf9e74213995ce6e414c9a862',
-  PayGreenApiKey: 'pk_01e8bf5de383418aae75e5a9484927c3',
-  PayGreenPrivateKey: 'sk_ca457ac02b2d4a4dbabd2f5512e30dc1',
-  PayGreenUrl: 'https://sb-api.paygreen.fr',
+
   // Stripe configuration
   stripePublishableKey: 'pk_test_your_stripe_publishable_key_here', // Replace with your actual key
-  backendUrl: 'http://localhost:3000', // Your backend API URL
+  backendUrl: 'https://ajblxmolmmvvnobpzzhr.supabase.co', // Your backend API URL
   supabase: {
     url: 'https://ajblxmolmmvvnobpzzhr.supabase.co',
     anonKey:
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYmx4bW9sbW12dm5vYnB6emhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzMjA0OTgsImV4cCI6MjA2Mzg5NjQ5OH0.UFjEo9qpZEChFedWxJEw1vgYrHrd4sFfBi_ZSKiiO9E',
+  },
+  deliveryProvidersKeys: [
+    {
+      providerName: 'Uber',
+      providerClientKey: 'urtiG42j-nG4O_GNKEQd3JL2Gv0nE86J',
+      providerSecretKey: '8Q0O8R210V6rs4PUZtrA0HkgG_jRPcoBRUsEA9tB',
+    },
+    {
+      providerName: 'Stuart',
+      providerClientKey: '6TmZGBm3tkAoZGgd90njFzO2pJqvsgLdpiFdgHR6SmE',
+      providerSecretKey: 'Kw6gRkrfU8hz7bUfQ3gwGmzVUEFgkoQLh3vaPr2fj9o',
+    },
+  ],
+  googleMapsApiKey: 'AIzaSyA8QsSphYIuzHefgxTLJRvBC7UQJPp2it4',
+  // Temporary toggle to force a specific delivery provider during development/testing.
+  // Accepted values: 'uber' | 'stuart' | 'all' | 'auto'
+  // - 'uber' or 'stuart': only that provider will be registered
+  // - 'all' | 'auto' (default): both providers will be available and the app selects the best
+  deliveryProviderOverride: 'uber',
+  
+  // PayGreen API Configuration
+  paygreen: {
+    // Choose between 'production' or 'sandbox' API
+    // 'production' uses https://api.paygreen.fr
+    // 'sandbox' uses https://sb-api.paygreen.fr
+    environment: 'sandbox', // Change to 'production' for live payments
+    apiUrl: 'https://sb-api.paygreen.fr', // Will be set automatically based on environment
   },
 };

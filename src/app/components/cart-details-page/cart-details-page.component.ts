@@ -26,6 +26,8 @@ import {
   removeCartItem,
 } from '../../store/actions/cart.actions';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { VendorService } from '../../services/vendor.service';
+import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 
 @Component({
   selector: 'app-cart-details-page',
@@ -72,8 +74,19 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         <div *ngFor="let item of items" class="cart-item-row">
           <div class="cart-item-info">
             <span class="cart-item-name">{{ item.product.name }}</span>
-            <span class="cart-item-price"
-              >{{ item.product.price | number : '1.2-2' }} €</span
+            <!-- Multi-step product details -->
+            <div *ngIf="item.metadata" class="multi-step-details">
+              <div *ngFor="let step of item.metadata.stepSelections" class="step-detail">
+                <span class="step-name">{{ step.stepName }}:</span>
+                <span *ngFor="let option of step.selectedOptions; let last = last" class="option-name">
+                  {{ option.optionName }}<span *ngIf="!last">, </span>
+                </span>
+              </div>
+            </div>
+            <span
+              class="cart-item-price"
+              [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+              >{{ getItemPrice(item) | number : '1.2-2' }} €</span
             >
           </div>
           <div class="cart-item-controls">
@@ -187,6 +200,23 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
       .cart-item-name {
         font-weight: 500;
       }
+      .multi-step-details {
+        margin-top: 4px;
+        padding-left: 8px;
+        border-left: 2px solid var(--mat-sys-primary);
+      }
+      .step-detail {
+        margin-bottom: 2px;
+        font-size: 0.8em;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .step-name {
+        font-weight: 500;
+        color: var(--mat-sys-primary);
+      }
+      .option-name {
+        color: var(--mat-sys-on-surface);
+      }
       .cart-item-price {
         color: #888;
         font-size: 0.95em;
@@ -239,6 +269,8 @@ export class CartDetailsPageComponent {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
   private restaurantStatusService = inject(RestaurantStatusService);
+  private vendorService = inject(VendorService);
+  private deliverySelection = inject(DeliverySelectionService);
 
   isCheckingOut = false;
 
@@ -263,10 +295,23 @@ export class CartDetailsPageComponent {
   }
 
   getTotal(items: CartItem[]): number {
-    return items.reduce(
-      (total, item) => total + item.product.price * item.quantity,
-      0
-    );
+    const itemsTotal = items.reduce((total, item) => {
+      // Use stored totalPrice for multi-step products, otherwise calculate normally
+      const itemTotal = item.totalPrice || item.product.price * item.quantity;
+      return total + itemTotal;
+    }, 0);
+
+    // Include delivery fee if delivery selected and quote exists
+    const isDelivery =
+      this.diningPreferenceService.diningPreference() === 'delivery';
+    const best = this.deliverySelection.bestOption();
+    const deliveryFee = isDelivery && best ? best.totalAmount / 100 : 0;
+    return itemsTotal + deliveryFee;
+  }
+
+  getItemPrice(item: CartItem): number {
+    // Use stored totalPrice for multi-step products, otherwise use product price
+    return item.totalPrice || item.product.price;
   }
 
   changeDiningPreference(): void {
@@ -369,13 +414,25 @@ export class CartDetailsPageComponent {
       const orderNumber = this.generateOrderNumber();
 
       // Create order items
-      const orderItems: OrderItem[] = items.map((item) => ({
-        productId: item.product.id.toString(),
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        options: [],
-      }));
+      const orderItems: OrderItem[] = items.map((item) => {
+        // For multi-step products, use the calculated totalPrice instead of base product price
+        const itemPrice = item.totalPrice || item.product.price;
+        
+        // Store multi-step metadata in options field
+        const options = item.metadata ? 
+          [item.metadata] : // Store CartMultiStepMetadata
+          item.selectedComplements || []; // Store complements if available
+
+        return {
+          productId: item.product.id.toString(),
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: itemPrice, // Use calculated price for multi-step products
+          options: options, // Store multi-step metadata or complements
+          vendorId: item.product.vendorId,
+          comment: item.comment,
+        };
+      });
 
       // Create order with "initiated" status
       const order: Order = {
@@ -409,7 +466,60 @@ export class CartDetailsPageComponent {
         throw new Error('Failed to create order');
       }
 
-      // 2. Now create payment with order reference
+      // 2. Persist delivery selection for later creation on acceptance
+      try {
+        const isDelivery =
+          this.diningPreferenceService.diningPreference() === 'delivery';
+        const best = this.deliverySelection.bestOption();
+        if (isDelivery && best) {
+          // Build pickup from vendor info
+          const vendorInfo = await this.vendorService
+            .getRestaurantInfo()
+            .toPromise();
+          const pickup = vendorInfo
+            ? {
+                line1: vendorInfo.address.street,
+                postal_code: vendorInfo.address.postal_code,
+                city: vendorInfo.address.city,
+                country_code: 'FR',
+                lat: undefined,
+                lng: undefined,
+              }
+            : {
+                line1: '83 Bis Rue Du Commerce',
+                postal_code: '37000',
+                city: 'Tours',
+                country_code: 'FR',
+                lat: undefined,
+                lng: undefined,
+              };
+          const drop = this.deliverySelection.selectedAddress();
+          if (drop) {
+            await this.ordersService['supabaseService'].upsertOrderDelivery({
+              order_id: createdOrder.id,
+              provider: best.providerId,
+              quote_amount_minor: best.totalAmount,
+              currency: best.currency,
+              eta_minutes: best.etaMinutes ?? null,
+              status: 'waiting_payment',
+              pickup,
+              dropoff: {
+                line1: drop.line1,
+                postal_code: drop.postalCode,
+                city: drop.city,
+                country_code: drop.countryCode,
+                lat: drop.coordinates?.lat ?? null,
+                lng: drop.coordinates?.lng ?? null,
+              },
+              raw: best.raw ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to persist delivery selection:', e);
+      }
+
+      // 3. Now create payment with order reference
       // Build return URLs with vendor context
       const baseUrl = window.location.origin;
       const vendorSlug = this.vendorNavigation.getVendorSlug();
@@ -420,21 +530,43 @@ export class CartDetailsPageComponent {
         ? `${baseUrl}/${vendorSlug}/failedPayment`
         : `${baseUrl}/failedPayment`;
 
+      // Get current vendor for payment
+      const currentVendor = this.vendorService.getCurrentVendor();
+      if (!currentVendor) {
+        throw new Error('No vendor selected for payment');
+      }
+
+      // Prepare payment items and include delivery as a separate line when applicable
+      const paymentItems = items.map((item) => ({
+        name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price,
+      }));
+
+      const isDelivery =
+        this.diningPreferenceService.diningPreference() === 'delivery';
+      const best = this.deliverySelection.bestOption();
+      const deliveryFee = isDelivery && best ? best.totalAmount / 100 : 0;
+      if (deliveryFee > 0) {
+        paymentItems.push({
+          name: 'Livraison',
+          quantity: 1,
+          price: deliveryFee,
+        });
+      }
+
       // Create unified payment request with order reference
       const paymentRequest: PaymentRequest = {
         amount: totalAmount,
         currency: 'EUR',
+        vendorId: currentVendor.id, // Add vendor ID for secure payment processing
         buyer: {
           email: userInfo.email,
           firstName: userInfo.prenom,
           lastName: userInfo.nom,
           phone: userInfo.phone,
         },
-        items: items.map((item) => ({
-          name: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price,
-        })),
+        items: paymentItems,
         returnUrl,
         cancelUrl,
         reference: createdOrder.id, // Pass the created order ID as reference
@@ -443,6 +575,15 @@ export class CartDetailsPageComponent {
           orderNumber: createdOrder.orderNumber,
           diningPreference: diningPref,
           orderSource: 'cart-page',
+          delivery: best
+            ? {
+                providerId: best.providerId,
+                providerName: best.providerName,
+                amountMinor: best.totalAmount,
+                currency: best.currency,
+                etaMinutes: best.etaMinutes ?? null,
+              }
+            : null,
           userInfo: {
             nom: userInfo.nom,
             prenom: userInfo.prenom,

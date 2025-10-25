@@ -10,6 +10,10 @@ import { DiningPreferenceService } from '../../services/dining-preference.servic
 import { RestaurantStatusService } from '../../services/restaurant-status.service';
 import { Subscription } from 'rxjs';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility.service';
+import { VendorService } from '../../services/vendor.service';
+import { MatDialog } from '@angular/material/dialog';
+import { RestaurantInfoDialogComponent } from '../restaurant-info-dialog/restaurant-info-dialog.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -30,6 +34,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
   private restaurantStatusService = inject(RestaurantStatusService);
+  private cartBadgeVisibilityService = inject(CartBadgeVisibilityService);
+  private vendorService = inject(VendorService);
+  private dialog = inject(MatDialog);
 
   private subscription = new Subscription();
 
@@ -40,7 +47,16 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   menuOpened = true;
 
+  // Use the cart badge visibility service
+  showCartBadge$ = this.cartBadgeVisibilityService.showCartBadge$;
+
+  // Current vendor for logo and name
+  currentVendor$ = this.vendorService.currentVendor$;
+
   ngOnInit() {
+    // Load vendors to ensure we have current vendor data
+    this.vendorService.loadVendors();
+
     // Check restaurant status when component loads
     this.checkRestaurantStatusOnLoad();
 
@@ -87,6 +103,28 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.vendorNavigation.navigateWithVendor('dining-preference');
   }
 
+  openRestaurantInfo(): void {
+    const currentVendor = this.vendorService.getCurrentVendor();
+    if (!currentVendor) {
+      console.error('No current vendor available');
+      return;
+    }
+
+    // Get restaurant info from the vendor service (currently using mock data)
+    this.vendorService.getRestaurantInfo().subscribe((restaurantInfo) => {
+      if (restaurantInfo) {
+        this.dialog.open(RestaurantInfoDialogComponent, {
+          data: restaurantInfo,
+          panelClass: 'restaurant-info-dialog-panel',
+          maxWidth: '600px',
+          width: '90vw',
+        });
+      } else {
+        console.error('Failed to load restaurant information');
+      }
+    });
+  }
+
   // Theme toggling for MDC 3
   isDarkTheme = false;
 
@@ -97,5 +135,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     } else {
       document.body.classList.remove('dark-mode');
     }
+  }
+  gotoRestaurantHomepage() {
+    this.vendorNavigation.navigateWithVendor('products');
   }
 }

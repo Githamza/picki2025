@@ -5,11 +5,13 @@ import { categoryReducer } from './category.reducer';
 import { environment } from '../../../environments/environment';
 import { productReducer } from './product.reducer';
 import { cartReducer } from './cart.reducer';
+import { multiStepProductReducer } from './multi-step-product.reducer';
 
 export const reducers: ActionReducerMap<AppState> = {
   banner: bannerReducer,
   category: categoryReducer,
   product: productReducer,
+  multiStepProduct: multiStepProductReducer,
   cart: cartReducer,
   // Add more reducers here as needed
 };

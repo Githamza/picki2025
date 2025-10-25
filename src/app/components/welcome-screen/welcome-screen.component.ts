@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, OnInit } from '@angular/core';
+import { Component, inject, ViewChild, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -6,34 +6,40 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { MatButtonToggleChange } from '@angular/material/button-toggle';
 import { MatDatepicker } from '@angular/material/datepicker';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { materialComponents } from '../../material.components';
-import {
-  DiningPreferenceService,
-  DiningPreference,
-} from '../../services/dining-preference.service';
+import { AddressAutocompleteComponent } from '../../shared/components/address-autocomplete/address-autocomplete.component';
+import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
+import { DiningPreferenceService } from '../../services/dining-preference.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { DeliveryQuote } from '../../services/delivery/delivery.types';
 
 @Component({
   selector: 'app-welcome-screen',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ...materialComponents],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ...materialComponents,
+    AddressAutocompleteComponent,
+  ],
   templateUrl: './welcome-screen.component.html',
   styleUrls: ['./welcome-screen.component.scss'],
 })
 export class WelcomeScreenComponent implements OnInit {
   @ViewChild('datePicker') datePicker!: MatDatepicker<Date>;
+  @ViewChild('datePicker2') datePicker2!: MatDatepicker<Date>;
 
   private diningPreferenceService = inject(DiningPreferenceService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
   private location = inject(Location);
+  readonly deliverySelection = inject(DeliverySelectionService);
 
-  selectedPreference: 'eat-in' | 'take-away' | null = null;
+  selectedPreference: 'eat-in' | 'take-away' | 'delivery' | null = null;
   selectedTiming: 'asap' | 'later' | null = null;
   selectedDate: Date | null = null;
   selectedTime: Date | null = null;
@@ -41,6 +47,7 @@ export class WelcomeScreenComponent implements OnInit {
 
   showTimingSelection = false;
   showDateTimeSelection = false;
+  showDelivery = false;
 
   orderForm: FormGroup = this.fb.group({
     scheduledDate: [new Date()],
@@ -50,6 +57,8 @@ export class WelcomeScreenComponent implements OnInit {
   ngOnInit(): void {
     // Check if user has already made selections
     const existingData = this.diningPreferenceService.diningPreferenceData();
+    this.showDelivery = existingData?.preference === 'delivery';
+
     if (existingData) {
       this.selectedPreference = existingData.preference;
       this.selectedTiming = existingData.timing;
@@ -58,11 +67,27 @@ export class WelcomeScreenComponent implements OnInit {
       this.showTimingSelection = true;
       this.showDateTimeSelection = this.selectedTiming === 'later';
     }
+
+    // Set default timing to 'asap' for take-away and delivery if no timing is set
+    if (
+      this.selectedPreference &&
+      (this.selectedPreference === 'take-away' ||
+        this.selectedPreference === 'delivery') &&
+      !this.selectedTiming
+    ) {
+      this.selectedTiming = 'asap';
+    }
   }
 
-  selectPreference(preference: 'eat-in' | 'take-away') {
+  selectPreference(preference: 'eat-in' | 'take-away' | 'delivery') {
     this.selectedPreference = preference;
     this.showTimingSelection = true;
+    this.showDelivery = preference === 'delivery';
+
+    // Set timing to 'asap' by default for take-away and delivery
+    if (preference === 'take-away' || preference === 'delivery') {
+      this.selectedTiming = 'asap';
+    }
   }
 
   selectTiming(timing: 'asap' | 'later') {
@@ -72,7 +97,6 @@ export class WelcomeScreenComponent implements OnInit {
     if (timing === 'asap') {
       this.selectedDate = null;
       this.selectedTime = null;
-      this.proceedToMenu();
     }
   }
 
@@ -80,6 +104,10 @@ export class WelcomeScreenComponent implements OnInit {
     if (this.selectedDate && this.selectedTime) {
       this.proceedToMenu();
     }
+  }
+
+  onAddressSelected(placeId: string): void {
+    this.deliverySelection.setAddressFromPlaceId(placeId);
   }
 
   private proceedToMenu() {
@@ -109,7 +137,9 @@ export class WelcomeScreenComponent implements OnInit {
   }
 
   openDatePicker(): void {
-    if (this.datePicker) {
+    if (this.selectedPreference === 'delivery' && this.datePicker2) {
+      this.datePicker2.open();
+    } else if (this.datePicker) {
       this.datePicker.open();
     }
   }
@@ -181,5 +211,10 @@ export class WelcomeScreenComponent implements OnInit {
     }
 
     return scheduledDateTime > new Date();
+  }
+
+  // TrackBy function for delivery quotes list
+  trackByProviderId(index: number, quote: DeliveryQuote): string {
+    return quote.providerId;
   }
 }

@@ -1,18 +1,50 @@
 <div class="orders-manager">
   <!-- Refresh Section -->
   <div class="refresh-section">
-    <button
-      mat-raised-button
-      color="primary"
-      (click)="refreshOrders()"
-      [disabled]="isLoading()"
-      class="refresh-button"
-    >
-      <mat-icon>refresh</mat-icon>
-      @if (isLoading()) {
-      <mat-spinner diameter="20"></mat-spinner>
-      } @else { Actualiser }
-    </button>
+    <!-- Period Filter -->
+    <mat-form-field appearance="outline" class="period-filter">
+      <mat-label>Période</mat-label>
+      <mat-select
+        [value]="periodFilter()"
+        (selectionChange)="onPeriodFilterChange($event.value)"
+      >
+        @for (option of periodFilterOptions; track option.value) {
+        <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="action-buttons">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="refreshOrders()"
+        [disabled]="isLoading()"
+        class="refresh-button"
+      >
+        <mat-icon>refresh</mat-icon>
+        @if (isLoading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+        } @else { Actualiser }
+      </button>
+
+      <!-- Sound notification toggle -->
+      <button
+        mat-icon-button
+        [color]="soundNotificationService.isSoundEnabled() ? 'primary' : ''"
+        (click)="toggleSoundNotifications()"
+        class="sound-toggle-button"
+        [matTooltip]="
+          soundNotificationService.isSoundEnabled()
+            ? 'Désactiver les notifications sonores'
+            : 'Activer les notifications sonores'
+        "
+      >
+        <mat-icon>{{
+          soundNotificationService.isSoundEnabled() ? "volume_up" : "volume_off"
+        }}</mat-icon>
+      </button>
+    </div>
   </div>
 
   <div class="orders-container">
@@ -28,6 +60,7 @@
           *ngFor="let order of dineInOrders$ | async; trackBy: trackByOrderId"
           class="order-card"
           [class.order-initiated]="order.status === 'initiated'"
+          [class.order-paid]="order.status === 'paid'"
           [class.order-refused]="order.status === 'refused'"
           [class.order-todo]="order.status === 'todo'"
           [class.order-ongoing]="order.status === 'ongoing'"
@@ -82,11 +115,41 @@
             <div class="order-items">
               <div *ngFor="let item of order.items" class="order-item">
                 <span class="item-quantity">{{ item.quantity }}x</span>
-                <span class="item-name">{{ item.productName }}</span>
-                <span class="item-price">{{
-                  item.price * item.quantity
-                    | currency : "EUR" : "symbol" : "1.2-2" : "fr"
-                }}</span>
+                <div class="item-details">
+                  <span class="item-name">{{ item.productName }}</span>
+                  <!-- Multi-step product details -->
+                  <div *ngIf="item.metadata" class="multi-step-details">
+                    <div
+                      *ngFor="let step of item.metadata.stepSelections"
+                      class="step-detail"
+                    >
+                      <span class="step-name">{{ step.stepName }}:</span>
+                      <span
+                        *ngFor="
+                          let option of step.selectedOptions;
+                          let last = last
+                        "
+                        class="option-name"
+                      >
+                        {{ option.optionName }}<span *ngIf="!last">, </span>
+                      </span>
+                    </div>
+                  </div>
+                  <div *ngIf="item.comment" class="item-comment">
+                    <mat-icon>comment</mat-icon>
+                    <span>{{ item.comment }}</span>
+                  </div>
+                </div>
+                <span
+                  class="item-price"
+                  [style.visibility]="
+                    item.price * item.quantity > 0 ? 'visible' : 'hidden'
+                  "
+                  >{{
+                    item.price * item.quantity
+                      | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+                  }}</span
+                >
               </div>
             </div>
 
@@ -118,6 +181,7 @@
                 <mat-spinner diameter="16"></mat-spinner>
                 } @else {
                 <mat-icon>check_circle</mat-icon>
+                } @if (!isOrderLoading(order.id)) {
                 <span class="order-action-button-text">Accepter</span>
                 }
               </button>
@@ -133,6 +197,7 @@
                 <mat-spinner diameter="16"></mat-spinner>
                 } @else {
                 <mat-icon>cancel</mat-icon>
+                } @if (!isOrderLoading(order.id)) {
                 <span class="order-action-button-text">Refuser</span>
                 }
               </button>
@@ -152,6 +217,7 @@
               <mat-spinner diameter="16"></mat-spinner>
               } @else {
               <mat-icon>{{ buttonIcons[order.status] }}</mat-icon>
+              } @if (!isOrderLoading(order.id)) {
               <span class="order-action-button-text">
                 {{ getNextStatusLabel(order.status) }}
               </span>
@@ -162,18 +228,22 @@
       </div>
     </div>
 
-    <!-- Takeaway Orders Column -->
+    <!-- Combined Pickup and Delivery Orders Column -->
     <div class="orders-column">
       <h2 class="column-title">
         <mat-icon>shopping_bag</mat-icon>
-        À Emporter
+        À Emporter & Livraison
       </h2>
 
       <div class="orders-list">
         <mat-card
-          *ngFor="let order of takeawayOrders$ | async; trackBy: trackByOrderId"
+          *ngFor="
+            let order of combinedPickupDeliveryOrders$ | async;
+            trackBy: trackByOrderId
+          "
           class="order-card"
           [class.order-initiated]="order.status === 'initiated'"
+          [class.order-paid]="order.status === 'paid'"
           [class.order-refused]="order.status === 'refused'"
           [class.order-todo]="order.status === 'todo'"
           [class.order-ongoing]="order.status === 'ongoing'"
@@ -198,9 +268,32 @@
             </mat-card-title>
             <mat-card-subtitle>
               <div class="order-meta-info">
-                <div class="timing-info">
+                <div class="order-type-indicator">
+                  <mat-chip
+                    [color]="
+                      order.orderType === 'take-away' ? 'primary' : 'accent'
+                    "
+                    class="order-type-chip"
+                  >
+                    <mat-icon matChipAvatar>{{
+                      order.orderType === "take-away"
+                        ? "shopping_bag"
+                        : "local_shipping"
+                    }}</mat-icon>
+                    {{
+                      order.orderType === "take-away"
+                        ? "À Emporter"
+                        : "Livraison"
+                    }}
+                  </mat-chip>
+                </div>
+                <div class="table-info" *ngIf="order.tableNumber">
+                  <mat-icon>table_restaurant</mat-icon>
+                  Table {{ order.tableNumber }}
+                </div>
+                <div class="timing-info" *ngIf="order.timing">
                   <mat-chip color="warn" *ngIf="order.timing === 'asap'">
-                    <mat-icon>schedule</mat-icon>
+                    <mat-icon matChipAvatar>schedule</mat-icon>
                     IMMÉDIAT
                   </mat-chip>
                   <div
@@ -239,11 +332,41 @@
             <div class="order-items">
               <div *ngFor="let item of order.items" class="order-item">
                 <span class="item-quantity">{{ item.quantity }}x</span>
-                <span class="item-name">{{ item.productName }}</span>
-                <span class="item-price">{{
-                  item.price * item.quantity
-                    | currency : "EUR" : "symbol" : "1.2-2" : "fr"
-                }}</span>
+                <div class="item-details">
+                  <span class="item-name">{{ item.productName }}</span>
+                  <!-- Multi-step product details -->
+                  <div *ngIf="item.metadata" class="multi-step-details">
+                    <div
+                      *ngFor="let step of item.metadata.stepSelections"
+                      class="step-detail"
+                    >
+                      <span class="step-name">{{ step.stepName }}:</span>
+                      <span
+                        *ngFor="
+                          let option of step.selectedOptions;
+                          let last = last
+                        "
+                        class="option-name"
+                      >
+                        {{ option.optionName }}<span *ngIf="!last">, </span>
+                      </span>
+                    </div>
+                  </div>
+                  <div *ngIf="item.comment" class="item-comment">
+                    <mat-icon>comment</mat-icon>
+                    <span>{{ item.comment }}</span>
+                  </div>
+                </div>
+                <span
+                  class="item-price"
+                  [style.visibility]="
+                    item.price * item.quantity > 0 ? 'visible' : 'hidden'
+                  "
+                  >{{
+                    item.price * item.quantity
+                      | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+                  }}</span
+                >
               </div>
             </div>
 
@@ -275,6 +398,7 @@
                 <mat-spinner diameter="16"></mat-spinner>
                 } @else {
                 <mat-icon>check_circle</mat-icon>
+                } @if (!isOrderLoading(order.id)) {
                 <span class="order-action-button-text">Accepter</span>
                 }
               </button>
@@ -290,6 +414,7 @@
                 <mat-spinner diameter="16"></mat-spinner>
                 } @else {
                 <mat-icon>cancel</mat-icon>
+                } @if (!isOrderLoading(order.id)) {
                 <span class="order-action-button-text">Refuser</span>
                 }
               </button>
@@ -309,6 +434,7 @@
               <mat-spinner diameter="16"></mat-spinner>
               } @else {
               <mat-icon>{{ buttonIcons[order.status] }}</mat-icon>
+              } @if (!isOrderLoading(order.id)) {
               <span class="order-action-button-text">
                 {{ getNextStatusLabel(order.status) }}
               </span>

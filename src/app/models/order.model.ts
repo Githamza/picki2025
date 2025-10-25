@@ -1,5 +1,6 @@
 export type OrderStatus =
   | 'initiated'
+  | 'paid'
   | 'refused'
   | 'todo'
   | 'ongoing'
@@ -20,7 +21,10 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
-  options?: string[];
+  options?: any[]; // Change from string[] to any[] to support metadata
+  vendorId?: string;
+  comment?: string;
+  metadata?: any; // Add explicit metadata field for multi-step products
 }
 
 export interface Order {
@@ -37,4 +41,5 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   notes?: string;
+  vendorId?: string; // Reference to the vendor this order belongs to
 }

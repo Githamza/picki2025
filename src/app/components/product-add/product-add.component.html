@@ -1,90 +1,73 @@
 <div class="product-add-wrapper">
-  <button
-    mat-icon-button
-    class="close-btn"
-    aria-label="Fermer"
-    (click)="closePage()"
-  >
-    <mat-icon>close</mat-icon>
-  </button>
-  <div class="product-add-container" *ngIf="product$ | async as product">
-    <div class="product-content">
-      <div class="product-image-container">
-        <img
-          [src]="product.imageUrl"
-          [alt]="product.name"
-          title="Product image"
-          class="product-image"
-        />
-      </div>
+  <div class="close-btn-wrapper">
+    <button
+      mat-icon-button
+      class="close-btn"
+      aria-label="Fermer"
+      (click)="closePage()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
 
-      <div class="product-details">
-        <div class="product-header">
-          <h1>{{ product.name }}</h1>
-        </div>
-        <div class="product-price">${{ product.price.toFixed(2) }}</div>
+  <div *ngIf="product$ | async as product; else productNotFound">
+    <!-- Regular Product View (non-multi-step products) -->
+    <app-regular-product-view
+      *ngIf="!product.isMultiStep"
+      [product]="product"
+      [quantity]="quantity"
+      [isSingleStepProduct]="false"
+      (quantityIncrement)="incrementQuantity()"
+      (quantityDecrement)="decrementQuantity()"
+      (removeItem)="removeItem()"
+      (addToCart)="addToCart($event)"
+    ></app-regular-product-view>
 
-        <div class="product-description-container">
-          <p class="product-short-description" *ngIf="product.shortDescription">
-            {{ product.shortDescription }}
-          </p>
-          <p class="product-long-description" *ngIf="product.longDescription">
-            {{ product.longDescription }}
-          </p>
-          <!-- Fallback to old description field if new fields aren't available -->
-          <p
-            class="product-description"
-            *ngIf="!product.longDescription && product.description"
-          >
-            {{ product.description }}
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="add-to-cart">
-      <div class="inner-add-container">
-        <div class="quantity-controls">
-          <div class="quantity-buttons">
-            <button
-              mat-fab
-              color="warn"
-              aria-label="Remove item or decrease quantity"
-              (click)="quantity === 1 ? removeItem() : decrementQuantity()"
-              class="quantity-button"
-            >
-              <mat-icon>{{ quantity === 1 ? "delete" : "remove" }}</mat-icon>
-            </button>
+    <!-- Multi-Step Product Configuration -->
+    <div *ngIf="product.isMultiStep">
+      <!-- Single-Step Product Configuration -->
+      <app-regular-product-view
+        *ngIf="(isSingleStepProduct$ | async) === true"
+        [product]="product"
+        [quantity]="quantity"
+        [isSingleStepProduct]="true"
+        (quantityIncrement)="incrementQuantity()"
+        (quantityDecrement)="decrementQuantity()"
+        (removeItem)="removeItem()"
+        (addToCart)="addToCart($event)"
+      ></app-regular-product-view>
 
-            <span class="quantity-value">{{ quantity }}</span>
+      <!-- Multi-Step Product Configuration (multiple steps) -->
+      <app-add-product-multi-step
+        *ngIf="(isSingleStepProduct$ | async) === false"
+        [productId]="product.id"
+        class="multi-step-wrapper"
+      >
+      </app-add-product-multi-step>
 
-            <button
-              mat-fab
-              color="primary"
-              aria-label="Increase quantity"
-              (click)="incrementQuantity()"
-              class="quantity-button"
-            >
-              <mat-icon>add</mat-icon>
-            </button>
-          </div>
-        </div>
-        <button
-          mat-flat-button
-          color="primary"
-          class="add-to-cart-button"
-          (click)="addToCart(product)"
-        >
-          <mat-icon>shopping_cart</mat-icon>
-          <div class="button-content">
-            <span class="button-text">Ajouter</span>
-          </div>
-        </button>
+      <!-- Loading state only when observable hasn't emitted yet -->
+      <div
+        *ngIf="
+          (isSingleStepProduct$ | async) === null ||
+          (isSingleStepProduct$ | async) === undefined
+        "
+        class="loading-state"
+      >
+        <p>Loading product configuration...</p>
       </div>
     </div>
   </div>
 
-  <div class="product-not-found" *ngIf="(product$ | async) === undefined">
-    <h2>Product not found</h2>
-    <p>Sorry, we couldn't find the product you're looking for.</p>
-  </div>
+  <ng-template #productNotFound>
+    <div class="product-not-found">
+      <h2>Product not found</h2>
+      <p>Sorry, we couldn't find the product you're looking for.</p>
+    </div>
+  </ng-template>
+
+  <ng-template #loadingState>
+    <div class="loading-state">
+      <p>Loading product configuration...</p>
+    </div>
+  </ng-template>
 </div>

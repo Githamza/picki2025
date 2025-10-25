@@ -2,28 +2,49 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, from, Observable, of, throwError } from 'rxjs';
 import { map, catchError, timeout, retry, shareReplay } from 'rxjs/operators';
 import { Order, OrderStatus } from '../models/order.model';
+import { Address, DeliveryQuote } from './delivery/delivery.types';
 import { SupabaseService } from './supabase.service';
+import { SupabaseAuthService } from './supabase-auth.service';
 import { Database } from '../types/supabase.types';
+import { VendorService } from './vendor.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OrdersService {
   private supabaseService = inject(SupabaseService);
+  private supabaseAuthService = inject(SupabaseAuthService);
+  private vendorService = inject(VendorService);
   private ordersSubject = new BehaviorSubject<Order[]>([]);
   public orders$ = this.ordersSubject.asObservable();
 
   constructor() {
     this.loadOrders();
+
+    // Reload orders when vendor changes
+    this.vendorService.currentVendor$.subscribe((vendor) => {
+      if (vendor) {
+        this.loadOrders();
+      }
+    });
   }
 
   async loadOrders() {
     try {
-      const orders = await this.supabaseService.getOrders();
+      // Get current vendor
+      const currentVendor = this.vendorService.getCurrentVendor();
+      const vendorId = currentVendor?.id;
+
+      const orders = await this.supabaseAuthService.getOrders(
+        undefined,
+        vendorId
+      );
       const mappedOrders = orders?.map((o) => this.mapDbOrderToOrder(o)) || [];
 
       console.log(
-        `Loaded ${mappedOrders.length} orders from database:`,
+        `Loaded ${mappedOrders.length} orders from database${
+          vendorId ? ` for vendor ${currentVendor?.business_name}` : ''
+        }:`,
         mappedOrders.map((o) => ({
           id: o.id,
           orderNumber: o.orderNumber,
@@ -290,6 +311,10 @@ export class OrdersService {
 
   async addOrder(order: Order): Promise<Order> {
     try {
+      // Get current vendor ID
+      const currentVendor = this.vendorService.getCurrentVendor();
+      const vendorId = currentVendor?.id;
+
       // Create order in database
       const dbOrder = await this.supabaseService.createOrder({
         order_number: order.orderNumber,
@@ -305,22 +330,56 @@ export class OrdersService {
         scheduled_time: order.scheduledTime?.toISOString(),
         table_number: order.tableNumber,
         notes: order.notes,
+        vendor_id: vendorId, // Include vendor ID when creating order
       });
 
       if (dbOrder) {
-        // Create order items
+        // Create order items with proper vendor ID and comments
         const orderItems = order.items.map((item) => ({
           order_id: dbOrder.id,
           product_id: parseInt(item.productId),
           product_name: item.productName,
           quantity: item.quantity,
-          unit_price: item.price,
+          unit_price: item.price, // This will now be the correct calculated price for multi-step products
           total_price: item.price * item.quantity,
-          vendor_id: '00000000-0000-0000-0000-000000000001', // Default vendor for now
-          options: item.options || [],
+          vendor_id: (item as any).vendorId || null, // Get vendor ID from item if available
+          options: item.options || [], // Store multi-step metadata here
+          comment: item.comment || null,
         }));
 
-        await this.supabaseService.createOrderItems(orderItems);
+        const createdOrderItems = await this.supabaseService.createOrderItems(
+          orderItems
+        );
+
+        // Create order item complements if any
+        if (createdOrderItems) {
+          const allComplements: any[] = [];
+
+          order.items.forEach((item, index) => {
+            const orderItem = createdOrderItems[index];
+            if (orderItem && (item as any).selectedComplements) {
+              const complements = (item as any).selectedComplements.map(
+                (comp: any) => ({
+                  order_item_id: orderItem.id,
+                  complement_product_id: comp.complement_product_id,
+                  complement_name:
+                    comp.complement_name ||
+                    `Complement ${comp.complement_product_id}`,
+                  quantity: comp.quantity,
+                  unit_price: comp.unit_price,
+                  total_price: comp.total_price,
+                })
+              );
+              allComplements.push(...complements);
+            }
+          });
+
+          if (allComplements.length > 0) {
+            await this.supabaseService.createOrderItemComplements(
+              allComplements
+            );
+          }
+        }
 
         // Reload orders
         await this.loadOrders();
@@ -341,7 +400,7 @@ export class OrdersService {
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
     try {
-      await this.supabaseService.updateOrderStatus(
+      await this.supabaseAuthService.updateOrderStatus(
         orderId,
         status as Database['public']['Enums']['order_status']
       );
@@ -370,6 +429,45 @@ export class OrdersService {
     }
   }
 
+  async saveOrderDeliverySelection(params: {
+    orderId: string;
+    best: DeliveryQuote;
+    pickup: {
+      line1: string;
+      postal_code: string;
+      city: string;
+      country_code: string;
+      lat?: number | null;
+      lng?: number | null;
+    };
+    dropoff: Address;
+  }): Promise<void> {
+    await this.supabaseService.upsertOrderDelivery({
+      order_id: params.orderId,
+      provider: params.best.providerId,
+      quote_amount_minor: params.best.totalAmount,
+      currency: params.best.currency,
+      eta_minutes: params.best.etaMinutes ?? null,
+      pickup: {
+        line1: params.pickup.line1,
+        postal_code: params.pickup.postal_code,
+        city: params.pickup.city,
+        country_code: params.pickup.country_code,
+        lat: params.pickup.lat ?? null,
+        lng: params.pickup.lng ?? null,
+      },
+      dropoff: {
+        line1: params.dropoff.line1,
+        postal_code: params.dropoff.postalCode,
+        city: params.dropoff.city,
+        country_code: params.dropoff.countryCode,
+        lat: params.dropoff.coordinates?.lat ?? null,
+        lng: params.dropoff.coordinates?.lng ?? null,
+      },
+      raw: params.best.raw ?? null,
+    });
+  }
+
   getOrdersByStatus(status: OrderStatus): Observable<Order[]> {
     return this.orders$.pipe(
       map((orders) => orders.filter((order) => order.status === status))
@@ -393,6 +491,9 @@ export class OrdersService {
           quantity: item.quantity,
           price: Number(item.unit_price),
           options: item.options || [],
+          comment: item.comment || undefined,
+          vendorId: item.vendor_id || undefined,
+          metadata: item.options?.[0] || undefined, // Extract multi-step metadata from options
         })) || [],
       totalAmount: Number(dbOrder.total_amount),
       status: dbOrder.status as OrderStatus,
@@ -405,6 +506,7 @@ export class OrdersService {
       createdAt: new Date(dbOrder.created_at),
       updatedAt: new Date(dbOrder.updated_at),
       notes: dbOrder.notes || undefined,
+      vendorId: dbOrder.vendor_id || undefined, // Include vendor ID from database
     };
   }
 }

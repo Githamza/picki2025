@@ -26,14 +26,44 @@ export class VendorSelectionComponent implements OnInit {
       await this.vendorService.loadVendors();
       this.vendorService.vendors$.subscribe((vendors) => {
         this.vendors = vendors;
+        // Automatically redirect to the first active vendor
+        this.redirectToFirstVendor();
       });
     } catch (error) {
       console.error('Error loading vendors:', error);
     }
   }
 
+  private redirectToFirstVendor() {
+    if (this.vendors.length > 0) {
+      // Find the first active vendor
+      // const firstActiveVendor = this.vendors.find((vendor) => vendor.is_active);
+      // if (firstActiveVendor) {
+      //   // Redirect to the first active vendor
+      //   this.selectVendor(firstActiveVendor);
+      // } else {
+      // If no active vendors, try the first vendor regardless of status
+      // const firstVendor = this.vendors[1];
+      // if (firstVendor) {
+      //   console.warn(
+      //     'No active vendors found, redirecting to first vendor anyway'
+      //   );
+      //   this.selectVendor(firstVendor);
+      //   // }
+      // }
+    }
+  }
+
   selectVendor(vendor: Vendor) {
     if (vendor.is_active) {
+      const vendorSlug = this.vendorService.getVendorSlug(vendor);
+      this.router.navigate([vendorSlug]);
+    } else {
+      console.warn(
+        'Attempting to navigate to inactive vendor:',
+        vendor.business_name
+      );
+      // Still navigate even if inactive, in case we want to show a "closed" message
       const vendorSlug = this.vendorService.getVendorSlug(vendor);
       this.router.navigate([vendorSlug]);
     }

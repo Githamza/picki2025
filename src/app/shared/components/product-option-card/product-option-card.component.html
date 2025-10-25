@@ -1,0 +1,59 @@
+<div [matBadge]="isSelected ? 'check' : ''" [matBadgeHidden]="!isSelected">
+  <mat-card
+    class="option-card"
+    [class.selected]="isSelected"
+    [class.disabled]="!option.isAvailable"
+    [class.component-option]="isComponentOption()"
+    [class.product-option]="canBeSoldSeparately()"
+    (click)="onCardClick()"
+    matRipple
+    [matRippleDisabled]="!option.isAvailable"
+  >
+    <mat-card-content>
+      <div class="option-card-content">
+        <div class="option-image" *ngIf="option.imageUrl">
+          <img [src]="option.imageUrl" [alt]="option.name" />
+        </div>
+
+        <!-- Fallback when no image -->
+        <div class="option-image fallback" *ngIf="!option.imageUrl">
+          <mat-icon>{{
+            isComponentOption() ? "restaurant" : "add_shopping_cart"
+          }}</mat-icon>
+        </div>
+
+        <div class="option-info">
+          <div class="option-name">{{ option.name }}</div>
+
+          <!-- Description for better UX -->
+          <div class="option-description" *ngIf="option.description">
+            {{ option.description }}
+          </div>
+        </div>
+
+        <div class="option-actions">
+          <div class="option-price">
+            <span
+              class="price-adjustment"
+              [class.positive]="option.priceAdjustment > 0"
+              [class.negative]="option.priceAdjustment < 0"
+              [class.neutral]="option.priceAdjustment === 0"
+            >
+              <ng-container *ngIf="option.priceAdjustment === 0">
+                Inclus
+              </ng-container>
+              <ng-container *ngIf="option.priceAdjustment !== 0">
+                {{ option.priceAdjustment > 0 ? "+" : ""
+                }}{{ formatPrice(option.priceAdjustment || 0) }}
+              </ng-container>
+            </span>
+          </div>
+        </div>
+
+        <div class="selection-indicator" *ngIf="isSelected">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -276,14 +276,14 @@ export class VendorService {
                 ? businessHours
                 : this.getMockBusinessHours(),
             contact: {
-              phone: metadata?.phone || '+33 2 47 XX XX XX',
-              email: metadata?.email || 'contact@lehabibi.fr',
-              website: metadata?.website || 'https://lehabibi.fr',
+              phone: metadata?.phone || '',
+              email: metadata?.email || '',
+              website: metadata?.website || '',
             },
             address: {
-              street: metadata?.street || '83 Bis Rue Du Commerce',
-              city: metadata?.city || 'Tours',
-              postal_code: metadata?.postal_code || '37000',
+              street: metadata?.street || '',
+              city: metadata?.city || '',
+              postal_code: metadata?.postal_code || '',
               country: metadata?.country || 'France',
             },
           };
@@ -319,20 +319,20 @@ export class VendorService {
             console.error('🔍 Not found error detected in getRestaurantInfo');
           }
 
-          // Fallback to mock data on error
-          console.log('🔄 Falling back to mock data due to error');
+          // Fallback to empty data on error
+          console.log('🔄 Falling back to empty data due to error');
           const restaurantInfo: RestaurantInfo = {
             vendor: currentVendor,
             businessHours: this.getMockBusinessHours(),
             contact: {
-              phone: '+33 2 47 XX XX XX',
-              email: 'contact@lehabibi.fr',
-              website: 'https://lehabibi.fr',
+              phone: '',
+              email: '',
+              website: '',
             },
             address: {
-              street: '83 Bis Rue Du Commerce',
-              city: 'Tours',
-              postal_code: '37000',
+              street: '',
+              city: '',
+              postal_code: '',
               country: 'France',
             },
           };
@@ -546,10 +546,19 @@ export class VendorService {
     }
   ): Promise<void> {
     try {
-      await this.supabaseAuthService.upsertVendorMetadata({
+      // Convert empty strings to null to ensure proper database update
+      const cleanedMetadata = {
         vendor_id: vendorId,
-        ...metadata,
-      });
+        phone: metadata.phone?.trim() || null,
+        email: metadata.email?.trim() || null,
+        website: metadata.website?.trim() || null,
+        street: metadata.street?.trim() || null,
+        city: metadata.city?.trim() || null,
+        postal_code: metadata.postal_code?.trim() || null,
+        country: metadata.country?.trim() || null,
+      };
+
+      await this.supabaseAuthService.upsertVendorMetadata(cleanedMetadata);
     } catch (error) {
       console.error('Error saving vendor metadata:', error);
       throw error;

@@ -75,21 +75,15 @@
       <mat-icon>arrow_forward</mat-icon>
     </button>
   </div>
-  <!-- Main Stepper -->
-  <mat-stepper
-    #stepper
-    [orientation]="(stepperOrientation$ | async) ?? 'horizontal'"
-    linear="false"
+  <!-- Main Tab Group -->
+  <mat-tab-group
+    #tabGroup
     [selectedIndex]="currentStepIndex$ | async"
-    (selectionChange)="onStepChange($event.selectedIndex)"
-    class="multi-step-stepper"
+    (selectedIndexChange)="onStepChange($event)"
+    class="multi-step-tabs"
   >
-    <mat-step
-      *ngFor="let step of steps$ | async; let i = index"
-      [stepControl]="getStepForm(step.id)!"
-      [completed]="(stepSelections$ | async)?.[step.id]?.isValid"
-    >
-      <ng-template matStepLabel>
+    <mat-tab *ngFor="let step of steps$ | async; let i = index">
+      <ng-template mat-tab-label>
         <div class="step-label">
           <span class="step-title">{{ step.name }}</span>
           <span class="step-requirements" *ngIf="step.isRequired">*</span>
@@ -161,7 +155,7 @@
           </mat-list>
 
           <!-- Hidden form controls for validation -->
-          <div formGroupName="options" style="display: none">
+          <div formGroupName="options" class="hidden-form-controls">
             <input
               *ngFor="let option of step.options"
               type="hidden"
@@ -174,24 +168,32 @@
         <div *ngIf="step.stepType === 'summary'" class="summary-container">
           <div
             class="summary-content"
-            *ngIf="getSummaryData() | async as summaryData"
+            *ngIf="summaryData$ | async as summaryData"
           >
-            <div class="summary-list">
-              <div class="summary-item" *ngFor="let item of summaryData">
-                <div class="step-title">{{ item.step.name }}</div>
-                <div class="selected-options">
+            <!-- Summary Cards -->
+            <mat-card
+              *ngFor="let item of summaryData"
+              class="summary-card"
+              appearance="outlined"
+            >
+              <mat-card-header>
+                <mat-card-title>{{ item.step.name }}</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="options-list">
                   <div
                     *ngFor="let option of item.selectedOptions"
-                    class="option-row"
+                    class="option-item"
                   >
                     <img
                       *ngIf="option.imageUrl"
                       [src]="option.imageUrl"
                       [alt]="option.name"
-                      class="option-image"
+                      class="option-thumbnail"
                       (click)="openImageZoom(option.imageUrl, option.name)"
                     />
                     <span class="option-name">{{ option.name }}</span>
+                    <span class="spacer"></span>
                     <span
                       class="option-price"
                       [class.positive]="option.priceAdjustment > 0"
@@ -208,27 +210,29 @@
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
+              </mat-card-content>
+            </mat-card>
 
-            <!-- Compact Total Price Summary -->
-            <div class="total-summary">
-              <span class="total-label">Total :</span>
-              <span
-                class="total-amount"
-                [style.visibility]="
-                  ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
-                "
-                >{{ formatPrice((totalPrice$ | async) || 0) }}</span
-              >
-            </div>
+            <!-- Total Summary Card -->
+            <mat-card class="total-card" appearance="outlined">
+              <mat-card-content>
+                <div class="total-content">
+                  <span class="total-label">Total</span>
+                  <span
+                    class="total-amount"
+                    [style.visibility]="
+                      ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
+                    "
+                    >{{ formatPrice((totalPrice$ | async) || 0) }}</span
+                  >
+                </div>
+              </mat-card-content>
+            </mat-card>
           </div>
         </div>
       </div>
-
-      <!-- Step Navigation -->
-    </mat-step>
-  </mat-stepper>
+    </mat-tab>
+  </mat-tab-group>
 
   <!-- Comment Section (when all steps are visited or configuration is complete) -->
   <div class="comment-section" *ngIf="showAddToCartSection$ | async">
@@ -276,7 +280,7 @@
     </div>
 
     <button
-      mat-flat-button
+      matButton="filled"
       color="primary"
       class="add-to-cart-button"
       (click)="addToCart()"

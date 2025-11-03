@@ -7,19 +7,68 @@
 
 .refresh-section {
   background: var(--mat-sys-surface-container);
-  padding: 12px 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
 
-  .period-filter {
-    min-width: 180px;
+  .period-filter-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
-    margin-top: -8px;
+    color: var(--mat-sys-on-surface);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .total-amount-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: var(--mat-sys-primary-container);
+    border-radius: 20px;
+    color: var(--mat-sys-on-primary-container);
+    font-weight: 500;
+
+    .total-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .total-value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+  }
+
+  ::ng-deep {
+    .mat-mdc-menu-item {
+      &.selected {
+        background-color: var(--mat-sys-primary-container);
+        color: var(--mat-sys-on-primary-container);
+      }
+
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
   }
 
   .action-buttons {
@@ -111,6 +160,7 @@
   padding-right: 8px;
   margin-right: -8px;
   min-height: 0;
+  padding: 10px 5px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -131,17 +181,32 @@
   }
 }
 
-.order-card {
+.order-card-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 8px;
+  }
+
+  &.order-loading {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+}
+
+.order-card {
+  flex: 1;
+  margin-bottom: 0;
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--mat-sys-surface);
   border: 1px solid var(--mat-sys-outline-variant);
-
-  &:last-child {
-    margin-bottom: 8px;
-  }
+  cursor: pointer;
+  min-height: auto;
 
   &.order-todo {
     border-left: 4px solid var(--mat-sys-error);
@@ -201,21 +266,96 @@
   &:hover:not(.order-picked) {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    border-color: var(--mat-sys-primary);
   }
 
   mat-card-header {
     background-color: var(--mat-sys-surface-container-highest);
-    padding: 12px 16px;
+    padding: 8px 12px;
   }
 
   mat-card-content {
-    padding: 12px 16px;
+    padding: 8px 12px;
   }
 
-  mat-card-actions {
-    background-color: var(--mat-sys-surface-container-highest);
-    padding: 8px 12px;
-    margin: 0;
+  mat-card-subtitle {
+    margin-top: 4px;
+  }
+}
+
+.card-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+
+  .order-action-button {
+    min-width: 120px;
+    height: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 16px;
+
+    mat-icon {
+      margin: 0;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .order-action-button-text {
+      font-size: 13px;
+    }
+
+    mat-spinner {
+      margin: 0;
+    }
+  }
+}
+
+.card-summary {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+
+  .customer-name {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--mat-sys-primary);
+    }
+  }
+
+  .order-summary {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 4px;
+
+    .item-count {
+      font-size: 12px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .total-amount {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--mat-sys-primary);
+    }
   }
 }
 
@@ -268,34 +408,90 @@
   }
 }
 
-.order-header-info {
+.order-header-compact {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   position: relative;
+  flex-wrap: wrap;
 
   .order-number {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 500;
     color: var(--mat-sys-on-surface);
+    margin-right: 4px;
+  }
+
+  .status-badge {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+
+    &.status-pending {
+      background-color: var(--mat-sys-tertiary-container);
+      color: var(--mat-sys-on-tertiary-container);
+    }
+
+    &.status-ready {
+      background-color: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
+    &.status-done {
+      background-color: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+    }
+
+    &.status-picked {
+      background-color: var(--mat-sys-surface-container-high);
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+
+  .order-type-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--mat-sys-primary);
+    flex-shrink: 0;
+  }
+
+  .time-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &.asap {
+      color: var(--mat-sys-error);
+
+      mat-icon {
+        color: var(--mat-sys-error);
+      }
+    }
+
+    &.scheduled {
+      color: var(--mat-sys-on-surface-variant);
+
+      mat-icon {
+        color: var(--mat-sys-outline);
+      }
+    }
   }
 
   .order-spinner {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
-  }
-
-  mat-chip {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    height: 24px;
-    min-height: 24px;
-    padding: 0 8px;
+    margin-left: auto;
   }
 }
 
@@ -304,8 +500,9 @@
   align-items: center;
   gap: 4px;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 14px;
-  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 
   mat-icon {
     font-size: 16px;
@@ -317,10 +514,11 @@
 
 .order-meta-info {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
   margin-top: 2px;
+  font-size: 12px;
 
   .order-time {
     display: flex;
@@ -335,57 +533,6 @@
       width: 14px;
       height: 14px;
       color: var(--mat-sys-outline);
-    }
-  }
-}
-
-.table-info {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 13px;
-
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: var(--mat-sys-primary);
-  }
-}
-
-.timing-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  mat-chip {
-    font-size: 11px;
-    font-weight: 600;
-    height: 22px;
-    min-height: 22px;
-    padding: 0 6px;
-
-    mat-icon {
-      margin-right: 4px;
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
-  }
-
-  .scheduled-time {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--mat-sys-on-surface-variant);
-    font-size: 13px;
-
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: var(--mat-sys-tertiary);
     }
   }
 }
@@ -579,129 +726,56 @@ mat-divider {
 }
 
 mat-card-actions {
-  button {
-    width: 100%;
-    height: 40px;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    border-radius: 6px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // Removed - buttons are now to the right of cards
+}
 
-    mat-icon {
-      margin-right: 8px;
-      font-size: 18px;
-      transition: transform 0.3s;
-    }
-
-    &:hover {
-      mat-icon {
-        transform: translateX(3px);
-      }
-    }
-  }
-
-  // Extended FAB button specific styles
+// Status-specific button styling for right-side buttons
+.card-actions {
   .order-action-button {
-    width: 100%;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    border-radius: 24px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    // Ensure proper alignment of icon and text
-    mat-icon {
-      margin: 0;
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .order-action-button-text {
-      display: flex;
-      align-items: center;
-      line-height: 1;
-      margin: 0;
-      padding: 0;
-    }
-
-    // Loading state
-    mat-spinner {
-      margin: 0;
-    }
-
+    width: 100% !important;
     &:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-
-      mat-icon {
-        transform: translateX(2px);
-      }
     }
 
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
-  }
-}
 
-// Status-specific button styling
-.order-card {
-  &.order-todo .order-action-button {
-    // "En cours" button - Blue/Accent color
-    background-color: var(--mat-sys-tertiary);
-    color: var(--mat-sys-on-tertiary);
+    // Status-specific colors
+    &.status-button-todo,
+    &.status-button-paid {
+      background-color: var(--mat-sys-tertiary);
+      color: var(--mat-sys-on-tertiary);
 
-    &:hover:not(:disabled) {
-      background-color: var(--mat-sys-tertiary-container);
-      box-shadow: 0 4px 16px rgba(var(--mat-sys-tertiary-rgb), 0.3);
+      &:hover:not(:disabled) {
+        background-color: var(--mat-sys-tertiary-container);
+        box-shadow: 0 4px 16px rgba(var(--mat-sys-tertiary-rgb), 0.3);
+      }
     }
-  }
 
-  &.order-paid .order-action-button {
-    // "À traiter" button - Blue/Accent color (same as todo)
-    background-color: var(--mat-sys-tertiary);
-    color: var(--mat-sys-on-tertiary);
+    &.status-button-ongoing {
+      background-color: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
 
-    &:hover:not(:disabled) {
-      background-color: var(--mat-sys-tertiary-container);
-      box-shadow: 0 4px 16px rgba(var(--mat-sys-tertiary-rgb), 0.3);
+      &:hover:not(:disabled) {
+        background-color: var(--mat-sys-primary-container);
+        box-shadow: 0 4px 16px rgba(var(--mat-sys-primary-rgb), 0.3);
+      }
     }
-  }
 
-  &.order-ongoing .order-action-button {
-    // "Prête" button - Primary color
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+    &.status-button-done {
+      background-color: #4caf50;
+      color: white;
 
-    &:hover:not(:disabled) {
-      background-color: var(--mat-sys-primary-container);
-      box-shadow: 0 4px 16px rgba(var(--mat-sys-primary-rgb), 0.3);
-    }
-  }
-
-  &.order-done .order-action-button {
-    // "Récupérée" button - Success/Green color
-    background-color: #4caf50; // Material Green 500
-    color: white;
-
-    &:hover:not(:disabled) {
-      background-color: #66bb6a; // Material Green 400
-      box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+      &:hover:not(:disabled) {
+        background-color: #66bb6a; // Material Green 400
+        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+      }
     }
   }
 }
-
 // New styles for order validation and refused orders
 .order-card {
   &.order-initiated {
@@ -742,6 +816,7 @@ mat-card-actions {
   flex-wrap: wrap;
 
   .order-action-button {
+    width: 100% !important;
     flex: 1;
     min-width: 120px;
     animation: vibrate 1.5s ease-in-out infinite;
@@ -855,14 +930,14 @@ mat-card-actions {
 // Global snackbar styles
 :host ::ng-deep {
   .success-snackbar {
-    --mdc-snackbar-container-color: var(--mat-sys-primary);
-    --mdc-snackbar-supporting-text-color: var(--mat-sys-on-primary);
+    --mat-snackbar-container-color: var(--mat-sys-primary);
+    --mat-snackbar-supporting-text-color: var(--mat-sys-on-primary);
     --mat-snack-bar-button-color: var(--mat-sys-on-primary);
   }
 
   .error-snackbar {
-    --mdc-snackbar-container-color: var(--mat-sys-error);
-    --mdc-snackbar-supporting-text-color: var(--mat-sys-on-error);
+    --mat-snackbar-container-color: var(--mat-sys-error);
+    --mat-snackbar-supporting-text-color: var(--mat-sys-on-error);
     --mat-snack-bar-button-color: var(--mat-sys-on-error);
   }
 
@@ -899,6 +974,11 @@ mat-card-actions {
     mat-spinner {
       margin: 0 !important;
     }
+  }
+
+  // Fix width for validation buttons
+  .validation-buttons .mat-mdc-extended-fab {
+    width: 100% !important;
   }
 }
 ::ng-deep .mat-mdc-card-header-text {

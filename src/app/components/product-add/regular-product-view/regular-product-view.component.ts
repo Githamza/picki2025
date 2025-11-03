@@ -38,6 +38,7 @@ import {
   ProductStep,
   ProductStepOption,
 } from '../../../models/multi-step-product.model';
+import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placeholder';
 
 @Component({
   selector: 'app-regular-product-view',
@@ -83,6 +84,7 @@ export class RegularProductViewComponent
   currentStep: ProductStep | null = null;
   stepOptions: ProductStepOption[] = [];
   totalPrice = 0;
+  readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
 
   // Observables for single-step products
   steps$!: Observable<ProductStep[]>;

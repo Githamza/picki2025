@@ -24,6 +24,7 @@ import { SupabaseService } from '../../../services/supabase.service';
 import { SupabaseAuthService } from '../../../services/supabase-auth.service';
 import { ProductAdmin } from '../../../models/product-admin.interface';
 import { ProductEditDialogComponent } from '../product-edit-dialog/product-edit-dialog.component';
+import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placeholder';
 
 @Component({
   selector: 'app-product-list',
@@ -72,17 +73,11 @@ import { ProductEditDialogComponent } from '../product-edit-dialog/product-edit-
             <th mat-header-cell *matHeaderCellDef>Image</th>
             <td mat-cell *matCellDef="let product">
               <div class="product-image">
-                @if (product.image_url) {
                 <img
-                  [src]="product.image_url"
+                  [src]="product.image_url || placeholderImage"
                   [alt]="product.name"
                   loading="lazy"
                 />
-                } @else {
-                <div class="no-image">
-                  <mat-icon>image</mat-icon>
-                </div>
-                }
               </div>
             </td>
           </ng-container>
@@ -370,6 +365,8 @@ import { ProductEditDialogComponent } from '../product-edit-dialog/product-edit-
 export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+
+  readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
 
   private productAdminService = inject(ProductAdminService);
   private vendorService = inject(VendorService);

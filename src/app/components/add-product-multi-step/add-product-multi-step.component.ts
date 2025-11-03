@@ -32,7 +32,7 @@ import {
 } from '@angular/cdk/layout';
 
 // Material imports
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -46,7 +46,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatRippleModule } from '@angular/material/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatStepper } from '@angular/material/stepper';
+import { MatTabGroup } from '@angular/material/tabs';
 import { MatDialog } from '@angular/material/dialog';
 
 // Store imports
@@ -63,6 +63,12 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { ProductOptionCardComponent } from './product-option-card/product-option-card.component';
 import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
 
+// Interface for summary data
+interface StepSummary {
+  step: ProductStep;
+  selectedOptions: ProductStepOption[];
+}
+
 @Component({
   selector: 'app-add-product-multi-step',
   standalone: true,
@@ -70,7 +76,7 @@ import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dial
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    MatStepperModule,
+    MatTabsModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
@@ -94,8 +100,8 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   // Add input property to receive product ID from parent
   @Input() productId!: number;
 
-  // ViewChild to access the stepper
-  @ViewChild('stepper', { static: false }) stepper!: MatStepper;
+  // ViewChild to access the tab group
+  @ViewChild('tabGroup', { static: false }) tabGroup!: MatTabGroup;
 
   private destroy$ = new Subject<void>();
   private fb = inject(FormBuilder);
@@ -137,21 +143,31 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     MultiStepProductSelectors.selectPreviousStepsSummary
   );
 
-  stepperOrientation$: Observable<'horizontal' | 'vertical'>;
+  // Summary data observable for the summary step
+  summaryData$ = combineLatest([this.steps$, this.stepSelections$]).pipe(
+    map(([steps, selections]): StepSummary[] => {
+      return steps
+        .filter(
+          (step) =>
+            step.stepType !== 'summary' &&
+            selections[step.id]?.selectedOptionIds?.length > 0
+        )
+        .map((step): StepSummary => ({
+          step,
+          selectedOptions:
+            selections[step.id]?.selectedOptionIds
+              ?.map((optionId) =>
+                step.options.find((option) => option.id === optionId)
+              )
+              .filter((option): option is ProductStepOption => !!option) || [],
+        }));
+    })
+  );
 
   // Add mobile detection observable
   isMobile$: Observable<boolean>;
 
   constructor() {
-    // Set orientation observable
-    this.stepperOrientation$ = this.breakpointObserver
-      .observe([Breakpoints.Handset])
-      .pipe(
-        map((result) => (result.matches ? 'vertical' : 'horizontal')),
-        startWith<'horizontal' | 'vertical'>('horizontal'),
-        distinctUntilChanged()
-      );
-
     // Add mobile detection
     this.isMobile$ = this.breakpointObserver
       .observe([Breakpoints.Handset])
@@ -278,6 +294,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   }
 
   private updateStepSelection(step: ProductStep): void {
+    console.log('updateStepSelection', step);
     const form = this.stepForms[step.id];
     if (!form) return;
 
@@ -310,21 +327,25 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
 
   // Navigation methods
   onStepChange(stepIndex: number): void {
+    console.log('onStepChange', stepIndex);
     // Track the step as visited
     this.visitedSteps.add(stepIndex);
     this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
   }
 
   goNext(): void {
+    console.log('goNext');
     this.store.dispatch(MultiStepProductActions.nextStep());
   }
 
   goPrevious(): void {
+    console.log('goPrevious');
     this.store.dispatch(MultiStepProductActions.previousStep());
   }
 
   // Add to cart
   addToCart(): void {
+    console.log('addToCart');
     combineLatest([this.configuration$, this.isConfigurationComplete$])
       .pipe(
         takeUntil(this.destroy$),
@@ -350,10 +371,12 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
 
   // Quantity control methods
   incrementQuantity(): void {
+    console.log('incrementQuantity');
     this.quantity++;
   }
 
   decrementQuantity(): void {
+    console.log('decrementQuantity');
     if (this.quantity > 1) {
       this.quantity--;
     }
@@ -393,7 +416,9 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       form.get('selectedOption')?.setValue(optionId.toString());
       
       // Automatically advance to next step after a brief delay for visual feedback
-       // this.goNext();
+      setTimeout(() => {
+        this.goNext();
+      }, 500);
     }
   }
 
@@ -411,11 +436,11 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         ).length;
         
         // If max selections reached, auto-advance to next step
-        // if (step.maxSelections && selectedCount === step.maxSelections) {
-        //   setTimeout(() => {
-        //     this.goNext();
-        //   }, 500);
-        // }
+        if (step.maxSelections && selectedCount === step.maxSelections) {
+          setTimeout(() => {
+            this.goNext();
+          }, 500);
+        }
       }
     }
   }
@@ -446,29 +471,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     return totalSteps > 0 && this.visitedSteps.size >= totalSteps;
   }
 
-  // Get summary data for the summary step
-  getSummaryData(): Observable<any[]> {
-    return combineLatest([this.steps$, this.stepSelections$]).pipe(
-      map(([steps, selections]) => {
-        return steps
-          .filter(
-            (step) =>
-              step.stepType !== 'summary' &&
-              selections[step.id]?.selectedOptionIds?.length > 0
-          )
-          .map((step) => ({
-            step,
-            selectedOptions:
-              selections[step.id]?.selectedOptionIds
-                ?.map((optionId) =>
-                  step.options.find((option) => option.id === optionId)
-                )
-                .filter((option) => option) || [],
-          }));
-      })
-    );
-  }
-
   // Open image zoom dialog
   openImageZoom(imageUrl: string, imageName: string): void {
     this.dialog.open(ImageZoomDialogComponent, {
@@ -484,19 +486,19 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     this.openImageZoom(event.imageUrl, event.imageName);
   }
 
-  // Helper method to scroll to current step content
+  // Helper method to scroll to current tab content
   private scrollToCurrentStep(): void {
-    if (!this.stepper) return;
+    if (!this.tabGroup) return;
 
-    // Get the selected step index
-    const selectedIndex = this.stepper.selectedIndex;
+    // Get the selected tab index
+    const selectedIndex = this.tabGroup.selectedIndex;
     if (selectedIndex === null || selectedIndex === undefined) return;
 
-    // Find the step header to ensure the step name is visible
-    const stepHeaders = document.querySelectorAll('.mat-step-header');
-    const activeStepHeader = stepHeaders[selectedIndex] as HTMLElement;
+    // Find the tab label to ensure the tab name is visible
+    const tabLabels = document.querySelectorAll('.mat-mdc-tab');
+    const activeTabLabel = tabLabels[selectedIndex] as HTMLElement;
 
-    if (!activeStepHeader) return;
+    if (!activeTabLabel) return;
 
     // Account for sticky elements
     const stickyHeaderHeight = 39; // .step-actions sticky bar
@@ -505,7 +507,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
 
     // Try to find scrollable parent container
     let scrollableContainer: HTMLElement | null = null;
-    let parent = activeStepHeader.parentElement;
+    let parent = activeTabLabel.parentElement;
     
     while (parent && parent !== document.body) {
       const overflow = window.getComputedStyle(parent).overflowY;
@@ -519,7 +521,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     if (scrollableContainer) {
       // Scroll within container
       const containerRect = scrollableContainer.getBoundingClientRect();
-      const elementRect = activeStepHeader.getBoundingClientRect();
+      const elementRect = activeTabLabel.getBoundingClientRect();
       const relativeTop = elementRect.top - containerRect.top;
       const targetScrollTop = scrollableContainer.scrollTop + relativeTop - totalOffset;
 
@@ -529,7 +531,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       });
     } else {
       // Scroll the window
-      const elementRect = activeStepHeader.getBoundingClientRect();
+      const elementRect = activeTabLabel.getBoundingClientRect();
       const absoluteTop = window.pageYOffset + elementRect.top;
       
       window.scrollTo({

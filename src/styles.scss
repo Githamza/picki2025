@@ -1,6 +1,5 @@
 @use "tailwindcss";
 /* You can add global styles to this file, and also import other style files */
-
 /* Angular Material 3 (MDC) theme */
 @use "theme.scss" as theme;
 @use "@angular/material" as mat;
@@ -132,20 +131,20 @@ body {
 
 /* Global snackbar styles */
 .success-snackbar {
-  --mdc-snackbar-container-color: #4caf50 !important;
-  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snackbar-container-color: #4caf50 !important;
+  --mat-snackbar-supporting-text-color: white !important;
   --mat-snack-bar-button-color: white !important;
 }
 
 .warning-snackbar {
-  --mdc-snackbar-container-color: #ff9800 !important;
-  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snackbar-container-color: #ff9800 !important;
+  --mat-snackbar-supporting-text-color: white !important;
   --mat-snack-bar-button-color: white !important;
 }
 
 .error-snackbar {
-  --mdc-snackbar-container-color: #f44336 !important;
-  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snackbar-container-color: #f44336 !important;
+  --mat-snackbar-supporting-text-color: white !important;
   --mat-snack-bar-button-color: white !important;
 }
 
@@ -182,8 +181,8 @@ body {
 
 /* Custom Material Design theme overrides */
 .mat-mdc-slide-toggle {
-  --mdc-switch-selected-track-color: var(--mat-sys-primary);
-  --mdc-switch-selected-handle-color: var(--mat-sys-on-primary);
+  --mat-slide-toggle-selected-track-color: var(--mat-sys-primary);
+  --mat-slide-toggle-selected-handle-color: var(--mat-sys-on-primary);
 }
 
 /* Animation for smooth transitions */
@@ -219,15 +218,15 @@ body {
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .success-snackbar {
-    --mdc-snackbar-container-color: #2e7d32 !important;
+    --mat-snackbar-container-color: #2e7d32 !important;
   }
 
   .warning-snackbar {
-    --mdc-snackbar-container-color: #f57c00 !important;
+    --mat-snackbar-container-color: #f57c00 !important;
   }
 
   .error-snackbar {
-    --mdc-snackbar-container-color: #d32f2f !important;
+    --mat-snackbar-container-color: #d32f2f !important;
   }
 
   .restaurant-closed-dialog-panel {

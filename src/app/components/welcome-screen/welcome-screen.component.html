@@ -79,13 +79,14 @@
         [formGroup]="orderForm"
       >
         <mat-form-field>
-          <mat-label>Select Date</mat-label>
+          <mat-label>Date</mat-label>
           <input
             title="Select Date"
             matInput
             [matDatepicker]="datePicker"
             formControlName="scheduledDate"
             [min]="minDate"
+            [matDatepickerFilter]="dateFilter"
             (click)="openDatePicker()"
           />
           <mat-datepicker-toggle
@@ -96,21 +97,31 @@
         </mat-form-field>
 
         <mat-form-field>
-          <mat-label>Select Time</mat-label>
-          <input
-            matInput
-            [matTimepicker]="timepicker"
+          <mat-label>Heure</mat-label>
+          <mat-select
             formControlName="scheduledTime"
-            placeholder="Select time"
-          />
-          <mat-timepicker #timepicker interval="5m" />
-          <mat-timepicker-toggle [for]="timepicker" matSuffix />
+            placeholder="Choisir l'heure"
+          >
+            <mat-option
+              *ngFor="let time of availableTimeSlots()"
+              [value]="time"
+            >
+              {{ time }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix>schedule</mat-icon>
           <mat-error
             *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
           >
-            Time is required
+            L'heure est requise
           </mat-error>
         </mat-form-field>
+
+        <!-- Business Hours Hint -->
+        <div class="business-hours-hint" *ngIf="getBusinessHoursHint() as hint">
+          <mat-icon>info</mat-icon>
+          <span>{{ hint }}</span>
+        </div>
       </div>
     </div>
 
@@ -134,13 +145,14 @@
         [formGroup]="orderForm"
       >
         <mat-form-field>
-          <mat-label>Select Date</mat-label>
+          <mat-label>Date</mat-label>
           <input
             title="Select Date"
             matInput
             [matDatepicker]="datePicker2"
             formControlName="scheduledDate"
             [min]="minDate"
+            [matDatepickerFilter]="dateFilter"
             (click)="openDatePicker()"
           />
           <mat-datepicker-toggle
@@ -151,21 +163,31 @@
         </mat-form-field>
 
         <mat-form-field>
-          <mat-label>Select Time</mat-label>
-          <input
-            matInput
-            [matTimepicker]="timepicker2"
+          <mat-label>Heure</mat-label>
+          <mat-select
             formControlName="scheduledTime"
-            placeholder="Select time"
-          />
-          <mat-timepicker #timepicker2 />
-          <mat-timepicker-toggle [for]="timepicker2" matSuffix />
+            placeholder="Choisir l'heure"
+          >
+            <mat-option
+              *ngFor="let time of availableTimeSlots()"
+              [value]="time"
+            >
+              {{ time }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix>schedule</mat-icon>
           <mat-error
             *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
           >
-            Time is required
+            L'heure est requise
           </mat-error>
         </mat-form-field>
+
+        <!-- Business Hours Hint -->
+        <div class="business-hours-hint" *ngIf="getBusinessHoursHint() as hint">
+          <mat-icon>info</mat-icon>
+          <span>{{ hint }}</span>
+        </div>
       </div>
       <!-- Delivery Address Autocomplete + Best Option -->
       <div class="delivery-section" *ngIf="showDelivery">

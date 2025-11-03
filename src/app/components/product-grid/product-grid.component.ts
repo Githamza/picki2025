@@ -27,6 +27,7 @@ import { HorizontalCategoryMenuComponent } from '../horizontal-category-menu/hor
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
+import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 
 @Component({
   selector: 'app-product-grid',
@@ -58,6 +59,7 @@ export class ProductGridComponent implements OnInit {
   filteredProducts$!: Observable<Product[]>;
   selectedCategory$: Observable<any>;
   filteredProducts: Product[] = [];
+  readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   private store = inject(Store<AppState>);
   private bottomSheet = inject(MatBottomSheet);
   private router = inject(Router);
@@ -83,6 +85,12 @@ export class ProductGridComponent implements OnInit {
           this.filteredProducts = filteredProducts;
           this.utilsService.createRenderPromise(this.injector);
         });
+      }
+      else {
+        this.filteredProducts = this.filterProducts(
+          products,
+          selectedCategoryId
+        );
       }
     });
   }

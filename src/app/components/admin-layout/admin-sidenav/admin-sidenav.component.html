@@ -1,0 +1,85 @@
+<div class="admin-sidenav">
+  <!-- User Info Section -->
+  <div class="user-section">
+    <div class="user-avatar">
+      <mat-icon>account_circle</mat-icon>
+    </div>
+    <div class="user-info">
+      <span class="user-name">{{ getUserDisplayName() }}</span>
+      <span class="user-role">{{ getUserRole() }}</span>
+    </div>
+    <mat-nav-list class="nav-list">
+      <a
+        mat-list-item
+        (click)="logout(); $event.preventDefault()"
+        class="nav-item logout-item"
+        role="button"
+        tabindex="0"
+      >
+        <mat-icon matListItemIcon>logout</mat-icon>
+        <span matListItemTitle>Se déconnecter</span>
+      </a>
+    </mat-nav-list>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Navigation List -->
+  <mat-nav-list>
+    <a
+      mat-list-item
+      [class.active]="isCurrentRoute('product-manager')"
+      (click)="navigateToProducts(); $event.preventDefault()"
+      class="nav-item"
+      role="button"
+      tabindex="0"
+    >
+      <mat-icon matListItemIcon>restaurant_menu</mat-icon>
+      <span matListItemTitle>Produits</span>
+    </a>
+
+    <a
+      mat-list-item
+      [class.active]="isCurrentRoute('orders-manager')"
+      (click)="navigateToOrders(); $event.preventDefault()"
+      class="nav-item"
+      role="button"
+      tabindex="0"
+    >
+      <mat-icon matListItemIcon>assignment</mat-icon>
+      <span matListItemTitle>Live</span>
+    </a>
+
+    <a
+      mat-list-item
+      [class.active]="isCurrentRoute('restaurant-info')"
+      (click)="navigateToRestaurantInfo(); $event.preventDefault()"
+      class="nav-item"
+      role="button"
+      tabindex="0"
+    >
+      <mat-icon matListItemIcon>info</mat-icon>
+      <span matListItemTitle>Mes informations</span>
+    </a>
+  </mat-nav-list>
+
+  <mat-divider></mat-divider>
+
+  <!-- Orders Toggle Section -->
+  <div class="toggle-container" [matTooltip]="getOrdersStatusText()">
+    <mat-slide-toggle
+      [checked]="!ordersSuspended"
+      [disabled]="isToggling"
+      (change)="toggleOrdersSuspension()"
+      aria-label="Suspendre ou activer les commandes"
+    >
+      <div class="toggle-content">
+        <span class="toggle-text">{{ getOrdersStatusText() }}</span>
+      </div>
+    </mat-slide-toggle>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Logout Button -->
+</div>

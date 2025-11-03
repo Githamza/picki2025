@@ -8,7 +8,7 @@
 
   <div class="product-content">
     <img
-      [src]="data.product.imageUrl"
+      [src]="data.product.imageUrl || placeholderImage"
       [alt]="data.product.name"
       title="Product image"
     />

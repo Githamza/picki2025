@@ -3,6 +3,7 @@ import {
   OnInit,
   inject,
   signal,
+  computed,
   ChangeDetectorRef,
   OnDestroy,
 } from '@angular/core';
@@ -16,8 +17,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import { OrdersService } from '../../services/orders.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -28,6 +29,8 @@ import { EmailService } from '../../services/email.service';
 import { VendorService } from '../../services/vendor.service';
 import { SoundNotificationService } from '../../services/sound-notification.service';
 import { Order, OrderStatus } from '../../models/order.model';
+import { OrderDetailsDialogComponent } from './order-details-dialog/order-details-dialog.component';
+import { OrderCardComponent } from './order-card/order-card.component';
 import {
   Observable,
   map,
@@ -37,6 +40,7 @@ import {
   interval,
   Subscription,
 } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 import '@angular/common/locales/global/fr';
 
 export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
@@ -54,8 +58,9 @@ export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatSelectModule,
-    MatFormFieldModule,
+    MatMenuModule,
+    MatDialogModule,
+    OrderCardComponent,
   ],
   templateUrl: './orders-manager.component.html',
   styleUrl: './orders-manager.component.scss',
@@ -72,6 +77,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   public soundNotificationService = inject(SoundNotificationService);
   private changeDetectorRef = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
+  private dialog = inject(MatDialog);
 
   // Loading states for individual orders
   private loadingOrdersSubject = new BehaviorSubject<Set<string>>(new Set());
@@ -82,13 +88,33 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
   // Period filter
   periodFilter = signal<PeriodFilter>('today');
-  periodFilterOptions = [
+  periodFilterOptions: Array<{ value: PeriodFilter; label: string }> = [
     { value: 'today', label: "Aujourd'hui" },
     { value: 'yesterday', label: 'Depuis hier' },
     { value: '7days', label: 'Depuis 7j' },
     { value: 'month', label: 'Ce mois-ci' },
     { value: 'all', label: 'Tout afficher' },
   ];
+
+  // Computed property to get the selected period label
+  selectedPeriodLabel = computed(() => {
+    const selected = this.periodFilter();
+    const option = this.periodFilterOptions.find(opt => opt.value === selected);
+    return option?.label || "Aujourd'hui";
+  });
+
+  // Convert orders observable to signal for reactive computation
+  private ordersSignal = toSignal(this.ordersService.orders$, { initialValue: [] });
+
+  // Computed property to get total amount for selected period
+  periodTotalAmount = computed(() => {
+    // Explicitly read periodFilter to ensure dependency tracking
+    const period = this.periodFilter();
+    const orders = this.ordersSignal() || [];
+    
+    const filteredOrders = this.filterOrdersNotInitiated(this.filterOrdersByPeriod(orders));
+    return filteredOrders.reduce((total, order) => total + (order.totalAmount || 0), 0);
+  });
 
   // Auto-refresh subscription
   private autoRefreshSubscription?: Subscription;
@@ -205,7 +231,9 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
     return orders.filter(order => order.updatedAt >= startDate);
   }
-
+  private filterOrdersNotInitiated(orders: Order[]): Order[] {
+    return orders.filter(order => order.status !== 'initiated');
+  }
   private setupOrderStreams() {
     // Set up filtered observables with loading state consideration
     this.dineInOrders$ = combineLatest([
@@ -575,9 +603,9 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     this.loadingOrdersSubject.next(newLoadingOrders);
   }
 
-  isOrderLoading(orderId: string): boolean {
+  isOrderLoading = (orderId: string): boolean => {
     return this.loadingOrdersSubject.value.has(orderId);
-  }
+  };
 
   private showSuccessMessage(order: Order, newStatus: OrderStatus) {
     const statusLabel = this.statusLabels[newStatus];
@@ -614,7 +642,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     });
   }
 
-  getNextStatus(currentStatus: OrderStatus): OrderStatus | null {
+  getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
     const statusFlow: Record<OrderStatus, OrderStatus | null> = {
       initiated: null, // Initiated orders need manual validation (accept/refuse)
       paid: 'todo', // Paid orders can be accepted to todo
@@ -625,14 +653,14 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       picked: null,
     };
     return statusFlow[currentStatus];
-  }
+  };
 
-  getNextStatusLabel(currentStatus: OrderStatus): string {
+  getNextStatusLabel = (currentStatus: OrderStatus): string => {
     const nextStatus = this.getNextStatus(currentStatus);
     return nextStatus ? this.statusLabels[nextStatus] : '';
-  }
+  };
 
-  canUpdateStatus(order: Order): boolean {
+  canUpdateStatus = (order: Order): boolean => {
     // For initiated orders, we show accept/refuse buttons instead of next status
     if (order.status === 'paid') {
       return false; // Use separate validation methods
@@ -641,15 +669,15 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       this.getNextStatus(order.status) !== null &&
       !this.isOrderLoading(order.id)
     );
-  }
+  };
 
   // New methods for order validation
-  canValidateOrder(order: Order): boolean {
+  canValidateOrder = (order: Order): boolean => {
     return (
       (order.status === 'initiated' || order.status === 'paid') &&
       !this.isOrderLoading(order.id)
     );
-  }
+  };
 
   async acceptOrder(order: Order) {
     console.log('Accepting order:', order.id, order.orderNumber);
@@ -742,13 +770,31 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     await this.updateOrderStatus(order, 'refused');
   }
 
-  formatScheduledTime(date: Date | undefined): string {
+  openOrderDetailsDialog(order: Order) {
+    const dialogRef = this.dialog.open(OrderDetailsDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      data: {
+        order,
+        onAccept: () => this.acceptOrder(order),
+        onRefuse: () => this.refuseOrder(order),
+        onUpdateStatus: (status: OrderStatus) =>
+          this.updateOrderStatus(order, status),
+      },
+    });
+
+    dialogRef.afterClosed().subscribe(() => {
+      // Dialog closed - refresh might be needed if order was updated
+    });
+  }
+
+  formatScheduledTime = (date: Date | undefined): string => {
     if (!date) return '';
     return new Intl.DateTimeFormat('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
-  }
+  };
 
   // Additional French date formatting methods
   formatOrderCreatedTime(date: Date): string {
@@ -789,7 +835,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatScheduledDate(date: Date | undefined): string {
+  formatScheduledDate = (date: Date | undefined): string => {
     if (!date) return '';
     const today = new Date();
     const isToday = date.toDateString() === today.toDateString();
@@ -811,7 +857,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       day: 'numeric',
       month: 'short',
     }).format(date);
-  }
+  };
 
   // Utility method to refresh orders manually
   async refreshOrders() {

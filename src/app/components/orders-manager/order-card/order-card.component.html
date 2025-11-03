@@ -1,0 +1,159 @@
+<div
+  class="order-card-wrapper"
+  [class.order-loading]="isOrderLoading()(order().id)"
+>
+  <mat-card
+    class="order-card"
+    [class.order-initiated]="order().status === 'initiated'"
+    [class.order-paid]="order().status === 'paid'"
+    [class.order-refused]="order().status === 'refused'"
+    [class.order-todo]="order().status === 'todo'"
+    [class.order-ongoing]="order().status === 'ongoing'"
+    [class.order-done]="order().status === 'done'"
+    [class.order-picked]="order().status === 'picked'"
+    [class.order-asap]="order().timing === 'asap'"
+    (click)="onCardClick()"
+  >
+    <mat-card-header>
+      <mat-card-title>
+        @if (isCompact()) {
+        <!-- Compact header for pickup/delivery -->
+        <div class="order-header-compact">
+          <span class="order-number"
+            >#{{ order().orderNumber.split("-")[1] }}</span
+          >
+
+          <span class="status-badge" [class]="'status-' + order().status">
+            {{ statusLabels()[order().status] }}
+          </span>
+
+          <mat-icon
+            class="order-type-icon"
+            [matTooltip]="getOrderTypeLabel(order().orderType)"
+          >
+            {{ getOrderTypeIcon(order().orderType) }}
+          </mat-icon>
+
+          @if (order().timing === 'asap') {
+          <span class="time-info asap" matTooltip="Commande immédiate">
+            <mat-icon>schedule</mat-icon>
+            ASAP
+          </span>
+          } @if (order().timing === 'later' && order().scheduledTime) {
+          <span
+            class="time-info scheduled"
+            [matTooltip]="formatScheduledDate()(order().scheduledTime)"
+          >
+            <mat-icon>access_time</mat-icon>
+            {{ formatScheduledTime()(order().scheduledTime) }}
+          </span>
+          } @if (order().tableNumber) {
+          <span class="table-info" matTooltip="Numéro de table">
+            <mat-icon>table_restaurant</mat-icon>
+            {{ order().tableNumber }}
+          </span>
+          }
+
+          <div class="header-right">
+            <span class="total-amount header-price">{{
+              order().totalAmount | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+            }}</span>
+
+            @if (isOrderLoading()(order().id)) {
+            <mat-spinner diameter="20" class="order-spinner"></mat-spinner>
+            }
+          </div>
+        </div>
+        } @else {
+        <!-- Regular header for dine-in -->
+        <div class="order-header-info">
+          <span class="order-number">Commande #{{ order().orderNumber }}</span>
+          <mat-chip [color]="statusColors()[order().status]" selected>
+            {{ statusLabels()[order().status] }}
+          </mat-chip>
+          <div class="header-right">
+            <span class="total-amount header-price">{{
+              order().totalAmount | currency : "EUR" : "symbol" : "1.2-2" : "fr"
+            }}</span>
+            @if (isOrderLoading()(order().id)) {
+            <mat-spinner diameter="20" class="order-spinner"></mat-spinner>
+            }
+          </div>
+        </div>
+        }
+      </mat-card-title>
+      @if (!isCompact()) {
+      <mat-card-subtitle>
+        <div class="order-meta-info">
+          <div class="table-info" *ngIf="order().tableNumber">
+            <mat-icon>table_restaurant</mat-icon>
+            Table {{ order().tableNumber }}
+          </div>
+        </div>
+      </mat-card-subtitle>
+      }
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="card-summary">
+        <div class="customer-name">
+          <div class="customer-info-left">
+            <mat-icon>person</mat-icon>
+            <span
+              >{{ order().customer.firstName }}
+              {{ order().customer.lastName }}</span
+            >
+            <span class="item-count"
+              >{{ order().items.length }}
+              {{ order().items.length === 1 ? "article" : "articles" }}</span
+            >
+          </div>
+          <div class="customer-info-right">
+            @if (order().status === 'paid') {
+            <button
+              mat-fab
+              extended
+              (click)="onVoirPlusClick($event)"
+              class="voir-plus-button"
+              matTooltip="Voir les détails"
+            >
+              <span>Voir plus</span>
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+            } @else if (!canValidateOrder()(order()) &&
+            canUpdateStatus()(order())) {
+
+            <button
+              mat-fab
+              extended
+              [color]="buttonColors()[order().status] || null"
+              [class]="'status-button-' + order().status"
+              (click)="onUpdateStatus($event, getNextStatus()(order().status)!)"
+              [disabled]="isOrderLoading()(order().id)"
+              class="order-action-button inline-button"
+            >
+              @if (isOrderLoading()(order().id)) {
+              <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+              <mat-icon>{{ buttonIcons()[order().status] }}</mat-icon>
+              } @if (!isOrderLoading()(order().id)) {
+              <span class="order-action-button-text">
+                {{ getNextStatusLabel()(order().status) }}
+              </span>
+              }
+            </button>
+            <button
+              mat-icon-button
+              (click)="onVoirPlusClick($event)"
+              class="voir-plus-icon-button"
+              matTooltip="Voir les détails"
+            >
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+            }
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

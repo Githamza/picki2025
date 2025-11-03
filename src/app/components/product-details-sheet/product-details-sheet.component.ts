@@ -20,6 +20,7 @@ import {
   ProductComplement,
   ComplementSelection,
 } from '../../models/complement.model';
+import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 
 @Component({
   selector: 'app-product-details-sheet',
@@ -44,6 +45,7 @@ export class ProductDetailsSheetComponent implements OnInit {
   selectedComplements = signal<ComplementSelection[]>([]);
   validationErrors = signal<string[]>([]);
   isLoading = signal(false);
+  readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
 
   constructor(
     private bottomSheetRef: MatBottomSheetRef<ProductDetailsSheetComponent>,

@@ -3,7 +3,7 @@
     <div class="flex">
       <div class="product-image-container">
         <img
-          [src]="product.imageUrl"
+          [src]="product.imageUrl || placeholderImage"
           [alt]="product.name"
           title="Product image"
           class="product-image"

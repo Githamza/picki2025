@@ -77,9 +77,9 @@ export class SupabaseService implements OnDestroy {
   async getCategoriesByVendor(vendorId: string) {
     const { data, error } = await this.supabase
       .from('categories')
-      .select('*, products!inner(id, vendor_id)')
+      .select('*')
       .eq('is_active', true)
-      .eq('products.vendor_id', vendorId)
+      .eq('vendorId', vendorId)
       .order('display_order');
 
     if (error) throw error;

@@ -29,7 +29,10 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "src/styles.scss",
+              "@angular/material/prebuilt-themes/rose-red.css"
+            ],
             "scripts": [],
             "allowedCommonJsDependencies": ["ws"]
           },
@@ -47,7 +50,13 @@
                   "maximumError": "20kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -84,7 +93,10 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "src/styles.scss",
+              "@angular/material/prebuilt-themes/rose-red.css"
+            ],
             "scripts": []
           }
         }

@@ -34,9 +34,9 @@ export class ProductAdminService {
     const { data, error } = await this.supabaseAuthService
       .getClient()
       .from('categories')
-      .select('*, products!inner(id, vendor_id)')
+      .select('*')
       .eq('is_active', true)
-      .eq('products.vendor_id', vendorId)
+      .eq('vendorId', vendorId)
       .order('display_order');
 
     if (error) throw error;
@@ -114,8 +114,8 @@ export class ProductAdminService {
         .from('categories')
         .select('*')
         .eq('is_active', true)
-        .order('display_order', { ascending: true })
-        .eq('vendor_id', this.supabaseAuthService.getCurrentVendorId());
+        .eq('vendorId', this.supabaseAuthService.getCurrentVendorId())
+        .order('display_order', { ascending: true });
 
       if (error) {
         console.error('Error fetching categories:', error);
@@ -573,44 +573,7 @@ export class ProductAdminService {
       vendorId
     );
 
-    // First, find which categories have products for this vendor
-    const { data: vendorProducts, error: productsError } =
-      await this.supabaseAuthService
-        .getClient()
-        .from('products')
-        .select('category_id')
-        .eq('vendor_id', vendorId)
-        .not('category_id', 'is', null);
-
-    if (productsError) {
-      console.error(
-        'ProductAdminService: Error fetching vendor products:',
-        productsError
-      );
-      throw productsError;
-    }
-
-    // Get unique category IDs that have products for this vendor
-    const categoryIds = [
-      ...new Set(
-        vendorProducts
-          ?.map((p) => p.category_id)
-          .filter((id): id is number => id !== null) || []
-      ),
-    ];
-    console.log(
-      'ProductAdminService: Found categories with products:',
-      categoryIds
-    );
-
-    if (categoryIds.length === 0) {
-      console.log(
-        'ProductAdminService: No categories have products for this vendor'
-      );
-      return [];
-    }
-
-    // Fetch only categories that have products for this vendor
+    // Fetch categories directly by vendorId (much more efficient!)
     const { data: categories, error } = await this.supabaseAuthService
       .getClient()
       .from('categories')
@@ -625,7 +588,7 @@ export class ProductAdminService {
         updated_at
       `
       )
-      .in('id', categoryIds)
+      .eq('vendorId', vendorId)
       .eq('is_active', true)
       .order('display_order', { ascending: true });
 
@@ -639,9 +602,16 @@ export class ProductAdminService {
       categories?.length || 0
     );
 
+    if (!categories ) {
+      console.log(
+        'ProductAdminService: No categories found for this vendor'
+      );
+      return [];
+    }
+
     // Fetch products for each category
     const categoriesWithProducts = await Promise.all(
-      (categories || []).map(async (category: any) => {
+      categories.map(async (category: any) => {
         console.log(
           `ProductAdminService: Fetching products for category ${category.id} (${category.name})`
         );

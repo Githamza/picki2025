@@ -196,9 +196,9 @@ export class SupabaseAuthService implements OnDestroy {
       query = query.eq('status', status);
     }
 
-    // If vendor ID is provided, filter orders by vendor through order_items
+    // Filter orders by vendor_id directly on the orders table
     if (vendorId) {
-      query = query.eq('order_items.vendor_id', vendorId);
+      query = query.eq('vendor_id', vendorId);
     }
 
     const { data, error } = await query.order('created_at', {
@@ -206,16 +206,6 @@ export class SupabaseAuthService implements OnDestroy {
     });
 
     if (error) throw error;
-
-    // Filter out orders that don't have any items from this vendor
-    if (vendorId && data) {
-      return data.filter(
-        (order) =>
-          order.order_items &&
-          order.order_items.length > 0 &&
-          order.order_items.some((item: any) => item.vendor_id === vendorId)
-      );
-    }
 
     return data;
   }
@@ -659,13 +649,17 @@ export class SupabaseAuthService implements OnDestroy {
 
   // Category management (admin operations)
   async createCategory(categoryData: any) {
+    const vendorId = this.getCurrentVendorId();
+    
     const { data, error } = await this.supabaseAuth
       .from('categories')
       .insert({
         name: categoryData.name,
         description: categoryData.description,
+        image_url: categoryData.image_url || null,
         is_active: categoryData.is_active ?? true,
         display_order: categoryData.display_order ?? 0,
+        vendorId: vendorId,
       })
       .select()
       .single();
@@ -680,6 +674,7 @@ export class SupabaseAuthService implements OnDestroy {
       .update({
         name: categoryData.name,
         description: categoryData.description,
+        image_url: categoryData.image_url || null,
         is_active: categoryData.is_active,
         display_order: categoryData.display_order,
       })

@@ -162,12 +162,12 @@
 // Success and error snackbar styling
 :host ::ng-deep {
   .success-snackbar {
-    --mdc-snackbar-container-color: var(--mat-sys-primary-container);
-    --mdc-snackbar-supporting-text-color: var(--mat-sys-on-primary-container);
+    --mat-snackbar-container-color: var(--mat-sys-primary-container);
+    --mat-snackbar-supporting-text-color: var(--mat-sys-on-primary-container);
   }
 
   .error-snackbar {
-    --mdc-snackbar-container-color: var(--mat-sys-error-container);
-    --mdc-snackbar-supporting-text-color: var(--mat-sys-on-error-container);
+    --mat-snackbar-container-color: var(--mat-sys-error-container);
+    --mat-snackbar-supporting-text-color: var(--mat-sys-on-error-container);
   }
 }

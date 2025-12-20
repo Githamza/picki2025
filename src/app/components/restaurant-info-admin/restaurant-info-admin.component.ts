@@ -130,6 +130,27 @@ import { ChangeDetectionStrategy } from '@angular/core';
             </mat-card-content>
           </mat-card>
 
+          <!-- Payments Section -->
+          <mat-card class="info-section">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>payments</mat-icon>
+              <mat-card-title>Paiement</mat-card-title>
+              <mat-card-subtitle
+                >Activez/désactivez le paiement en ligne</mat-card-subtitle
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <div class="order-types" formGroupName="payments">
+                <mat-checkbox formControlName="onlinePaymentsEnabled">
+                  Accepter les paiements en ligne
+                </mat-checkbox>
+              </div>
+              <p class="subtitle" style="margin: 8px 0 0 0">
+                Si désactivé, les commandes seront créées avec la mention « À payer au retrait ».
+              </p>
+            </mat-card-content>
+          </mat-card>
+
           <!-- Contact Information Section -->
           <mat-card class="info-section">
             <mat-card-header>
@@ -509,6 +530,9 @@ export class RestaurantInfoAdminComponent implements OnInit {
         this.createBusinessHoursControls(info.businessHours)
       ),
       orderTypes: this.createOrderTypesGroup(enabledTypes),
+      payments: this.fb.group({
+        onlinePaymentsEnabled: [info.vendor.online_payments_enabled ?? true],
+      }),
       contact: this.fb.group({
         phone: [info.contact.phone || '', []],
         email: [info.contact.email || '', [Validators.email]],
@@ -528,6 +552,9 @@ export class RestaurantInfoAdminComponent implements OnInit {
     this.restaurantForm = this.fb.group({
       businessHours: this.fb.array(this.createEmptyBusinessHoursControls()),
       orderTypes: this.createOrderTypesGroup(['take-away', 'eat-in', 'delivery']),
+      payments: this.fb.group({
+        onlinePaymentsEnabled: [true],
+      }),
       contact: this.fb.group({
         phone: ['', []],
         email: ['', [Validators.email]],
@@ -654,6 +681,7 @@ export class RestaurantInfoAdminComponent implements OnInit {
         contact: formValue.contact,
         address: formValue.address,
         enabledOrderTypes,
+        onlinePaymentsEnabled: !!formValue.payments?.onlinePaymentsEnabled,
       });
 
       this.snackBar.open('Informations sauvegardées avec succès', 'Fermer', {

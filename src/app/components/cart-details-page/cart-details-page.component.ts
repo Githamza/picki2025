@@ -24,6 +24,7 @@ import {
   decrementCartItem,
   incrementCartItem,
   removeCartItem,
+  clearCart,
 } from '../../store/actions/cart.actions';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
@@ -129,10 +130,8 @@ import { DeliverySelectionService } from '../../services/delivery/delivery-selec
           (click)="checkout()"
           [disabled]="isCheckingOut"
         >
-          <mat-icon>{{
-            isCheckingOut ? 'hourglass_empty' : 'payment'
-          }}</mat-icon>
-          {{ isCheckingOut ? 'Vérification...' : 'Valider et payer' }}
+          <mat-icon>{{ getCheckoutIcon() }}</mat-icon>
+          {{ getCheckoutLabel() }}
         </button>
       </div>
       <ng-template #empty>
@@ -278,6 +277,21 @@ export class CartDetailsPageComponent {
     this.cartItems$ = this.store.select(selectCartItems);
   }
 
+  private isOnlinePaymentsEnabled(): boolean {
+    const currentVendor = this.vendorService.getCurrentVendor();
+    return currentVendor?.online_payments_enabled ?? true;
+  }
+
+  getCheckoutIcon(): string {
+    if (this.isCheckingOut) return 'hourglass_empty';
+    return this.isOnlinePaymentsEnabled() ? 'payment' : 'receipt_long';
+  }
+
+  getCheckoutLabel(): string {
+    if (this.isCheckingOut) return 'Vérification...';
+    return this.isOnlinePaymentsEnabled() ? 'Valider et payer' : 'Valider ma commande';
+  }
+
   goBack() {
     this.location.back();
   }
@@ -390,6 +404,11 @@ export class CartDetailsPageComponent {
     const currentProvider = this.paymentService.getCurrentProvider();
 
     try {
+      const currentVendor = this.vendorService.getCurrentVendor();
+      const onlinePaymentsEnabled =
+        currentVendor?.online_payments_enabled ?? true;
+      const payAtCheckout = !onlinePaymentsEnabled;
+
       // 1. First create the order with "initiated" status
       const diningPrefData =
         this.diningPreferenceService.diningPreferenceData();
@@ -485,9 +504,10 @@ export class CartDetailsPageComponent {
         },
         items: orderItems,
         totalAmount,
-        status: 'initiated',
+        status: payAtCheckout ? 'todo' : 'initiated',
         orderType: diningPref as any,
         timing: timing as any,
+        payAtCheckout,
         scheduledTime: scheduledDateTime,
         tableNumber: diningPref === 'eat-in' ? '1' : undefined,
         createdAt: new Date(),
@@ -558,6 +578,23 @@ export class CartDetailsPageComponent {
         console.warn('Failed to persist delivery selection:', e);
       }
 
+      // Offline payment flow: order is created and paid at checkout/pickup.
+      if (payAtCheckout) {
+        this.store.dispatch(clearCart());
+        this.diningPreferenceService.resetPreference();
+
+        const successBaseUrl = this.vendorNavigation.getVendorUrl('successPayment');
+        const url = `${successBaseUrl}?orderId=${encodeURIComponent(createdOrder.id)}`;
+        this.snackBar.open(
+          'Commande enregistrée. Paiement à effectuer au retrait.',
+          'OK',
+          { duration: 5000 }
+        );
+        this.isCheckingOut = false;
+        this.router.navigateByUrl(url);
+        return;
+      }
+
       // 3. Now create payment with order reference
       // Build return URLs with vendor context
       const baseUrl = window.location.origin;
@@ -570,7 +607,6 @@ export class CartDetailsPageComponent {
         : `${baseUrl}/failedPayment`;
 
       // Get current vendor for payment
-      const currentVendor = this.vendorService.getCurrentVendor();
       if (!currentVendor) {
         throw new Error('No vendor selected for payment');
       }
@@ -658,6 +694,7 @@ export class CartDetailsPageComponent {
             'Fermer',
             { duration: 5000 }
           );
+          this.isCheckingOut = false;
         },
       });
     } catch (error) {
@@ -667,6 +704,7 @@ export class CartDetailsPageComponent {
         'Fermer',
         { duration: 5000 }
       );
+      this.isCheckingOut = false;
     }
   }
 

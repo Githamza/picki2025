@@ -27,6 +27,16 @@
             {{ statusLabels()[order().status] }}
           </span>
 
+          @if (order().payAtCheckout) {
+          <span
+            class="payment-badge pay-at-checkout"
+            matTooltip="Paiement à effectuer au retrait / à la caisse"
+          >
+            <mat-icon>payments</mat-icon>
+            À payer
+          </span>
+          }
+
           <mat-icon
             class="order-type-icon"
             [matTooltip]="getOrderTypeLabel(order().orderType)"
@@ -71,6 +81,12 @@
           <mat-chip [color]="statusColors()[order().status]" selected>
             {{ statusLabels()[order().status] }}
           </mat-chip>
+          @if (order().payAtCheckout) {
+          <mat-chip color="warn" selected>
+            <mat-icon matChipAvatar>payments</mat-icon>
+            À payer au retrait
+          </mat-chip>
+          }
           <div class="header-right">
             <span class="total-amount header-price">{{
               order().totalAmount | currency : "EUR" : "symbol" : "1.2-2" : "fr"

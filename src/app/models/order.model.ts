@@ -45,6 +45,11 @@ export interface Order {
   status: OrderStatus;
   orderType: OrderType;
   timing: OrderTiming;
+  /**
+   * When true, this order should be paid in-person (at pickup / at checkout),
+   * and no online payment session is expected.
+   */
+  payAtCheckout?: boolean;
   scheduledTime?: Date; // For 'later' orders
   tableNumber?: string; // For dine-in orders
   createdAt: Date;

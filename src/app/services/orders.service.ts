@@ -330,6 +330,7 @@ export class OrdersService {
         scheduled_time: order.scheduledTime?.toISOString(),
         table_number: order.tableNumber,
         notes: order.notes,
+        pay_at_checkout: order.payAtCheckout ?? false,
         vendor_id: vendorId, // Include vendor ID when creating order
       });
 
@@ -531,6 +532,7 @@ export class OrdersService {
       status: dbOrder.status as OrderStatus,
       orderType: dbOrder.order_type,
       timing: dbOrder.timing,
+      payAtCheckout: !!dbOrder.pay_at_checkout,
       scheduledTime: dbOrder.scheduled_time
         ? new Date(dbOrder.scheduled_time)
         : undefined,

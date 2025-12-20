@@ -562,6 +562,7 @@ export type Database = {
           notes: string | null
           order_number: string
           order_type: Database["public"]["Enums"]["order_type"]
+          pay_at_checkout: boolean
           ready_email_sent: boolean | null
           refuse_reason: string | null
           scheduled_time: string | null
@@ -584,6 +585,7 @@ export type Database = {
           notes?: string | null
           order_number: string
           order_type: Database["public"]["Enums"]["order_type"]
+          pay_at_checkout?: boolean
           ready_email_sent?: boolean | null
           refuse_reason?: string | null
           scheduled_time?: string | null
@@ -606,6 +608,7 @@ export type Database = {
           notes?: string | null
           order_number?: string
           order_type?: Database["public"]["Enums"]["order_type"]
+          pay_at_checkout?: boolean
           ready_email_sent?: boolean | null
           refuse_reason?: string | null
           scheduled_time?: string | null
@@ -1312,6 +1315,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           logo_url: string | null
+          online_payments_enabled: boolean
           paygreen_merchant_id: string | null
           stripe_account_id: string | null
           stripe_onboarding_completed: boolean | null
@@ -1330,6 +1334,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
+          online_payments_enabled?: boolean
           paygreen_merchant_id?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
@@ -1348,6 +1353,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
+          online_payments_enabled?: boolean
           paygreen_merchant_id?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null

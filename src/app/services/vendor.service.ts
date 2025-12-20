@@ -522,6 +522,7 @@ export class VendorService {
       country: string;
     };
     enabledOrderTypes?: OrderType[];
+    onlinePaymentsEnabled?: boolean;
   }): Promise<void> {
     const currentVendor = this.getCurrentVendor();
     if (!currentVendor) {
@@ -541,18 +542,29 @@ export class VendorService {
         ...restaurantData.address,
       });
 
-      if (restaurantData.enabledOrderTypes?.length) {
-        const updatedVendor =
-          await this.supabaseAuthService.updateVendorEnabledOrderTypes(
-            currentVendor.id,
-            restaurantData.enabledOrderTypes
-          );
+      // Apply vendor-level settings updates (enabled order types, online payments toggle)
+      let updatedVendor: Vendor | null = null;
 
+      if (restaurantData.enabledOrderTypes?.length) {
+        updatedVendor = await this.supabaseAuthService.updateVendorEnabledOrderTypes(
+          currentVendor.id,
+          restaurantData.enabledOrderTypes
+        );
+      }
+
+      if (typeof restaurantData.onlinePaymentsEnabled === 'boolean') {
+        updatedVendor = await this.supabaseAuthService.updateVendorOnlinePaymentsEnabled(
+          currentVendor.id,
+          restaurantData.onlinePaymentsEnabled
+        );
+      }
+
+      if (updatedVendor) {
         // Keep local vendor context in sync
         this.currentVendorSubject.next(updatedVendor);
         this.vendorsSubject.next(
           this.vendorsSubject.value.map((v) =>
-            v.id === updatedVendor.id ? updatedVendor : v
+            v.id === updatedVendor!.id ? updatedVendor! : v
           )
         );
         this.vendorsCache = this.vendorsSubject.value;

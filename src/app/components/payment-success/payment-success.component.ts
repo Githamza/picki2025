@@ -57,11 +57,23 @@ import { MapLocationViewerComponent } from '../../shared/components/map-location
             <!-- Only show success indicators if no payment error -->
             <div *ngIf="!paymentDetailsError">
               <div class="success-icon">
-                <mat-icon class="success-icon-svg">check_circle</mat-icon>
+                <mat-icon class="success-icon-svg">{{
+                  orderDetails?.payAtCheckout ? 'receipt_long' : 'check_circle'
+                }}</mat-icon>
               </div>
-              <h1>Paiement réussi !</h1>
+              <h1>
+                {{
+                  orderDetails?.payAtCheckout
+                    ? 'Commande enregistrée !'
+                    : 'Paiement réussi !'
+                }}
+              </h1>
               <p class="success-message">
-                Votre commande a été confirmée avec succès.
+                {{
+                  orderDetails?.payAtCheckout
+                    ? 'Paiement à effectuer au retrait / à la caisse.'
+                    : 'Votre commande a été confirmée avec succès.'
+                }}
               </p>
               <!-- Order Information -->
               <div class="order-details" *ngIf="orderDetails">
@@ -193,7 +205,14 @@ import { MapLocationViewerComponent } from '../../shared/components/map-location
                 </div>
   
                 <!-- Payment Information -->
-                <div class="payment-info" *ngIf="paymentDetails && !paymentDetailsError">
+                <div
+                  class="payment-info"
+                  *ngIf="
+                    paymentDetails &&
+                    !paymentDetailsError &&
+                    !orderDetails?.payAtCheckout
+                  "
+                >
                   <h3>Informations de paiement</h3>
                   <p><strong>Méthode:</strong> {{ getPaymentMethodText() }}</p>
                   <p>

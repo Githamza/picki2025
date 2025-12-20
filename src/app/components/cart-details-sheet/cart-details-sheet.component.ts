@@ -29,6 +29,7 @@ import { RestaurantStatusService } from '../../services/restaurant-status.servic
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
+import { clearCart } from '../../store/actions/cart.actions';
 
 @Component({
   selector: 'app-cart-details-sheet',
@@ -360,6 +361,11 @@ export class CartDetailsSheetComponent {
     this.close();
 
     try {
+      const currentVendor = this.vendorService.getCurrentVendor();
+      const onlinePaymentsEnabled =
+        currentVendor?.online_payments_enabled ?? true;
+      const payAtCheckout = !onlinePaymentsEnabled;
+
       // 1. First create the order with "initiated" status
       const diningPrefData =
         this.diningPreferenceService.diningPreferenceData();
@@ -413,9 +419,10 @@ export class CartDetailsSheetComponent {
         },
         items: orderItems,
         totalAmount,
-        status: 'initiated',
+        status: payAtCheckout ? 'todo' : 'initiated',
         orderType: diningPref as any,
         timing: timing as any,
+        payAtCheckout,
         scheduledTime: scheduledDateTime,
         tableNumber: diningPref === 'eat-in' ? '1' : undefined,
         createdAt: new Date(),
@@ -485,6 +492,22 @@ export class CartDetailsSheetComponent {
         console.warn('Failed to persist delivery selection (sheet):', e);
       }
 
+      // Offline payment flow: order is created and paid at checkout/pickup.
+      if (payAtCheckout) {
+        this.store.dispatch(clearCart());
+        this.diningPreferenceService.resetPreference();
+
+        const successBaseUrl = this.vendorNavigation.getVendorUrl('successPayment');
+        const url = `${successBaseUrl}?orderId=${encodeURIComponent(createdOrder.id)}`;
+        this.snackBar.open(
+          'Commande enregistrée. Paiement à effectuer au retrait.',
+          'OK',
+          { duration: 5000 }
+        );
+        this.router.navigateByUrl(url);
+        return;
+      }
+
       // 3. Now create payment with order reference
       // Build return URLs with vendor context
       const baseUrl = window.location.origin;
@@ -497,7 +520,6 @@ export class CartDetailsSheetComponent {
         : `${baseUrl}/failedPayment`;
 
       // Get current vendor for payment
-      const currentVendor = this.vendorService.getCurrentVendor();
       if (!currentVendor) {
         throw new Error('No vendor selected for payment');
       }

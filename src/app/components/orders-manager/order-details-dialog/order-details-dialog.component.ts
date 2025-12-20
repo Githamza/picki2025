@@ -157,6 +157,12 @@ import { MapLocationViewerComponent } from '../../../shared/components/map-locat
               <mat-chip [color]="statusColors[data.order.status]" selected>
                 {{ statusLabels[data.order.status] }}
               </mat-chip>
+              @if (data.order.payAtCheckout) {
+              <mat-chip color="warn" selected>
+                <mat-icon matChipAvatar>payments</mat-icon>
+                À payer au retrait
+              </mat-chip>
+              }
               @if (data.order.orderType !== 'eat-in') {
               <mat-chip
                 [color]="

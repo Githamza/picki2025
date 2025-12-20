@@ -1,4 +1,12 @@
-import { Component, inject, OnInit, computed, signal, effect } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+  computed,
+  effect,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -6,25 +14,33 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { materialComponents } from '../../material.components';
 import { AddressAutocompleteComponent } from '../../shared/components/address-autocomplete/address-autocomplete.component';
+import { MapLocationPickerComponent } from '../../shared/components/map-location-picker/map-location-picker.component';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
-import { VendorService, type BusinessHours } from '../../services/vendor.service';
-import { DeliveryQuote } from '../../services/delivery/delivery.types';
+import {
+  VendorService,
+  type BusinessHours,
+  type OrderType,
+  type Vendor,
+} from '../../services/vendor.service';
+import { Coordinates, DeliveryQuote } from '../../services/delivery/delivery.types';
 import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
 
 @Component({
   selector: 'app-welcome-screen',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
     ...materialComponents,
     AddressAutocompleteComponent,
+    MapLocationPickerComponent,
     PromotionalBannerComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './welcome-screen.component.html',
   styleUrls: ['./welcome-screen.component.scss'],
 })
@@ -35,14 +51,70 @@ export class WelcomeScreenComponent implements OnInit {
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
 
-  selectedPreference: 'eat-in' | 'take-away' | 'delivery' | null = null;
+  readonly vendor = toSignal(this.vendorService.currentVendor$, {
+    initialValue: null as Vendor | null,
+  });
+
+  readonly enabledOrderTypes = computed<OrderType[]>(() => {
+    const v = this.vendor();
+    return v?.enabled_order_types?.length
+      ? v.enabled_order_types
+      : (['take-away', 'eat-in', 'delivery'] as OrderType[]);
+  });
+
+  readonly deliveryDropoffInputMode = computed<'address' | 'geolocation'>(() => {
+    const v = this.vendor();
+    return v?.delivery_dropoff_input_mode === 'geolocation'
+      ? 'geolocation'
+      : 'address';
+  });
+
+  readonly orderTypeOptions = [
+    {
+      type: 'take-away' as const,
+      icon: 'takeout_dining',
+      label: 'À emporter',
+      description: 'Commander à emporter',
+      ariaLabel: 'À emporter - Commander à emporter',
+    },
+    {
+      type: 'eat-in' as const,
+      icon: 'restaurant',
+      label: 'Sur place',
+      description: 'Commander sur place',
+      ariaLabel: 'Sur place - Commander sur place',
+    },
+    {
+      type: 'delivery' as const,
+      icon: 'local_shipping',
+      label: 'Livraison',
+      description: 'Se faire livrer',
+      ariaLabel: 'Livraison - Se faire livrer',
+    },
+  ] satisfies ReadonlyArray<{
+    type: OrderType;
+    icon: string;
+    label: string;
+    description: string;
+    ariaLabel: string;
+  }>;
+
+  readonly visibleOrderTypeOptions = computed(() =>
+    this.orderTypeOptions.filter((opt) =>
+      this.enabledOrderTypes().includes(opt.type)
+    )
+  );
+
+  selectedPreference: OrderType | null = null;
   selectedTiming: 'asap' | 'later' | null = null;
   selectedTime: string | null = null;
-  vendor$ = this.vendorService.getCurrentVendor()
 
   showTimingSelection = false;
   showDateTimeSelection = false;
-  showDelivery = false;
+
+  // Delivery geolocation picker state
+  readonly deliveryMapCenter = signal<Coordinates | null>(null);
+  readonly deliveryMapConfirmed = signal<boolean>(false);
 
   // Business hours data
   businessHours = signal<BusinessHours[]>([]);
@@ -93,6 +165,16 @@ export class WelcomeScreenComponent implements OnInit {
     }
   });
 
+  // Keep selected preference compatible with enabled modes
+  private readonly ensurePreferenceEnabledEffect = effect(() => {
+    const enabled = this.enabledOrderTypes();
+    if (!enabled.length) return;
+
+    if (!this.selectedPreference || !enabled.includes(this.selectedPreference)) {
+      this.selectPreference(enabled[0]);
+    }
+  });
+
   // Computed signal for available time slots (today only)
   availableTimeSlots = computed<string[]>(() => {
     console.log('🕐 Computing available time slots...');
@@ -134,13 +216,16 @@ export class WelcomeScreenComponent implements OnInit {
   ngOnInit(): void {
     // Load business hours
     this.loadBusinessHours();
-    this.selectPreference('take-away');
     // Check if user has already made selections
     const existingData = this.diningPreferenceService.diningPreferenceData();
-    this.showDelivery = existingData?.preference === 'delivery';
+    const enabledTypes = this.enabledOrderTypes();
+    const fallbackPreference = enabledTypes[0] ?? null;
 
     if (existingData) {
-      this.selectedPreference = existingData.preference;
+      this.selectedPreference =
+        existingData.preference && enabledTypes.includes(existingData.preference)
+          ? existingData.preference
+          : fallbackPreference;
       this.selectedTiming = existingData.timing;
       
       // If a time string was stored, use it
@@ -151,13 +236,14 @@ export class WelcomeScreenComponent implements OnInit {
       
       this.showTimingSelection = true;
       this.showDateTimeSelection = this.selectedTiming === 'later';
+    } else if (fallbackPreference) {
+      this.selectPreference(fallbackPreference);
     }
 
     // Set default timing to 'asap' for take-away and delivery if no timing is set
     if (
       this.selectedPreference &&
-      (this.selectedPreference === 'take-away' ||
-        this.selectedPreference === 'delivery') &&
+      (this.selectedPreference === 'take-away' || this.selectedPreference === 'delivery') &&
       !this.selectedTiming
     ) {
       this.selectedTiming = 'asap';
@@ -165,14 +251,20 @@ export class WelcomeScreenComponent implements OnInit {
 
   }
 
-  selectPreference(preference: 'eat-in' | 'take-away' | 'delivery') {
+  selectPreference(preference: OrderType) {
     this.selectedPreference = preference;
     this.showTimingSelection = true;
-    this.showDelivery = preference === 'delivery';
 
     // Set timing to 'asap' by default for take-away and delivery
     if (preference === 'take-away' || preference === 'delivery') {
       this.selectedTiming = 'asap';
+    }
+
+    // Reset delivery selection state when switching away from delivery
+    if (preference !== 'delivery') {
+      this.deliverySelection.clear();
+      this.deliveryMapConfirmed.set(false);
+      this.deliveryMapCenter.set(null);
     }
   }
 
@@ -221,7 +313,20 @@ export class WelcomeScreenComponent implements OnInit {
   }
 
   onAddressSelected(placeId: string): void {
+    this.deliveryMapConfirmed.set(false);
     this.deliverySelection.setAddressFromPlaceId(placeId);
+  }
+
+  onDeliveryCenterChange(coords: Coordinates): void {
+    this.deliveryMapCenter.set(coords);
+    this.deliveryMapConfirmed.set(false);
+  }
+
+  async confirmDeliveryPosition(): Promise<void> {
+    const center = this.deliveryMapCenter();
+    if (!center) return;
+    await this.deliverySelection.setAddressFromCoordinates(center);
+    this.deliveryMapConfirmed.set(true);
   }
 
   onValidate(): void {
@@ -253,6 +358,12 @@ export class WelcomeScreenComponent implements OnInit {
 
   get canValidate(): boolean {
     if (!this.selectedPreference) return false;
+
+    if (this.selectedPreference === 'delivery') {
+      // Delivery always needs a dropoff selection (address or reverse-geocoded position)
+      const hasDropoff = this.deliverySelection.hasSelection();
+      if (!hasDropoff) return false;
+    }
 
     if (
       this.selectedPreference === 'eat-in' ||
@@ -293,7 +404,7 @@ export class WelcomeScreenComponent implements OnInit {
   // Load business hours from vendor service
   private loadBusinessHours(): void {
     this.isLoadingBusinessHours.set(true);
-    const vendor = this.vendorService.getCurrentVendor();
+    const vendor = this.vendor();
     
     if (!vendor) {
       console.warn('No vendor found for loading business hours');

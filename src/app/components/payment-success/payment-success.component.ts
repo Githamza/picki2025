@@ -19,6 +19,7 @@ import { take, firstValueFrom, interval, Subscription } from 'rxjs';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { EmailService } from '../../services/email.service';
+import { MapLocationViewerComponent } from '../../shared/components/map-location-viewer/map-location-viewer.component';
 
 @Component({
   selector: 'app-payment-success',
@@ -29,6 +30,7 @@ import { EmailService } from '../../services/email.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MapLocationViewerComponent,
   ],
   template: `
     <div class="payment-container">
@@ -94,6 +96,17 @@ import { EmailService } from '../../services/email.service';
                   *ngIf="orderDetails?.orderType === 'delivery' && deliveryInfo"
                 >
                   <h3>Informations de livraison</h3>
+                  <div *ngIf="hasDropoffCoords()" class="dropoff-map">
+                    <app-map-location-viewer
+                      [coordinates]="getDropoffCoords()!"
+                    ></app-map-location-viewer>
+                  </div>
+                  <p *ngIf="deliveryInfo?.dropoff_line1">
+                    <strong>Adresse:</strong>
+                    {{ deliveryInfo.dropoff_line1 }},
+                    {{ deliveryInfo.dropoff_postal_code }}
+                    {{ deliveryInfo.dropoff_city }}
+                  </p>
                   <p>
                     <strong>Statut:</strong>
                     {{ getDeliveryStatusText(deliveryInfo?.status) }}
@@ -520,6 +533,10 @@ import { EmailService } from '../../services/email.service';
         display: block;
       }
 
+      .dropoff-map {
+        margin: 12px 0 16px 0;
+      }
+
       .action-buttons {
         display: flex;
         gap: 15px;
@@ -627,6 +644,20 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   private autoRefreshSubscription?: Subscription;
   private deliveryRefreshActive = false;
   private orderId?: string;
+
+  hasDropoffCoords(): boolean {
+    const lat = Number((this.deliveryInfo as any)?.dropoff_lat);
+    const lng = Number((this.deliveryInfo as any)?.dropoff_lng);
+    return isFinite(lat) && isFinite(lng);
+  }
+
+  getDropoffCoords(): { lat: number; lng: number } | null {
+    if (!this.hasDropoffCoords()) return null;
+    return {
+      lat: Number((this.deliveryInfo as any)?.dropoff_lat),
+      lng: Number((this.deliveryInfo as any)?.dropoff_lng),
+    };
+  }
 
   ngOnInit() {
     // Check if we have an orderId in the URL (coming from tracking link)

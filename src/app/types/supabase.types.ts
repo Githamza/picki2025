@@ -1307,6 +1307,8 @@ export type Database = {
           country: string | null
           created_at: string | null
           customDomain: string | null
+          delivery_dropoff_input_mode: string
+          enabled_order_types: Database["public"]["Enums"]["order_type"][]
           id: string
           is_active: boolean | null
           logo_url: string | null
@@ -1323,6 +1325,8 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           customDomain?: string | null
+          delivery_dropoff_input_mode?: string
+          enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
@@ -1339,6 +1343,8 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           customDomain?: string | null
+          delivery_dropoff_input_mode?: string
+          enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
           logo_url?: string | null

@@ -11,13 +11,17 @@ import {
   FormBuilder,
   FormGroup,
   FormArray,
+  AbstractControl,
   Validators,
+  type ValidationErrors,
+  type ValidatorFn,
 } from '@angular/forms';
 import { materialComponents } from '../../material.components';
 import {
   VendorService,
   type RestaurantInfo,
   type BusinessHours,
+  type OrderType,
 } from '../../services/vendor.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ChangeDetectionStrategy } from '@angular/core';
@@ -98,6 +102,30 @@ import { ChangeDetectionStrategy } from '@angular/core';
                     <span class="closed-text">Fermé toute la journée</span>
                   </div>
                 </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Order Types / Eating Modes Section -->
+          <mat-card class="info-section">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>restaurant_menu</mat-icon>
+              <mat-card-title>Modes de commande</mat-card-title>
+              <mat-card-subtitle
+                >Choisissez quels modes afficher sur l'écran d'accueil</mat-card-subtitle
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <div class="order-types" formGroupName="orderTypes">
+                <mat-checkbox formControlName="takeAway">
+                  À emporter
+                </mat-checkbox>
+                <mat-checkbox formControlName="eatIn">Sur place</mat-checkbox>
+                <mat-checkbox formControlName="delivery">Livraison</mat-checkbox>
+              </div>
+
+              <div class="validation-error" *ngIf="restaurantForm.get('orderTypes')?.hasError('atLeastOne')">
+                Sélectionnez au moins un mode de commande.
               </div>
             </mat-card-content>
           </mat-card>
@@ -340,6 +368,19 @@ import { ChangeDetectionStrategy } from '@angular/core';
         gap: 16px;
       }
 
+      .order-types {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 0;
+      }
+
+      .validation-error {
+        margin-top: 8px;
+        color: var(--mat-sys-error);
+        font-size: 12px;
+      }
+
       .address-row {
         display: flex;
         gap: 16px;
@@ -462,10 +503,12 @@ export class RestaurantInfoAdminComponent implements OnInit {
   }
 
   private initializeForm(info: RestaurantInfo) {
+    const enabledTypes = info.vendor.enabled_order_types;
     this.restaurantForm = this.fb.group({
       businessHours: this.fb.array(
         this.createBusinessHoursControls(info.businessHours)
       ),
+      orderTypes: this.createOrderTypesGroup(enabledTypes),
       contact: this.fb.group({
         phone: [info.contact.phone || '', []],
         email: [info.contact.email || '', [Validators.email]],
@@ -484,6 +527,7 @@ export class RestaurantInfoAdminComponent implements OnInit {
   private initializeEmptyForm() {
     this.restaurantForm = this.fb.group({
       businessHours: this.fb.array(this.createEmptyBusinessHoursControls()),
+      orderTypes: this.createOrderTypesGroup(['take-away', 'eat-in', 'delivery']),
       contact: this.fb.group({
         phone: ['', []],
         email: ['', [Validators.email]],
@@ -497,6 +541,33 @@ export class RestaurantInfoAdminComponent implements OnInit {
       }),
     });
     console.log('Empty form initialized:', this.restaurantForm);
+  }
+
+  private createOrderTypesGroup(enabled: OrderType[] | null | undefined): FormGroup {
+    const enabledSet = new Set<OrderType>(enabled ?? ['take-away', 'eat-in', 'delivery']);
+
+    return this.fb.group(
+      {
+        takeAway: [enabledSet.has('take-away')],
+        eatIn: [enabledSet.has('eat-in')],
+        delivery: [enabledSet.has('delivery')],
+      },
+      { validators: [this.atLeastOneTrueValidator()] }
+    );
+  }
+
+  private atLeastOneTrueValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value as
+        | { takeAway?: boolean; eatIn?: boolean; delivery?: boolean }
+        | null
+        | undefined;
+
+      const hasOne =
+        !!value?.takeAway || !!value?.eatIn || !!value?.delivery;
+
+      return hasOne ? null : { atLeastOne: true };
+    };
   }
 
   private createBusinessHoursControls(
@@ -569,11 +640,21 @@ export class RestaurantInfoAdminComponent implements OnInit {
     this.isSaving.set(true);
 
     try {
-      const formValue = this.restaurantForm.value;
+      const formValue = this.restaurantForm.value as any;
+
+      const enabledOrderTypes: OrderType[] = [];
+      if (formValue.orderTypes?.takeAway) enabledOrderTypes.push('take-away');
+      if (formValue.orderTypes?.eatIn) enabledOrderTypes.push('eat-in');
+      if (formValue.orderTypes?.delivery) enabledOrderTypes.push('delivery');
 
       // Here we would call the service to save the data
       // For now, we'll show a success message
-      await this.saveRestaurantInfo(formValue);
+      await this.saveRestaurantInfo({
+        businessHours: formValue.businessHours,
+        contact: formValue.contact,
+        address: formValue.address,
+        enabledOrderTypes,
+      });
 
       this.snackBar.open('Informations sauvegardées avec succès', 'Fermer', {
         duration: 3000,

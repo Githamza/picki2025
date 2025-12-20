@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { DeliveryComparisonService } from './delivery-comparison.service';
 import {
   Address,
+  Coordinates,
   DeliveryComparisonOption,
   DeliveryQuote,
   DeliveryRequest,
@@ -34,6 +35,19 @@ export class DeliverySelectionService {
     const details = await this.places.getPlaceDetails(placeId);
     if (!details) {
       this._error.set('Adresse introuvable.');
+      return;
+    }
+    this._selectedAddress.set(details.address);
+    await this.refreshQuote();
+  }
+
+  async setAddressFromCoordinates(coords: Coordinates): Promise<void> {
+    this._error.set(null);
+    const details = await this.places.reverseGeocode(coords);
+    if (!details) {
+      this._error.set(
+        "Impossible de déterminer l'adresse à partir de votre position."
+      );
       return;
     }
     this._selectedAddress.set(details.address);
@@ -90,7 +104,7 @@ export class DeliverySelectionService {
     if (!info) return null;
     const addressLine = `${info.address.street}, ${info.address.postal_code} ${info.address.city}, ${info.address.country}`;
     // Try to geocode restaurant address using Google Places TextSearch
-    await this.places['loader'].load();
+    await this.places.loader.load();
     const geocoder = new google.maps.Geocoder();
     const geo = await new Promise<google.maps.GeocoderResult[] | null>(
       (resolve) => {

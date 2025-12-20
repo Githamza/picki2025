@@ -14,6 +14,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Order, OrderStatus } from '../../../models/order.model';
 import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reason-dialog.component';
+import { SupabaseAuthService } from '../../../services/supabase-auth.service';
+import { MapLocationViewerComponent } from '../../../shared/components/map-location-viewer/map-location-viewer.component';
 
 @Component({
   selector: 'app-order-details-dialog',
@@ -26,6 +28,7 @@ import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reas
     MatIconModule,
     MatDividerModule,
     MatProgressSpinnerModule,
+    MapLocationViewerComponent,
   ],
   template: `
     <div class="order-details-dialog">
@@ -189,6 +192,47 @@ import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reas
               </div>
               }
             </div>
+
+            @if (data.order.orderType === 'delivery') {
+              <mat-divider class="section-divider"></mat-divider>
+
+              <div class="customer-section">
+                <h4 class="section-title-small">Livraison</h4>
+
+                @if (isLoadingDelivery()) {
+                  <div class="delivery-loading">
+                    <mat-spinner diameter="28"></mat-spinner>
+                  </div>
+                } @else if (deliveryInfo()) {
+                  <div class="customer-info">
+                    <span class="contact-item">
+                      <mat-icon>location_on</mat-icon>
+                      {{ deliveryInfo()?.dropoff_line1 }}
+                    </span>
+                    <span class="contact-item">
+                      <mat-icon>place</mat-icon>
+                      {{ deliveryInfo()?.dropoff_postal_code }}
+                      {{ deliveryInfo()?.dropoff_city }}
+                    </span>
+                  </div>
+
+                  @if (deliveryCoords()) {
+                    <div class="delivery-map">
+                      <app-map-location-viewer
+                        [coordinates]="deliveryCoords()!"
+                      ></app-map-location-viewer>
+                    </div>
+                  }
+                } @else {
+                  <div class="customer-info">
+                    <span class="contact-item">
+                      <mat-icon>info</mat-icon>
+                      Aucune position enregistrée.
+                    </span>
+                  </div>
+                }
+              </div>
+            }
 
             <mat-divider class="section-divider"></mat-divider>
 
@@ -494,6 +538,16 @@ import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reas
             flex-shrink: 0;
           }
         }
+      }
+
+      .delivery-loading {
+        display: flex;
+        justify-content: center;
+        padding: 12px 0;
+      }
+
+      .delivery-map {
+        margin-top: 10px;
       }
 
       .table-section {
@@ -858,8 +912,41 @@ export class OrderDetailsDialogComponent {
   dialogRef = inject(MatDialogRef<OrderDetailsDialogComponent>);
   dialog = inject(MatDialog);
   data = inject<{ order: Order; onAccept?: () => void; onRefuse?: (reason?: string) => void; onUpdateStatus?: (status: OrderStatus) => void }>(MAT_DIALOG_DATA);
+  private supabaseAuth = inject(SupabaseAuthService);
 
   isProcessing = this.data.onAccept ? signal(false) : signal(false);
+
+  readonly isLoadingDelivery = signal<boolean>(false);
+  readonly deliveryInfo = signal<any | null>(null);
+  readonly deliveryCoords = signal<{ lat: number; lng: number } | null>(null);
+
+  constructor() {
+    this.loadDeliveryInfoIfNeeded();
+  }
+
+  private async loadDeliveryInfoIfNeeded(): Promise<void> {
+    if (this.data.order.orderType !== 'delivery') return;
+    this.isLoadingDelivery.set(true);
+    try {
+      const delivery = await this.supabaseAuth.getOrderDeliveryByOrderId(
+        this.data.order.id
+      );
+      this.deliveryInfo.set(delivery);
+      const lat = Number((delivery as any)?.dropoff_lat);
+      const lng = Number((delivery as any)?.dropoff_lng);
+      if (isFinite(lat) && isFinite(lng)) {
+        this.deliveryCoords.set({ lat, lng });
+      } else {
+        this.deliveryCoords.set(null);
+      }
+    } catch (e) {
+      console.error('Failed to load order delivery info:', e);
+      this.deliveryInfo.set(null);
+      this.deliveryCoords.set(null);
+    } finally {
+      this.isLoadingDelivery.set(false);
+    }
+  }
 
   statusLabels: Record<OrderStatus, string> = {
     initiated: 'En attente de validation',

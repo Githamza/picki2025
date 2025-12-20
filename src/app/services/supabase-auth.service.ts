@@ -366,6 +366,29 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async updateVendorEnabledOrderTypes(
+    vendorId: string,
+    enabledOrderTypes: Database['public']['Enums']['order_type'][]
+  ) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        enabled_order_types: enabledOrderTypes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
   // Business Hours (admin operations)
   async getBusinessHours(vendorId: string) {
     console.log(

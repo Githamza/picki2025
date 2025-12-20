@@ -5,6 +5,7 @@ import { SupabaseAuthService } from './supabase-auth.service';
 import { Database } from '../types/supabase.types';
 
 export type Vendor = Database['public']['Tables']['vendors']['Row'];
+export type OrderType = Database['public']['Enums']['order_type'];
 
 export interface BusinessHours {
   day: string;
@@ -520,6 +521,7 @@ export class VendorService {
       postal_code: string;
       country: string;
     };
+    enabledOrderTypes?: OrderType[];
   }): Promise<void> {
     const currentVendor = this.getCurrentVendor();
     if (!currentVendor) {
@@ -538,6 +540,24 @@ export class VendorService {
         ...restaurantData.contact,
         ...restaurantData.address,
       });
+
+      if (restaurantData.enabledOrderTypes?.length) {
+        const updatedVendor =
+          await this.supabaseAuthService.updateVendorEnabledOrderTypes(
+            currentVendor.id,
+            restaurantData.enabledOrderTypes
+          );
+
+        // Keep local vendor context in sync
+        this.currentVendorSubject.next(updatedVendor);
+        this.vendorsSubject.next(
+          this.vendorsSubject.value.map((v) =>
+            v.id === updatedVendor.id ? updatedVendor : v
+          )
+        );
+        this.vendorsCache = this.vendorsSubject.value;
+        this.cacheTimestamp = Date.now();
+      }
     } catch (error) {
       console.error('Error saving restaurant info:', error);
       throw error;

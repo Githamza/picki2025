@@ -3,49 +3,37 @@
     <!-- Header -->
     <div class="welcome-header">
       <h1 class="welcome-title">
-        Bienvenue chez {{ vendor$?.business_name }} 👋
+        Bienvenue chez {{ vendor()?.business_name }} 👋
       </h1>
       <app-promotional-banner></app-promotional-banner>
     </div>
 
     <!-- Dining Options -->
     <div class="dining-options">
+      @for (opt of visibleOrderTypeOptions(); track opt.type) {
       <button
         mat-fab
         extended
-        class="dining-option take-away"
-        [class.selected]="selectedPreference === 'take-away'"
-        (click)="selectPreference('take-away')"
-        aria-label="À emporter - Commander à emporter"
+        class="dining-option"
+        [class.take-away]="opt.type === 'take-away'"
+        [class.eat-in]="opt.type === 'eat-in'"
+        [class.delivery]="opt.type === 'delivery'"
+        [class.selected]="selectedPreference === opt.type"
+        (click)="selectPreference(opt.type)"
+        [attr.aria-label]="opt.ariaLabel"
       >
         <div class="option-content">
-          <mat-icon class="option-icon">takeout_dining</mat-icon>
-          <span class="option-text">À emporter</span>
-          <p class="option-description">Commander à emporter</p>
+          <mat-icon class="option-icon">{{ opt.icon }}</mat-icon>
+          <span class="option-text">{{ opt.label }}</span>
+          <p class="option-description">{{ opt.description }}</p>
         </div>
       </button>
-
-      <!--<button
-        mat-fab
-        extended
-        disabled
-        class="dining-option delivery"
-        [class.selected]="selectedPreference === 'delivery'"
-        (click)="selectPreference('delivery')"
-        aria-label="Livraison - Se faire livrer - Bientôt disponible"
-      >
-        <div class="option-content">
-          <mat-icon class="option-icon">local_shipping</mat-icon>
-          <span class="option-text">Livraison</span>
-          <p class="option-description">
-            Se faire livrer <br />(Bientôt disponible)
-          </p>
-        </div>
-      </button> -->
+      }
     </div>
 
     <!-- Timing Options for Take Away -->
-    <div class="timing-section" *ngIf="selectedPreference === 'take-away'">
+    @if (selectedPreference === 'take-away') {
+    <div class="timing-section">
       <h3>Quand souhaitez-vous récupérer votre commande ?</h3>
 
       <mat-button-toggle-group
@@ -58,42 +46,41 @@
       </mat-button-toggle-group>
 
       <!-- Time Selection (Today only) -->
-      <div
-        class="schedule-section"
-        *ngIf="selectedTiming === 'later'"
-        [formGroup]="orderForm"
-      >
+      @if (selectedTiming === 'later') {
+      <div class="schedule-section" [formGroup]="orderForm">
         <mat-form-field class="time-field">
           <mat-label>Heure de retrait (aujourd'hui)</mat-label>
           <mat-select
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
           >
-            <mat-option
-              *ngFor="let time of availableTimeSlots()"
-              [value]="time"
-            >
+            @for (time of availableTimeSlots(); track time) {
+            <mat-option [value]="time">
               {{ time }}
             </mat-option>
+            }
           </mat-select>
           <mat-icon matSuffix>schedule</mat-icon>
-          <mat-error
-            *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
-          >
-            L'heure est requise
-          </mat-error>
+          @if (orderForm.get('scheduledTime')?.hasError('required')) {
+          <mat-error>L'heure est requise</mat-error>
+          }
         </mat-form-field>
 
         <!-- Business Hours Hint -->
-        <div class="business-hours-hint" *ngIf="getBusinessHoursHint() as hint">
+        @if (getBusinessHoursHint(); as hint) {
+        <div class="business-hours-hint">
           <mat-icon>info</mat-icon>
           <span>{{ hint }}</span>
         </div>
+        }
       </div>
+      }
     </div>
+    }
 
     <!-- Timing Options for Delivery -->
-    <div class="timing-section" *ngIf="selectedPreference === 'delivery'">
+    @if (selectedPreference === 'delivery') {
+    <div class="timing-section">
       <h3>When would you like your delivery?</h3>
 
       <mat-button-toggle-group
@@ -106,66 +93,89 @@
       </mat-button-toggle-group>
 
       <!-- Time Selection for Delivery (Today only) -->
-      <div
-        class="schedule-section"
-        *ngIf="selectedTiming === 'later'"
-        [formGroup]="orderForm"
-      >
+      @if (selectedTiming === 'later') {
+      <div class="schedule-section" [formGroup]="orderForm">
         <mat-form-field class="time-field">
           <mat-label>Heure de livraison (aujourd'hui)</mat-label>
           <mat-select
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
           >
-            <mat-option
-              *ngFor="let time of availableTimeSlots()"
-              [value]="time"
-            >
+            @for (time of availableTimeSlots(); track time) {
+            <mat-option [value]="time">
               {{ time }}
             </mat-option>
+            }
           </mat-select>
           <mat-icon matSuffix>schedule</mat-icon>
-          <mat-error
-            *ngIf="orderForm.get('scheduledTime')?.hasError('required')"
-          >
-            L'heure est requise
-          </mat-error>
+          @if (orderForm.get('scheduledTime')?.hasError('required')) {
+          <mat-error>L'heure est requise</mat-error>
+          }
         </mat-form-field>
 
         <!-- Business Hours Hint -->
-        <div class="business-hours-hint" *ngIf="getBusinessHoursHint() as hint">
+        @if (getBusinessHoursHint(); as hint) {
+        <div class="business-hours-hint">
           <mat-icon>info</mat-icon>
           <span>{{ hint }}</span>
         </div>
+        }
       </div>
+      }
       <!-- Delivery Address Autocomplete + Best Option -->
-      <div class="delivery-section" *ngIf="showDelivery">
+      <div class="delivery-section">
         <h3>Livraison</h3>
+        @if (deliveryDropoffInputMode() === 'address') {
         <app-address-autocomplete
           (placeSelected)="onAddressSelected($event)"
           [address]="deliverySelection.selectedAddress()"
         ></app-address-autocomplete>
-        <div class="delivery-quote" *ngIf="deliverySelection.loading()">
-          Calcul du tarif de livraison...
+        } @else {
+        <p>
+          Partagez votre position, puis ajustez-la en déplaçant la carte sous
+          l'épingle.
+        </p>
+
+        <app-map-location-picker
+          [center]="deliveryMapCenter()"
+          (centerChange)="onDeliveryCenterChange($event)"
+        ></app-map-location-picker>
+
+        <div class="delivery-actions">
+          <button
+            mat-raised-button
+            type="button"
+            color="primary"
+            [disabled]="!deliveryMapCenter() || deliverySelection.loading()"
+            (click)="confirmDeliveryPosition()"
+          >
+            Confirmer cette position
+          </button>
         </div>
-        <div class="delivery-quote" *ngIf="deliverySelection.error()">
+        } @if (deliverySelection.loading()) {
+        <div class="delivery-quote">Calcul du tarif de livraison...</div>
+        } @if (deliverySelection.error()) {
+        <div class="delivery-quote">
           {{ deliverySelection.error() }}
         </div>
-        <div
-          class="delivery-quote"
-          *ngIf="deliverySelection.bestOption() as best"
-        >
+        } @if (deliverySelection.bestOption(); as best) {
+        <div class="delivery-quote">
           <span>
             Prix et délai de livraison approximatif:
             {{ best.totalAmount / 100 | number : "1.2-2" }} €
           </span>
-          <span *ngIf="best.etaMinutes">{{ best.etaMinutes }} min</span>
+          @if (best.etaMinutes) {
+          <span>{{ best.etaMinutes }} min</span>
+          }
         </div>
+        }
       </div>
     </div>
+    }
 
     <!-- Validation Button -->
-    <div class="validation-section" *ngIf="selectedPreference">
+    @if (selectedPreference) {
+    <div class="validation-section">
       <button
         mat-flat-button
         color="primary"
@@ -176,6 +186,7 @@
         Continuer
       </button>
     </div>
+    }
     <!-- Footer -->
     <div class="welcome-footer"></div>
   </div>

@@ -4,7 +4,7 @@ import { Address, Coordinates } from './delivery/delivery.types';
 
 @Injectable({ providedIn: 'root' })
 export class GooglePlacesAutocompleteService {
-  private loader = inject(GooglePlacesService);
+  readonly loader = inject(GooglePlacesService);
 
   async getPredictions(
     input: string
@@ -62,6 +62,30 @@ export class GooglePlacesAutocompleteService {
           resolve({ address, coordinates: coords });
         }
       );
+    });
+  }
+
+  async reverseGeocode(
+    coords: Coordinates
+  ): Promise<{ address: Address; coordinates: Coordinates } | null> {
+    await this.loader.load();
+    const geocoder = new google.maps.Geocoder();
+
+    return new Promise((resolve) => {
+      geocoder.geocode({ location: coords }, (results, status) => {
+        if (status !== google.maps.GeocoderStatus.OK || !results?.length) {
+          resolve(null);
+          return;
+        }
+
+        const best = results[0];
+        const address: Address = this.parseAddress(
+          best.address_components || [],
+          best.formatted_address || ''
+        );
+        address.coordinates = coords;
+        resolve({ address, coordinates: coords });
+      });
     });
   }
 

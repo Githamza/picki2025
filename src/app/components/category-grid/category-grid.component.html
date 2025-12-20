@@ -1,0 +1,46 @@
+<div class="category-grid-container">
+  <div *ngIf="error$ | async as error" class="error-container">
+    <p>{{ error }}</p>
+  </div>
+
+  <div class="category-grid">
+    <mat-card
+      *ngFor="let category of categories$ | async"
+      class="category-card"
+      appearance="outlined"
+      (click)="selectCategory(category)"
+    >
+      <div class="category-image-container">
+        <img
+          [ngSrc]="category.imageUrl || placeholderImage"
+          [alt]="category.name + ' category'"
+          class="category-image"
+          width="300"
+          height="200"
+          priority
+        />
+      </div>
+      <mat-card-content>
+        <h3 class="category-name">{{ category.name }}</h3>
+        <p class="category-description" *ngIf="category.description">
+          {{ category.description }}
+        </p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div
+    *ngIf="(categories$ | async)?.length === 0 && !(loading$ | async)"
+    class="no-categories"
+  >
+    <p>Aucune catégorie disponible.</p>
+  </div>
+</div>
+
+
+
+
+
+
+
+

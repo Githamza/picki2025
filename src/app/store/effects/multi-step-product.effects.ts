@@ -91,7 +91,7 @@ export class MultiStepProductEffects {
       ofType(MultiStepProductActions.addMultiStepProductToCart),
       withLatestFrom(this.store.select(selectMultiStepConfiguration)),
       switchMap(([action, configuration]) => {
-        const { comment } = action;
+        const { comment, optionCustomisationSelections } = action;
         if (!configuration) {
           return of(
             MultiStepProductActions.addMultiStepProductToCartFailure({
@@ -100,71 +100,137 @@ export class MultiStepProductEffects {
           );
         }
 
-        try {
-          // Create cart metadata for multi-step product
-          const metadata: CartMultiStepMetadata = {
-            baseProductId: configuration.baseProduct.id,
-            stepSelections: configuration.steps
-              .map((step) => {
-                const selection = configuration.selections[step.id];
-                const selectedOptions = (selection?.selectedOptionIds || [])
-                  .map((optionId) => {
-                    const option = step.options.find(
-                      (opt) => opt.id === optionId
-                    );
-                    return option
-                      ? {
-                          optionId: option.id,
-                          optionName: option.name,
-                          productId: option.productId,
-                          priceAdjustment: option.priceAdjustment,
-                        }
-                      : null;
-                  })
-                  .filter(Boolean);
+        return from(this.buildMetadataWithCustomisations(
+          configuration,
+          optionCustomisationSelections
+        )).pipe(
+          map((metadata) => {
+            // Create cart item with multi-step metadata
+            const cartItem = {
+              product: configuration.baseProduct,
+              quantity: 1,
+              metadata,
+              totalPrice: configuration.totalPrice,
+            };
 
-                return {
-                  stepId: step.id,
-                  stepName: step.name,
-                  selectedOptions: selectedOptions as any[],
-                };
+            // Dispatch add to cart action with comment and metadata
+            this.store.dispatch(
+              CartActions.addToCart({
+                product: cartItem.product,
+                quantity: cartItem.quantity,
+                comment: comment,
+                totalPrice: cartItem.totalPrice, // Pass the calculated total price
+                metadata: cartItem.metadata, // Pass the multi-step metadata
               })
-              .filter(
-                (stepSelection) => stepSelection.selectedOptions.length > 0
-              ),
-            totalSteps: configuration.steps.length,
-          };
+            );
 
-          // Create cart item with multi-step metadata
-          const cartItem = {
-            product: configuration.baseProduct,
-            quantity: 1,
-            metadata,
-            totalPrice: configuration.totalPrice,
-          };
-
-          // Dispatch add to cart action with comment and metadata
-          this.store.dispatch(
-            CartActions.addToCart({
-              product: cartItem.product,
-              quantity: cartItem.quantity,
-              comment: comment,
-              totalPrice: cartItem.totalPrice, // Pass the calculated total price
-              metadata: cartItem.metadata, // Pass the multi-step metadata
-            })
-          );
-
-          return of(MultiStepProductActions.addMultiStepProductToCartSuccess());
-        } catch (error: any) {
-          return of(
-            MultiStepProductActions.addMultiStepProductToCartFailure({
-              error: error.message || 'Failed to add to cart',
-            })
-          );
-        }
+            return MultiStepProductActions.addMultiStepProductToCartSuccess();
+          }),
+          catchError((error: any) => {
+            return of(
+              MultiStepProductActions.addMultiStepProductToCartFailure({
+                error: error.message || 'Failed to add to cart',
+              })
+            );
+          })
+        );
       })
     )
   );
+
+  private async buildMetadataWithCustomisations(
+    configuration: any,
+    optionCustomisationSelections?: Map<string, Map<number, number[]>>
+  ): Promise<CartMultiStepMetadata> {
+    const stepSelections = await Promise.all(
+      configuration.steps.map(async (step: ProductStep) => {
+        const selection = configuration.selections[step.id];
+        const selectedOptions = await Promise.all(
+          (selection?.selectedOptionIds || []).map(async (optionId: number) => {
+            const option = step.options.find(
+              (opt) => opt.id === optionId
+            );
+            
+            if (!option) return null;
+
+            let customisationSelectionsForOption = undefined;
+
+            // Check if this option has customisation selections
+            if (optionCustomisationSelections && option.optionType === 'product' && option.productId) {
+              const key = `${step.id}-${optionId}`;
+              const customisationMap = optionCustomisationSelections.get(key);
+
+              if (customisationMap && customisationMap.size > 0) {
+                // Fetch product details with customisations to get customisation names
+                try {
+                  const product = await this.productService.getProductWithCustomisations(option.productId).toPromise();
+                  
+                  if (product && product.customisations) {
+                    customisationSelectionsForOption = Array.from(customisationMap.entries()).map(
+                      ([customisationId, selectedOptionIds]) => {
+                        const customisation = product.customisations?.find(
+                          (c) => c.id === customisationId
+                        );
+
+                        if (!customisation || !customisation.options) {
+                          return null;
+                        }
+
+                        const selectedOptionNames: string[] = [];
+                        const priceAdjustments: number[] = [];
+
+                        selectedOptionIds.forEach((optId) => {
+                          const custOption = customisation.options?.find(
+                            (o) => o.id === optId
+                          );
+                          if (custOption) {
+                            selectedOptionNames.push(custOption.name);
+                            priceAdjustments.push(custOption.price_adjustment || 0);
+                          }
+                        });
+
+                        return {
+                          customisationId,
+                          customisationName: customisation.name,
+                          selectedOptionIds,
+                          selectedOptionNames,
+                          priceAdjustments,
+                        };
+                      }
+                    ).filter(Boolean) as any[];
+                  }
+                } catch (error) {
+                  console.error('Error fetching customisation details:', error);
+                }
+              }
+            }
+
+            return {
+              optionId: option.id,
+              optionName: option.name,
+              productId: option.productId,
+              priceAdjustment: option.priceAdjustment,
+              customisationSelections: customisationSelectionsForOption,
+            };
+          })
+        );
+
+        return {
+          stepId: step.id,
+          stepName: step.name,
+          selectedOptions: selectedOptions.filter(Boolean) as any[],
+        };
+      })
+    );
+
+    return {
+      baseProductId: configuration.baseProduct.id,
+      stepSelections: stepSelections.filter(
+        (stepSelection) => stepSelection.selectedOptions.length > 0
+      ),
+      totalSteps: configuration.steps.length,
+    };
+  }
 
   // Transform database step data to our ProductStep model
   private transformStepData(stepData: any[]): ProductStep[] {

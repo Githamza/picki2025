@@ -12,10 +12,12 @@ export interface ProductAdmin {
   stock_quantity: number | null;
   is_multi_step: boolean | null;
   no_catalogable: boolean | null;
+  has_customisations?: boolean;
   display_order?: number;
   created_at: string | null;
   updated_at: string | null;
   steps?: ProductStep[];
+  customisations?: import('./customisation.interface').Customisation[];
 }
 
 export interface ProductStep {

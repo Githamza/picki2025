@@ -51,6 +51,7 @@ export interface CartItem {
   selectedComplements?: ComplementSelection[];
   totalPrice?: number; // Add this for multi-step products
   metadata?: any; // Add metadata field for multi-step products
+  customisationSelections?: Map<number, number[]>; // Add this for customisations
 }
 
 export interface CartState {

@@ -2,7 +2,8 @@
 /* You can add global styles to this file, and also import other style files */
 /* Angular Material 3 (MDC) theme */
 @use "theme.scss" as theme;
-@use "@angular/material" as mat;
+// Prebuilt theme removed to prevent overrides
+// @use "@angular/material/prebuilt-themes/rose-red.css";
 
 /* Material Symbols font (used by M3 icons) */
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
@@ -36,32 +37,32 @@ body {
 
 /* Material 3 utility classes */
 .mat-elevation-z1 {
-  box-shadow: var(--mat-shadow-1);
+  box-shadow: var(--mat-sys-level1, 0 1px 3px rgba(0, 0, 0, 0.2));
 }
 .mat-elevation-z2 {
-  box-shadow: var(--mat-shadow-2);
+  box-shadow: var(--mat-sys-level2, 0 1px 6px rgba(0, 0, 0, 0.2));
 }
 .mat-elevation-z3 {
-  box-shadow: var(--mat-shadow-3);
+  box-shadow: var(--mat-sys-level3, 0 4px 8px rgba(0, 0, 0, 0.2));
 }
 .mat-elevation-z4 {
-  box-shadow: var(--mat-shadow-4);
+  box-shadow: var(--mat-sys-level4, 0 6px 10px rgba(0, 0, 0, 0.2));
 }
 .mat-elevation-z5 {
-  box-shadow: var(--mat-shadow-5);
+  box-shadow: var(--mat-sys-level5, 0 8px 12px rgba(0, 0, 0, 0.2));
 }
 
 .mat-rounded-small {
-  border-radius: var(--mat-shape-small);
+  border-radius: var(--mat-sys-corner-small, 4px);
 }
 .mat-rounded-medium {
-  border-radius: var(--mat-shape-medium);
+  border-radius: var(--mat-sys-corner-medium, 8px);
 }
 .mat-rounded-large {
-  border-radius: var(--mat-shape-large);
+  border-radius: var(--mat-sys-corner-large, 12px);
 }
 .mat-rounded-xl {
-  border-radius: var(--mat-shape-extra-large);
+  border-radius: var(--mat-sys-corner-extra-large, 16px);
 }
 
 @keyframes fade-in {
@@ -131,21 +132,29 @@ body {
 
 /* Global snackbar styles */
 .success-snackbar {
-  --mat-snackbar-container-color: #4caf50 !important;
-  --mat-snackbar-supporting-text-color: white !important;
-  --mat-snack-bar-button-color: white !important;
+  --mat-snackbar-container-color: var(--mat-sys-tertiary-container) !important;
+  --mat-snackbar-supporting-text-color: var(
+    --mat-sys-on-tertiary-container
+  ) !important;
+  --mat-snack-bar-button-color: var(--mat-sys-on-tertiary-container) !important;
 }
 
 .warning-snackbar {
-  --mat-snackbar-container-color: #ff9800 !important;
-  --mat-snackbar-supporting-text-color: white !important;
-  --mat-snack-bar-button-color: white !important;
+  --mat-snackbar-container-color: var(--mat-sys-secondary-container) !important;
+  --mat-snackbar-supporting-text-color: var(
+    --mat-sys-on-secondary-container
+  ) !important;
+  --mat-snack-bar-button-color: var(
+    --mat-sys-on-secondary-container
+  ) !important;
 }
 
 .error-snackbar {
-  --mat-snackbar-container-color: #f44336 !important;
-  --mat-snackbar-supporting-text-color: white !important;
-  --mat-snack-bar-button-color: white !important;
+  --mat-snackbar-container-color: var(--mat-sys-error-container) !important;
+  --mat-snackbar-supporting-text-color: var(
+    --mat-sys-on-error-container
+  ) !important;
+  --mat-snack-bar-button-color: var(--mat-sys-on-error-container) !important;
 }
 
 /* Restaurant Closed Dialog Panel Styles */

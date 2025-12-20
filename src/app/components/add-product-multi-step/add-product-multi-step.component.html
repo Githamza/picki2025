@@ -22,59 +22,6 @@
     </div>
   </div>
 
-  <!-- Summary of Previous Steps -->
-  <!-- <div class="steps-summary" *ngIf="(previousStepsSummary$ | async)?.length">
-    <mat-card class="summary-card">
-      <mat-card-header>
-        <mat-card-title>Résumé de vos choix</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="summary-list">
-          <div
-            *ngFor="let stepSummary of previousStepsSummary$ | async"
-            class="summary-item"
-          >
-            <div class="step-name">{{ stepSummary.step.name }}</div>
-            <div class="selected-options">
-              <mat-chip-listbox>
-                <mat-chip
-                  *ngFor="let option of stepSummary.selectedOptions"
-                  class="selected-option-chip"
-                >
-                  {{ option?.name }}
-                </mat-chip>
-              </mat-chip-listbox>
-            </div>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>-->
-  <div class="step-actions">
-    <button
-      mat-button
-      (click)="goPrevious()"
-      [disabled]="!(canGoPrevious$ | async)"
-      class="previous-btn"
-    >
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-
-    <div class="spacer"></div>
-
-    <!-- Next Button (not on last step) -->
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="goNext()"
-      [disabled]="!(canGoNext$ | async)"
-      *ngIf="!(isLastStep$ | async)"
-      class="next-btn"
-    >
-      Etape suivante
-      <mat-icon>arrow_forward</mat-icon>
-    </button>
-  </div>
   <!-- Main Tab Group -->
   <mat-tab-group
     #tabGroup
@@ -185,13 +132,23 @@
                     *ngFor="let option of item.selectedOptions"
                     class="option-item"
                   >
-                    <img
-                      *ngIf="option.imageUrl"
-                      [src]="option.imageUrl"
-                      [alt]="option.name"
-                      class="option-thumbnail"
-                      (click)="openImageZoom(option.imageUrl, option.name)"
-                    />
+                    <ng-container *ngIf="isMobile$ | async">
+                      <img
+                        *ngIf="option.imageUrl"
+                        [src]="option.imageUrl"
+                        [alt]="option.name"
+                        class="option-thumbnail"
+                        (click)="openImageZoom(option.imageUrl, option.name)"
+                      />
+                    </ng-container>
+                    <ng-container *ngIf="!(isMobile$ | async)">
+                      <img
+                        *ngIf="option.imageUrl"
+                        [src]="option.imageUrl"
+                        [alt]="option.name"
+                        class="option-thumbnail"
+                      />
+                    </ng-container>
                     <span class="option-name">{{ option.name }}</span>
                     <span class="spacer"></span>
                     <span
@@ -200,9 +157,6 @@
                       [class.negative]="option.priceAdjustment < 0"
                       [class.neutral]="option.priceAdjustment === 0"
                     >
-                      <ng-container *ngIf="option.priceAdjustment === 0">
-                        Inclus
-                      </ng-container>
                       <ng-container *ngIf="option.priceAdjustment !== 0">
                         {{ option.priceAdjustment > 0 ? "+" : ""
                         }}{{ formatPrice(option.priceAdjustment) }}
@@ -250,7 +204,37 @@
       <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
     </mat-form-field>
   </div>
+  <!-- Summary of Previous Steps -->
 
+  <div
+    class="step-actions"
+    [ngClass]="{ 'bottom-up': (showAddToCartSection$ | async) }"
+  >
+    <button
+      mat-button
+      (click)="goPrevious()"
+      [disabled]="!(canGoPrevious$ | async)"
+      class="previous-btn"
+    >
+      Retour
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+
+    <div class="spacer"></div>
+
+    <!-- Next Button (not on last step) -->
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="goNext()"
+      [disabled]="!(canGoNext$ | async)"
+      *ngIf="!(isLastStep$ | async)"
+      class="next-btn"
+    >
+      Suivant
+      <mat-icon>arrow_forward</mat-icon>
+    </button>
+  </div>
   <!-- Quantity Controls and Add to Cart Section (when all steps are visited or configuration is complete) -->
   <div class="add-to-cart-section" *ngIf="showAddToCartSection$ | async">
     <div class="quantity-controls">

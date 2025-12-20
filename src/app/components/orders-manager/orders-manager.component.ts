@@ -42,6 +42,7 @@ import {
 } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import '@angular/common/locales/global/fr';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
 export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
 
@@ -78,11 +79,14 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   private changeDetectorRef = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
   private dialog = inject(MatDialog);
+  private breakpointObserver = inject(BreakpointObserver);
 
   // Loading states for individual orders
   private loadingOrdersSubject = new BehaviorSubject<Set<string>>(new Set());
   loadingOrders$ = this.loadingOrdersSubject.asObservable();
-
+  isHandset$ = this.breakpointObserver
+    .observe([Breakpoints.Handset, Breakpoints.Tablet])
+    .pipe(map((result) => result.matches));
   // Global loading state
   isLoading = signal(false);
 
@@ -543,13 +547,11 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
         order.orderNumber
       );
 
-      // Extract vendor slug from current URL (assuming we're in the vendor dashboard)
-      let vendorSlug: string | undefined;
-      const currentPath = window.location.pathname;
-      const vendorMatch = currentPath.match(/^\/([^\/]+)\//);
-      if (vendorMatch && vendorMatch[1]) {
-        vendorSlug = vendorMatch[1];
-      }
+      // Prefer current vendor context when available
+      const currentVendor = this.vendorService.getCurrentVendor();
+      const vendorSlug = currentVendor
+        ? this.vendorService.getVendorSlug(currentVendor)
+        : undefined;
 
       // Generate tracking URL
       const trackingUrl = this.emailService.generateTrackingUrl(
@@ -766,8 +768,34 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     }
   }
 
-  async refuseOrder(order: Order) {
-    await this.updateOrderStatus(order, 'refused');
+  async refuseOrder(order: Order, refuseReason?: string) {
+    // Prevent multiple simultaneous updates for the same order
+    if (this.isOrderLoading(order.id)) {
+      return;
+    }
+
+    // Add order to loading set
+    this.setOrderLoading(order.id, true);
+
+    try {
+      if (refuseReason) {
+        await this.ordersService.updateOrderWithRefuseReason(order.id, 'refused', refuseReason);
+      } else {
+        await this.updateOrderStatus(order, 'refused');
+      }
+      
+      this.snackBar.open('Commande refusée', 'Fermer', {
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error refusing order:', error);
+      this.snackBar.open('Erreur lors du refus de la commande', 'Fermer', {
+        duration: 5000,
+      });
+    } finally {
+      // Remove order from loading set
+      this.setOrderLoading(order.id, false);
+    }
   }
 
   openOrderDetailsDialog(order: Order) {
@@ -777,7 +805,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       data: {
         order,
         onAccept: () => this.acceptOrder(order),
-        onRefuse: () => this.refuseOrder(order),
+        onRefuse: (refuseReason?: string) => this.refuseOrder(order, refuseReason),
         onUpdateStatus: (status: OrderStatus) =>
           this.updateOrderStatus(order, status),
       },

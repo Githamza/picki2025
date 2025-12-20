@@ -126,11 +126,12 @@
             <button
               mat-fab
               extended
-              [color]="buttonColors()[order().status] || null"
-              [class]="'status-button-' + order().status"
+              [class]="
+                'order-action-button inline-button status-button-' +
+                order().status
+              "
               (click)="onUpdateStatus($event, getNextStatus()(order().status)!)"
               [disabled]="isOrderLoading()(order().id)"
-              class="order-action-button inline-button"
             >
               @if (isOrderLoading()(order().id)) {
               <mat-spinner diameter="16"></mat-spinner>

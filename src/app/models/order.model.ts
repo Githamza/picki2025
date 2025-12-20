@@ -25,6 +25,15 @@ export interface OrderItem {
   vendorId?: string;
   comment?: string;
   metadata?: any; // Add explicit metadata field for multi-step products
+  customisationSelections?: {
+    customisationId: number;
+    customisationName: string;
+    selectedOptions: {
+      optionId: number;
+      optionName: string;
+      priceAdjustment: number;
+    }[];
+  }[];
 }
 
 export interface Order {
@@ -41,5 +50,6 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   notes?: string;
-  vendorId?: string; // Reference to the vendor this order belongs to
+  vendorId?: string;
+  refuse_reason?: string; // Reference to the vendor this order belongs to
 }

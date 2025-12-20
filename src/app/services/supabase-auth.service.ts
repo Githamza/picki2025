@@ -157,6 +157,42 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async getVendorByAdminEmail(email: string): Promise<{
+    vendor: any;
+    adminUser: any;
+  } | null> {
+    const { data, error } = await this.supabaseAuth
+      .from('vendor_admin_users')
+      .select(
+        `
+        *,
+        vendors (
+          id,
+          business_name,
+          logo_url,
+          is_active
+        )
+      `
+      )
+      .eq('email', email)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No admin user found for this email
+      }
+      throw error;
+    }
+
+    if (!data) return null;
+
+    return {
+      vendor: data.vendors,
+      adminUser: data,
+    };
+  }
+
   async updateLastLogin(userId: string): Promise<void> {
     await this.supabaseAuth
       .from('vendor_admin_users')
@@ -233,6 +269,49 @@ export class SupabaseAuthService implements OnDestroy {
       .from('orders')
       .update({
         status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error(
+          `Failed to update order ${orderId}. Order may have been deleted.`
+        );
+      }
+      throw error;
+    }
+
+    return data;
+  }
+
+  async updateOrderWithRefuseReason(
+    orderId: string,
+    status: Database['public']['Enums']['order_status'],
+    refuseReason: string
+  ) {
+    // First check if the order exists
+    const { data: existingOrder, error: checkError } = await this.supabaseAuth
+      .from('orders')
+      .select('id, status')
+      .eq('id', orderId)
+      .single();
+
+    if (checkError) {
+      if (checkError.code === 'PGRST116') {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+      throw checkError;
+    }
+
+    // Update the order status, refuse_reason, and updated_at timestamp
+    const { data, error } = await this.supabaseAuth
+      .from('orders')
+      .update({
+        status,
+        refuse_reason: refuseReason,
         updated_at: new Date().toISOString(),
       })
       .eq('id', orderId)

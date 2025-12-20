@@ -459,4 +459,63 @@
       font-size: 12px;
     }
   }
+
+  // Status-specific button colors
+  &.status-button-paid,
+  &.status-button-todo {
+    --mat-fab-foreground-color: #ffffff;
+    --mat-fab-state-layer-color: #ffffff;
+    --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+    --mat-fab-hover-state-layer-opacity: 0.08;
+    --mat-fab-focus-state-layer-opacity: 0.12;
+    --mat-fab-pressed-state-layer-opacity: 0.12;
+    --mat-fab-container-color: #00acc1; // Cyan/Teal for "À traiter" and "En cours"
+    --mat-fab-hover-container-elevation: 4;
+    --mat-fab-focus-container-elevation: 4;
+    --mat-fab-pressed-container-elevation: 8;
+    --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
+    --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
+
+    &:hover:not([disabled]) {
+      --mat-fab-container-color: #0097a7; // Darker cyan on hover
+    }
+  }
+
+  &.status-button-ongoing {
+    --mat-fab-foreground-color: #ffffff;
+    --mat-fab-state-layer-color: #ffffff;
+    --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+    --mat-fab-hover-state-layer-opacity: 0.08;
+    --mat-fab-focus-state-layer-opacity: 0.12;
+    --mat-fab-pressed-state-layer-opacity: 0.12;
+    --mat-fab-container-color: #4caf50; // Green for "Prête" button
+    --mat-fab-hover-container-elevation: 4;
+    --mat-fab-focus-container-elevation: 4;
+    --mat-fab-pressed-container-elevation: 8;
+    --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
+    --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
+
+    &:hover:not([disabled]) {
+      --mat-fab-container-color: #45a049; // Darker green on hover
+    }
+  }
+
+  &.status-button-done {
+    --mat-fab-foreground-color: #ffffff;
+    --mat-fab-state-layer-color: #ffffff;
+    --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+    --mat-fab-hover-state-layer-opacity: 0.08;
+    --mat-fab-focus-state-layer-opacity: 0.12;
+    --mat-fab-pressed-state-layer-opacity: 0.12;
+    --mat-fab-container-color: #66bb6a; // Lighter green for "Récupérée" button
+    --mat-fab-hover-container-elevation: 4;
+    --mat-fab-focus-container-elevation: 4;
+    --mat-fab-pressed-container-elevation: 8;
+    --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
+    --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
+
+    &:hover:not([disabled]) {
+      --mat-fab-container-color: #81c784; // Even lighter green on hover
+    }
+  }
 }

@@ -402,12 +402,9 @@ export class CartDetailsPageComponent {
       let scheduledDateTime: Date | undefined;
       if (timing === 'later' && scheduledDate && scheduledTime) {
         scheduledDateTime = new Date(scheduledDate);
-        scheduledDateTime.setHours(
-          scheduledTime.getHours(),
-          scheduledTime.getMinutes(),
-          0,
-          0
-        );
+        // Parse time string in HH:MM format
+        const [hours, minutes] = scheduledTime.split(':').map(Number);
+        scheduledDateTime.setHours(hours, minutes, 0, 0);
       }
 
       // Generate order number
@@ -423,6 +420,47 @@ export class CartDetailsPageComponent {
           [item.metadata] : // Store CartMultiStepMetadata
           item.selectedComplements || []; // Store complements if available
 
+        // Transform customisation selections for storage
+        let customisationSelections: OrderItem['customisationSelections'] = undefined;
+        if (item.customisationSelections && item.customisationSelections.size > 0) {
+          customisationSelections = [];
+          
+          // Get product customisations to map IDs to names
+          const productCustomisations = item.product.customisations || [];
+          
+          item.customisationSelections.forEach((selectedOptionIds, customisationId) => {
+            const customisation = productCustomisations.find(c => c.id === customisationId);
+            
+            if (customisation && selectedOptionIds.length > 0) {
+              const selectedOptions = selectedOptionIds
+                .map(optionId => {
+                  const option = customisation.options?.find(o => o.id === optionId);
+                  if (option) {
+                    return {
+                      optionId: option.id,
+                      optionName: option.name,
+                      priceAdjustment: option.price_adjustment || 0,
+                    };
+                  }
+                  return null;
+                })
+                .filter((opt): opt is NonNullable<typeof opt> => opt !== null);
+              
+              if (selectedOptions.length > 0) {
+                customisationSelections!.push({
+                  customisationId: customisation.id,
+                  customisationName: customisation.name,
+                  selectedOptions,
+                });
+              }
+            }
+          });
+          
+          if (customisationSelections.length === 0) {
+            customisationSelections = undefined;
+          }
+        }
+
         return {
           productId: item.product.id.toString(),
           productName: item.product.name,
@@ -431,6 +469,7 @@ export class CartDetailsPageComponent {
           options: options, // Store multi-step metadata or complements
           vendorId: item.product.vendorId,
           comment: item.comment,
+          customisationSelections, // Store customisation selections
         };
       });
 

@@ -164,12 +164,6 @@ export class AuthService {
     this.setError(null);
 
     try {
-      // Get current vendor from route or service
-      const currentVendor = this.vendorService.getCurrentVendor();
-      if (!currentVendor) {
-        throw new Error(AuthError.VENDOR_NOT_FOUND);
-      }
-
       // Sign in with Supabase Auth
       const { data, error } = await this.supabaseAuthService
         .getClient()
@@ -180,31 +174,47 @@ export class AuthService {
 
       if (error) throw error;
 
-      // The auth state change handler will take care of the rest
-      // We just need to wait for the user to be set
-      return new Promise((resolve, reject) => {
-        let timeoutId: number;
+      // Find vendor by admin email
+      const vendorData = await this.supabaseAuthService.getVendorByAdminEmail(formData.email);
+      
+      if (!vendorData) {
+        throw new Error(AuthError.VENDOR_NOT_FOUND);
+      }
 
-        const checkUser = () => {
-          const user = this.authStateService.user();
-          if (user) {
-            clearTimeout(timeoutId);
-            resolve(user);
-          }
-        };
+      const { vendor, adminUser } = vendorData;
 
-        // Check immediately
-        checkUser();
+      if (!adminUser.is_active) {
+        throw new Error(AuthError.ACCOUNT_DISABLED);
+      }
 
-        // Set up interval to check periodically
-        const intervalId = setInterval(checkUser, 100);
+      // Create auth user object
+      const authUser: AuthUser = {
+        id: data.user!.id,
+        email: data.user!.email!,
+        firstName: adminUser.first_name,
+        lastName: adminUser.last_name,
+        role: adminUser.role as AdminRole,
+        vendorId: vendor.id,
+        vendor: {
+          id: vendor.id,
+          businessName: vendor.business_name,
+          slug: this.vendorService.getVendorSlug(vendor),
+          logoUrl: vendor.logo_url || undefined,
+        },
+        lastLoginAt: adminUser.last_login_at || undefined,
+        isActive: adminUser.is_active,
+      };
 
-        // Timeout after 10 seconds
-        timeoutId = window.setTimeout(() => {
-          clearInterval(intervalId);
-          reject(new Error('Login timeout'));
-        }, 10000);
-      });
+      // Update last login timestamp
+      await this.updateLastLogin(data.user!.id);
+
+      // Set user state
+      this.setUser(authUser);
+
+      // Set current vendor in VendorService for proper navigation context
+      this.vendorService.setCurrentVendor(vendor);
+
+      return authUser;
     } catch (error) {
       const errorMessage = this.handleAuthError(error);
       this.setError(errorMessage);

@@ -6,6 +6,7 @@ import {
   PaymentResponse,
 } from '../payment-strategy.interface';
 import { StripeService, StripeCheckoutRequest } from '../stripe.service';
+import { VendorNavigationService } from '../vendor-navigation.service';
 
 @Injectable({
   providedIn: 'root',
@@ -14,16 +15,21 @@ export class StripePaymentStrategy implements PaymentStrategy {
   readonly name = 'Stripe';
   readonly provider = 'stripe' as const;
 
-  constructor(private stripeService: StripeService) {}
+  constructor(
+    private stripeService: StripeService,
+    private vendorNavigation: VendorNavigationService
+  ) {}
 
   createPayment(request: PaymentRequest): Observable<PaymentResponse> {
     const baseUrl = window.location.origin;
 
     // Use provided URLs or fall back to defaults
+    const defaultSuccessPath = this.vendorNavigation.getVendorUrl('successPayment');
+    const defaultCancelPath = this.vendorNavigation.getVendorUrl('failedPayment');
     const successUrl =
       request.returnUrl ||
-      `${baseUrl}/successPayment?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = request.cancelUrl || `${baseUrl}/failedPayment`;
+      `${baseUrl}${defaultSuccessPath}?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = request.cancelUrl || `${baseUrl}${defaultCancelPath}`;
 
     const checkoutRequest: StripeCheckoutRequest = {
       line_items: request.items.map((item) => ({

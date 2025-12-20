@@ -2,29 +2,14 @@
   <div class="welcome-container">
     <!-- Header -->
     <div class="welcome-header">
-      <h1 class="welcome-title">Bienvenue 👋</h1>
-      <p class="welcome-subtitle">
-        Comment aimeriez-vous profiter de votre commande ?
-      </p>
+      <h1 class="welcome-title">
+        Bienvenue chez {{ vendor$?.business_name }} 👋
+      </h1>
+      <app-promotional-banner></app-promotional-banner>
     </div>
 
     <!-- Dining Options -->
     <div class="dining-options">
-      <button
-        mat-fab
-        extended
-        class="dining-option eat-in"
-        [class.selected]="selectedPreference === 'eat-in'"
-        (click)="selectPreference('eat-in')"
-        aria-label="Sur place - Diner dans notre restaurant"
-      >
-        <div class="option-content">
-          <mat-icon class="option-icon">restaurant</mat-icon>
-          <span class="option-text">Sur place</span>
-          <p class="option-description">Diner dans notre restaurant</p>
-        </div>
-      </button>
-
       <button
         mat-fab
         extended
@@ -40,7 +25,7 @@
         </div>
       </button>
 
-      <button
+      <!--<button
         mat-fab
         extended
         disabled
@@ -56,7 +41,7 @@
             Se faire livrer <br />(Bientôt disponible)
           </p>
         </div>
-      </button>
+      </button> -->
     </div>
 
     <!-- Timing Options for Take Away -->
@@ -72,32 +57,14 @@
         <mat-button-toggle value="later">Plus tard</mat-button-toggle>
       </mat-button-toggle-group>
 
-      <!-- Date and Time Selection -->
+      <!-- Time Selection (Today only) -->
       <div
         class="schedule-section"
         *ngIf="selectedTiming === 'later'"
         [formGroup]="orderForm"
       >
-        <mat-form-field>
-          <mat-label>Date</mat-label>
-          <input
-            title="Select Date"
-            matInput
-            [matDatepicker]="datePicker"
-            formControlName="scheduledDate"
-            [min]="minDate"
-            [matDatepickerFilter]="dateFilter"
-            (click)="openDatePicker()"
-          />
-          <mat-datepicker-toggle
-            matIconSuffix
-            [for]="datePicker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #datePicker></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Heure</mat-label>
+        <mat-form-field class="time-field">
+          <mat-label>Heure de retrait (aujourd'hui)</mat-label>
           <mat-select
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
@@ -138,32 +105,14 @@
         <mat-button-toggle value="later">Plus tard</mat-button-toggle>
       </mat-button-toggle-group>
 
-      <!-- Date and Time Selection for Delivery -->
+      <!-- Time Selection for Delivery (Today only) -->
       <div
         class="schedule-section"
         *ngIf="selectedTiming === 'later'"
         [formGroup]="orderForm"
       >
-        <mat-form-field>
-          <mat-label>Date</mat-label>
-          <input
-            title="Select Date"
-            matInput
-            [matDatepicker]="datePicker2"
-            formControlName="scheduledDate"
-            [min]="minDate"
-            [matDatepickerFilter]="dateFilter"
-            (click)="openDatePicker()"
-          />
-          <mat-datepicker-toggle
-            matIconSuffix
-            [for]="datePicker2"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #datePicker2></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Heure</mat-label>
+        <mat-form-field class="time-field">
+          <mat-label>Heure de livraison (aujourd'hui)</mat-label>
           <mat-select
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
@@ -224,14 +173,10 @@
         (click)="onValidate()"
         class="validate-button"
       >
-        Continue
+        Continuer
       </button>
     </div>
     <!-- Footer -->
-    <div class="welcome-footer">
-      <p class="footer-text">
-        Vous pouvez modifier cette préférence plus tard dans votre commande
-      </p>
-    </div>
+    <div class="welcome-footer"></div>
   </div>
 </div>

@@ -1,25 +1,27 @@
 <div class="login-container">
   <!-- Header with vendor info -->
   <mat-toolbar class="login-header" color="primary">
-    <!--  <button
+    @if (currentVendor) {
+    <button
       mat-icon-button
       (click)="goBackToVendorSelection()"
       aria-label="Go back to vendor selection"
-    >  
+    >
       <mat-icon>arrow_back</mat-icon>
-    
     </button>
-    -->
+    }
     <div class="vendor-info">
       <img
         [src]="getVendorLogo()"
         [alt]="getVendorName() + ' logo'"
         class="vendor-logo"
-        onerror="this.src='/assets/images/default-vendor-logo.png'"
+        onerror="this.src='https://www.shutterstock.com/image-vector/vendor-seller-booth-icon-260nw-2197884781.jpg'"
       />
       <div class="vendor-details">
         <span class="vendor-name">{{ getVendorName() }}</span>
-        <span class="login-subtitle">Admin Portal</span>
+        <span class="login-subtitle">{{
+          currentVendor ? "Admin Portal" : "Restaurant Management System"
+        }}</span>
       </div>
     </div>
   </mat-toolbar>
@@ -33,7 +35,9 @@
           Admin Login
         </mat-card-title>
         <mat-card-subtitle>
-          Sign in to access the admin dashboard for {{ getVendorName() }}
+          @if (currentVendor) { Sign in to access the admin dashboard for
+          {{ getVendorName() }}
+          } @else { Sign in to access your restaurant admin dashboard }
         </mat-card-subtitle>
       </mat-card-header>
 

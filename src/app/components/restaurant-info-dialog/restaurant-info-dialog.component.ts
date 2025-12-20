@@ -110,7 +110,6 @@ import {
   styles: [
     `
       .restaurant-info-dialog {
-        min-width: 400px;
         max-width: 600px;
       }
 

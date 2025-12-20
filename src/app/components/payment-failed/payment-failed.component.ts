@@ -129,6 +129,6 @@ export class PaymentFailedComponent {
   }
 
   goHome() {
-    this.vendorNavigation.navigateWithVendor('products');
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 }

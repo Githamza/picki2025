@@ -372,12 +372,9 @@ export class CartDetailsSheetComponent {
       let scheduledDateTime: Date | undefined;
       if (timing === 'later' && scheduledDate && scheduledTime) {
         scheduledDateTime = new Date(scheduledDate);
-        scheduledDateTime.setHours(
-          scheduledTime.getHours(),
-          scheduledTime.getMinutes(),
-          0,
-          0
-        );
+        // Parse time string in HH:MM format
+        const [hours, minutes] = scheduledTime.split(':').map(Number);
+        scheduledDateTime.setHours(hours, minutes, 0, 0);
       }
 
       // Generate order number

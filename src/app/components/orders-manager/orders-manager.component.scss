@@ -11,10 +11,11 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 0 16px;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
+  width: 100%;
+  justify-content: flex-end;
 
   .period-filter-button {
     display: flex;
@@ -40,11 +41,6 @@
     color: var(--mat-sys-on-primary-container);
     font-weight: 500;
 
-    .total-label {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-
     .total-value {
       font-size: 16px;
       font-weight: 600;
@@ -55,7 +51,6 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-left: auto;
   }
 
   ::ng-deep {
@@ -101,12 +96,6 @@
     &:hover {
       background-color: var(--mat-sys-primary-container);
       color: var(--mat-sys-on-primary-container);
-    }
-
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
     }
   }
 }
@@ -746,32 +735,32 @@ mat-card-actions {
     // Status-specific colors
     &.status-button-todo,
     &.status-button-paid {
-      background-color: var(--mat-sys-tertiary);
-      color: var(--mat-sys-on-tertiary);
+      background-color: #00acc1; // Cyan/Teal for "À traiter" and "En cours"
+      color: white;
 
       &:hover:not(:disabled) {
-        background-color: var(--mat-sys-tertiary-container);
-        box-shadow: 0 4px 16px rgba(var(--mat-sys-tertiary-rgb), 0.3);
+        background-color: #0097a7; // Darker cyan on hover
+        box-shadow: 0 4px 16px rgba(0, 172, 193, 0.3);
       }
     }
 
     &.status-button-ongoing {
-      background-color: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
+      background-color: #4caf50; // Green for "Prête" button
+      color: white;
 
       &:hover:not(:disabled) {
-        background-color: var(--mat-sys-primary-container);
-        box-shadow: 0 4px 16px rgba(var(--mat-sys-primary-rgb), 0.3);
+        background-color: #45a049; // Darker green on hover
+        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
       }
     }
 
     &.status-button-done {
-      background-color: #4caf50;
+      background-color: #66bb6a; // Lighter green for "Récupérée" button
       color: white;
 
       &:hover:not(:disabled) {
-        background-color: #66bb6a; // Material Green 400
-        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+        background-color: #81c784; // Even lighter green on hover
+        box-shadow: 0 4px 16px rgba(102, 187, 106, 0.3);
       }
     }
   }

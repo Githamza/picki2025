@@ -660,6 +660,32 @@ export class SupabaseService implements OnDestroy {
     }
   }
 
+  async getVendorByCustomDomain(customDomain: string) {
+    try {
+      const normalized = (customDomain || '').trim().toLowerCase();
+      if (!normalized) return null;
+
+      // Column name requested is "customDomain" (case-sensitive in Postgres when quoted).
+      // We use ilike for case-insensitive match.
+      const { data, error } = await this.supabase
+        .from('vendors')
+        .select('*')
+        .ilike('customDomain', normalized)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Error getting vendor by custom domain:', error);
+        throw error;
+      }
+
+      return data ?? null;
+    } catch (error) {
+      console.error('❌ Exception getting vendor by custom domain:', error);
+      throw error;
+    }
+  }
+
   // Note: Vendor management methods have been moved to SupabaseAuthService
   // This service is for anonymous/public operations only
 

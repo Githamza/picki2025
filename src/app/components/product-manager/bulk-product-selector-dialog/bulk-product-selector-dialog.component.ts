@@ -47,7 +47,7 @@ export interface BulkSelectorResult {
     <div class="dialog-header">
       <h2 mat-dialog-title>
         <mat-icon>playlist_add</mat-icon>
-        Ajouter des produits à l'étape : {{ data.stepName }}
+       <span> Ajouter des produits à l'étape : {{ data.stepName }} </span>
       </h2>
       <button mat-icon-button mat-dialog-close>
         <mat-icon>close</mat-icon>
@@ -67,17 +67,31 @@ export interface BulkSelectorResult {
       </mat-form-field>
 
       <!-- Selection Summary -->
-      <div class="selection-summary" *ngIf="selectedProducts.size > 0">
+      <div class="selection-summary" *ngIf="hasSelectableFilteredProducts()">
         <div class="summary-header">
-          <span class="count"
+          <span class="count" *ngIf="selectedProducts.size > 0"
             >{{ selectedProducts.size }} produit(s) sélectionné(s)</span
           >
-          <button mat-button color="warn" (click)="clearSelection()">
-            <mat-icon>clear_all</mat-icon>
-            Tout désélectionner
-          </button>
+          <span class="count" *ngIf="selectedProducts.size === 0"
+            >{{ getSelectableFilteredProductsCount() }} produit(s) disponible(s)</span
+          >
+          <div class="action-buttons">
+            <button 
+              mat-button 
+              color="warn" 
+              (click)="clearSelection()"
+              *ngIf="selectedProducts.size > 0"
+            >
+              <mat-icon>clear_all</mat-icon>
+              Tout désélectionner
+            </button>
+            <button mat-button color="primary" (click)="selectAllFilteredProducts()">
+              <mat-icon>select_all</mat-icon>
+              Tout sélectionner
+            </button>
+          </div>
         </div>
-        <div class="selected-chips">
+        <div class="selected-chips" *ngIf="selectedProducts.size > 0">
           <mat-chip
             *ngFor="let product of getSelectedProductsList()"
             (removed)="toggleProduct(product)"
@@ -183,6 +197,12 @@ export interface BulkSelectorResult {
         margin: 0;
         font-size: 1.25rem;
         font-weight: 500;
+        flex-wrap: wrap;
+      }
+
+      .dialog-header h2 span {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
 
       .dialog-content {
@@ -209,6 +229,12 @@ export interface BulkSelectorResult {
         justify-content: space-between;
         align-items: center;
         margin-bottom: 12px;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
       }
 
       .count {
@@ -371,6 +397,21 @@ export interface BulkSelectorResult {
           width: 100%;
         }
 
+        .dialog-header {
+          flex-wrap: wrap;
+        }
+
+        .dialog-header h2 {
+          flex: 1;
+          min-width: 0;
+          font-size: 1rem;
+        }
+
+        .dialog-header h2 span {
+          flex: 1;
+          min-width: 0;
+        }
+
         .products-grid {
           grid-template-columns: 1fr;
         }
@@ -401,8 +442,7 @@ export class BulkProductSelectorDialogComponent implements OnInit {
     // Setup filtered products observable
     this.filteredProducts$ = this.searchControl.valueChanges.pipe(
       startWith(''),
-      map((searchTerm) => this.filterProducts(searchTerm || '')),
-      startWith(this.data.products || [])
+      map((searchTerm) => this.filterProducts(searchTerm || ''))
     );
   }
 
@@ -442,6 +482,18 @@ export class BulkProductSelectorDialogComponent implements OnInit {
     );
   }
 
+  getSelectableFilteredProductsCount(): number {
+    const searchTerm = this.searchControl.value || '';
+    const filteredProducts = this.filterProducts(searchTerm);
+    return filteredProducts.filter(
+      (product) => !this.isProductAlreadyInStep(product.id)
+    ).length;
+  }
+
+  hasSelectableFilteredProducts(): boolean {
+    return this.getSelectableFilteredProductsCount() > 0;
+  }
+
   addSelectedProducts(): void {
     const selectedProducts = this.getSelectedProductsList();
     this.dialogRef.close({ selectedProducts });
@@ -453,5 +505,18 @@ export class BulkProductSelectorDialogComponent implements OnInit {
 
   trackByProductId(index: number, product: ProductAdmin): number {
     return product.id;
+  }
+  selectAllFilteredProducts(): void {
+    // Get the current search term and filter products synchronously
+    // This ensures we select exactly what's currently displayed
+    const searchTerm = this.searchControl.value || '';
+    const filteredProducts = this.filterProducts(searchTerm);
+    
+    filteredProducts.forEach((product) => {
+      // Only select products that are not already in the step
+      if (!this.isProductAlreadyInStep(product.id)) {
+        this.selectedProducts.add(product.id);
+      }
+    });
   }
 }

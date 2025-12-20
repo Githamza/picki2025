@@ -52,18 +52,78 @@ export class VendorService {
   private vendorsSubject = new BehaviorSubject<Vendor[]>([]);
   public vendors$ = this.vendorsSubject.asObservable();
 
+  // Cache management
+  private vendorsCache: Vendor[] | null = null;
+  private cacheTimestamp: number = 0;
+  private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes cache
+  private loadingPromise: Promise<void> | null = null;
+  private apiCallCount = 0; // Track API calls for debugging
+
   async loadVendors(): Promise<void> {
+    // Check if we already have a loading in progress
+    if (this.loadingPromise) {
+      console.log('🔄 Vendors already loading, waiting for existing request...');
+      return this.loadingPromise;
+    }
+
+    // Check if cache is still valid
+    const now = Date.now();
+    const isCacheValid = this.vendorsCache && 
+      (now - this.cacheTimestamp) < this.CACHE_DURATION_MS &&
+      this.vendorsCache.length > 0;
+
+    if (isCacheValid) {
+      console.log('✅ Using cached vendors data (cache age:', 
+        Math.round((now - this.cacheTimestamp) / 1000), 'seconds)');
+      
+      // Update subjects with cached data
+      this.vendorsSubject.next([...this.vendorsCache!]);
+      this.updateOrdersSuspendedStatus(this.vendorsCache!);
+      
+      // Set current vendor if not already set
+      if (!this.currentVendorSubject.value && this.vendorsCache!.length > 0) {
+        this.currentVendorSubject.next(this.vendorsCache![0]);
+      }
+      return;
+    }
+
+    console.log('🚀 Loading vendors from database...');
+    
+    // Create a shared loading promise to coordinate concurrent calls
+    this.loadingPromise = this.loadVendorsInternal()
+      .finally(() => {
+        // Clear the loading promise when done
+        this.loadingPromise = null;
+      });
+
+    return this.loadingPromise;
+  }
+
+  private async loadVendorsInternal(): Promise<void> {
     try {
+      this.apiCallCount++;
+      console.log(`📊 API Call #${this.apiCallCount} to getAllVendors()`);
+      
       const vendors = await this.supabaseService.getAllVendors();
-      this.vendorsSubject.next(vendors || []);
-      this.updateOrdersSuspendedStatus(vendors || []);
+      const vendorsData = vendors || [];
+      
+      // Update cache
+      this.vendorsCache = [...vendorsData];
+      this.cacheTimestamp = Date.now();
+      
+      // Update subjects
+      this.vendorsSubject.next(vendorsData);
+      this.updateOrdersSuspendedStatus(vendorsData);
 
       // If no current vendor is set and we have vendors, set the first one as current
-      if (!this.currentVendorSubject.value && vendors && vendors.length > 0) {
-        this.currentVendorSubject.next(vendors[0]);
+      if (!this.currentVendorSubject.value && vendorsData.length > 0) {
+        this.currentVendorSubject.next(vendorsData[0]);
       }
+      
+      console.log(`✅ Vendors loaded successfully: ${vendorsData.length} vendors (API Call #${this.apiCallCount})`);
     } catch (error) {
-      console.error('Error loading vendors:', error);
+      console.error('❌ Error loading vendors:', error);
+      throw error;
     }
   }
 
@@ -80,26 +140,103 @@ export class VendorService {
   // Set current vendor by slug
   setCurrentVendorBySlug(slug: string): Observable<Vendor | null> {
     return new Observable((observer) => {
-      this.loadVendors()
-        .then(() => {
-          const vendors = this.vendorsSubject.value;
-          const vendor = vendors.find(
-            (v) => this.createSlug(v.business_name) === slug
-          );
+      // Check if we already have vendors loaded
+      const currentVendors = this.vendorsSubject.value;
+      
+      if (currentVendors.length > 0) {
+        console.log(`🔍 Vendor data already available, searching for slug: ${slug}`);
+        const vendor = currentVendors.find(
+          (v) => this.createSlug(v.business_name) === slug
+        );
 
+        if (vendor) {
+          console.log(`✅ Vendor found in existing data: ${vendor.business_name}`);
+          this.currentVendorSubject.next(vendor);
+          observer.next(vendor);
+        } else {
+          console.log(`❌ Vendor not found in existing data: ${slug}`);
+          this.currentVendorSubject.next(null);
+          observer.next(null);
+        }
+        observer.complete();
+      } else {
+        console.log(`🔍 No vendor data available, loading vendors for slug: ${slug}`);
+        // Load vendors if not already available
+        this.loadVendors()
+          .then(() => {
+            const vendors = this.vendorsSubject.value;
+            const vendor = vendors.find(
+              (v) => this.createSlug(v.business_name) === slug
+            );
+
+            if (vendor) {
+              console.log(`✅ Vendor found after loading: ${vendor.business_name}`);
+              this.currentVendorSubject.next(vendor);
+              observer.next(vendor);
+            } else {
+              console.log(`❌ Vendor not found after loading: ${slug}`);
+              this.currentVendorSubject.next(null);
+              observer.next(null);
+            }
+            observer.complete();
+          })
+          .catch((error) => {
+            console.error('❌ Error loading vendors:', error);
+            observer.error(error);
+          });
+      }
+    });
+  }
+
+  /**
+   * Set current vendor by custom domain (e.g. "granola.fr").
+   * The provided domain should already have "www." stripped and be lower-cased.
+   */
+  setCurrentVendorByCustomDomain(customDomain: string): Observable<Vendor | null> {
+    return new Observable((observer) => {
+      const normalized = (customDomain || '').trim().toLowerCase();
+
+      if (!normalized) {
+        this.currentVendorSubject.next(null);
+        observer.next(null);
+        observer.complete();
+        return;
+      }
+
+      // If current vendor already matches, return early
+      const currentVendor = this.currentVendorSubject.value;
+      if (
+        currentVendor &&
+        (currentVendor.customDomain || '').toString().toLowerCase() === normalized
+      ) {
+        observer.next(currentVendor);
+        observer.complete();
+        return;
+      }
+
+      this.supabaseService
+        .getVendorByCustomDomain(normalized)
+        .then((vendor) => {
           if (vendor) {
-            // Set vendor regardless of active status
             this.currentVendorSubject.next(vendor);
+            // Populate vendors list/cache minimally so downstream code has vendor context.
+            this.vendorsSubject.next([vendor]);
+            this.vendorsCache = [vendor];
+            this.cacheTimestamp = Date.now();
+            this.updateOrdersSuspendedStatus([vendor]);
+
+            // Keep auth service vendor context in sync where relevant.
+            this.supabaseAuthService.setCurrentVendorId(vendor.id);
+
             observer.next(vendor);
           } else {
-            // Only set null if vendor not found
             this.currentVendorSubject.next(null);
             observer.next(null);
           }
           observer.complete();
         })
         .catch((error) => {
-          console.error('Error loading vendors:', error);
+          console.error('❌ Error resolving vendor by custom domain:', error);
           observer.error(error);
         });
     });
@@ -149,6 +286,9 @@ export class VendorService {
         newStatus
       );
 
+      // Clear cache since data has changed
+      this.clearCache();
+
       // Update the current vendor's local state
       const updatedVendor = { ...currentVendor, is_active: newStatus };
       this.currentVendorSubject.next(updatedVendor);
@@ -175,6 +315,8 @@ export class VendorService {
   async updateVendorStatus(vendorId: string, isActive: boolean): Promise<void> {
     try {
       await this.supabaseAuthService.updateVendorStatus(vendorId, isActive);
+      // Clear cache since data has changed, then reload
+      this.clearCache();
       await this.loadVendors();
     } catch (error) {
       console.error('Error updating vendor status:', error);
@@ -185,6 +327,8 @@ export class VendorService {
   async updateVendorLogo(vendorId: string, logoUrl: string): Promise<void> {
     try {
       await this.supabaseAuthService.updateVendorLogo(vendorId, logoUrl);
+      // Clear cache since data has changed, then reload
+      this.clearCache();
       await this.loadVendors();
     } catch (error) {
       console.error('Error updating vendor logo:', error);
@@ -203,6 +347,24 @@ export class VendorService {
 
   getTotalVendorsCount(): number {
     return this.vendorsSubject.value.length;
+  }
+
+  // Clear vendor cache (use after updates)
+  clearCache(): void {
+    console.log('🗑️ Clearing vendor cache...');
+    this.vendorsCache = null;
+    this.cacheTimestamp = 0;
+    this.loadingPromise = null;
+  }
+
+  // Get API call count for debugging
+  getApiCallCount(): number {
+    return this.apiCallCount;
+  }
+
+  // Reset API call count for debugging
+  resetApiCallCount(): void {
+    this.apiCallCount = 0;
   }
 
   // Test method to trigger getRestaurantInfo with detailed logging

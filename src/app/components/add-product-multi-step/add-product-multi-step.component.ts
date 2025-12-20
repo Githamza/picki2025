@@ -62,11 +62,20 @@ import {
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { ProductOptionCardComponent } from './product-option-card/product-option-card.component';
 import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
+import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData, CustomisationSelectionResult } from './customisation-selection-dialog/customisation-selection-dialog.component';
+import { ProductService, Product } from '../../services/product.service';
+import { Customisation } from '../../models/customisation.interface';
 
 // Interface for summary data
 interface StepSummary {
   step: ProductStep;
   selectedOptions: ProductStepOption[];
+}
+
+// Interface to track customization selections per option
+interface OptionCustomisationSelection {
+  optionId: number;
+  customisationSelections: Map<number, number[]>;
 }
 
 @Component({
@@ -109,6 +118,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private vendorNavigation = inject(VendorNavigationService);
   private breakpointObserver = inject(BreakpointObserver);
   private dialog = inject(MatDialog);
+  private productService = inject(ProductService);
 
   // Observables
   configuration$ = this.store.select(
@@ -207,6 +217,9 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   quantity: number = 1;
   visitedSteps: Set<number> = new Set(); // Track which steps have been visited
   comment = signal(''); // Comment for the menu
+  
+  // Track customisation selections for each step option
+  optionCustomisationSelections = new Map<string, Map<number, number[]>>(); // Key: `${stepId}-${optionId}`
 
   ngOnInit(): void {
     this.store.dispatch(
@@ -250,6 +263,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.visitedSteps.clear(); // Clear visited steps tracking
+    this.optionCustomisationSelections.clear(); // Clear customisation selections
     this.store.dispatch(MultiStepProductActions.resetConfiguration());
   }
 
@@ -359,12 +373,13 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
               MultiStepProductActions.addMultiStepProductToCart({
                 configuration,
                 comment: this.comment().trim() || undefined,
+                optionCustomisationSelections: this.optionCustomisationSelections,
               })
             );
           }
 
           // Navigate back to products or show success message
-          this.vendorNavigation.navigateWithVendor(['products']);
+          this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
         }
       });
   }
@@ -385,7 +400,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   removeItem(): void {
     this.quantity = 0;
     // Navigate back to products page
-    this.vendorNavigation.navigateWithVendor(['products']);
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 
   // Helper methods for template
@@ -410,7 +425,25 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   }
 
   // Card selection methods
-  onSingleSelectCard(step: ProductStep, optionId: number): void {
+  async onSingleSelectCard(step: ProductStep, optionId: number): Promise<void> {
+    const option = step.options.find(opt => opt.id === optionId);
+    if (!option) return;
+
+    // Check if this is a product option that might have customisations
+    if (option.optionType === 'product' && option.productId) {
+      // Check if the option is already selected
+      const form = this.stepForms[step.id];
+      const currentlySelected = form?.get('selectedOption')?.value === optionId.toString();
+      
+      // Fetch product details to check for customisations
+      const hasCustomisations = await this.checkAndHandleCustomisations(step, option, currentlySelected);
+      
+      // If customisation dialog was cancelled, don't select the option
+      if (hasCustomisations === false) {
+        return;
+      }
+    }
+
     const form = this.stepForms[step.id];
     if (form) {
       form.get('selectedOption')?.setValue(optionId.toString());
@@ -422,26 +455,46 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     }
   }
 
-  onMultiSelectCard(step: ProductStep, optionId: number): void {
+  async onMultiSelectCard(step: ProductStep, optionId: number): Promise<void> {
+    const option = step.options.find(opt => opt.id === optionId);
+    if (!option) return;
+
     const form = this.stepForms[step.id];
-    if (form) {
-      const optionsControl = form.get('options');
-      if (optionsControl) {
-        const currentValue = optionsControl.get(optionId.toString())?.value;
-        optionsControl.get(optionId.toString())?.setValue(!currentValue);
-        
-        // Count selected options after toggle
-        const selectedCount = Object.keys(optionsControl.value).filter(
-          (key) => optionsControl.value[key] === true
-        ).length;
-        
-        // If max selections reached, auto-advance to next step
-        if (step.maxSelections && selectedCount === step.maxSelections) {
-          setTimeout(() => {
-            this.goNext();
-          }, 500);
-        }
+    if (!form) return;
+
+    const optionsControl = form.get('options');
+    if (!optionsControl) return;
+
+    const currentValue = optionsControl.get(optionId.toString())?.value;
+
+    // If selecting (not deselecting) and it's a product with customisations
+    if (!currentValue && option.optionType === 'product' && option.productId) {
+      const hasCustomisations = await this.checkAndHandleCustomisations(step, option, currentValue);
+      
+      // If customisation dialog was cancelled, don't select the option
+      if (hasCustomisations === false) {
+        return;
       }
+    }
+
+    // If deselecting, clear customisation selections
+    if (currentValue) {
+      const key = this.getCustomisationKey(step.id, optionId);
+      this.optionCustomisationSelections.delete(key);
+    }
+
+    optionsControl.get(optionId.toString())?.setValue(!currentValue);
+    
+    // Count selected options after toggle
+    const selectedCount = Object.keys(optionsControl.value).filter(
+      (key) => optionsControl.value[key] === true
+    ).length;
+    
+    // If max selections reached, auto-advance to next step
+    if (step.maxSelections && selectedCount === step.maxSelections) {
+      setTimeout(() => {
+        this.goNext();
+      }, 500);
     }
   }
 
@@ -538,6 +591,73 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         top: absoluteTop - totalOffset,
         behavior: 'smooth'
       });
+    }
+  }
+
+  // Customisation handling methods
+  private getCustomisationKey(stepId: number, optionId: number): string {
+    return `${stepId}-${optionId}`;
+  }
+
+  private async checkAndHandleCustomisations(
+    step: ProductStep,
+    option: ProductStepOption,
+    isCurrentlySelected: boolean
+  ): Promise<boolean | null> {
+    if (!option.productId) return null;
+
+    try {
+      // Fetch product details with customisations
+      const product = await this.productService.getProductWithCustomisations(option.productId).toPromise();
+      
+      if (!product) return null;
+
+      // Check if product has customisations
+      if (product.hasCustomisations && product.customisations && product.customisations.length > 0) {
+        // Get existing selections if option is already selected
+        const key = this.getCustomisationKey(step.id, option.id);
+        const existingSelections = this.optionCustomisationSelections.get(key);
+
+        // Open customisation dialog
+        const dialogRef = this.dialog.open(CustomisationSelectionDialogComponent, {
+          data: {
+            product: option,
+            customisations: product.customisations,
+            existingSelections: existingSelections,
+          } as CustomisationSelectionDialogData,
+          width: '600px',
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          disableClose: false,
+        });
+
+        const result = await dialogRef.afterClosed().toPromise();
+
+        if (result) {
+          // User validated - store the selections
+          this.optionCustomisationSelections.set(key, result.selections);
+          return true;
+        } else {
+          // User cancelled - unselect the option if it was newly selected
+          if (!isCurrentlySelected) {
+            // Unselect the option
+            if (step.stepType === 'single-select') {
+              const form = this.stepForms[step.id];
+              form?.get('selectedOption')?.setValue('');
+            } else if (step.stepType === 'multi-select') {
+              const form = this.stepForms[step.id];
+              const optionsControl = form?.get('options');
+              optionsControl?.get(option.id.toString())?.setValue(false);
+            }
+          }
+          return false;
+        }
+      }
+
+      return null; // No customisations
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      return null;
     }
   }
 }

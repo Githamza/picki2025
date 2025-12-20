@@ -50,6 +50,13 @@ export interface CartMultiStepMetadata {
       optionName: string;
       productId: number;
       priceAdjustment: number;
+      customisationSelections?: {
+        customisationId: number;
+        customisationName: string;
+        selectedOptionIds: number[];
+        selectedOptionNames: string[];
+        priceAdjustments: number[];
+      }[];
     }>;
   }[];
   totalSteps: number;

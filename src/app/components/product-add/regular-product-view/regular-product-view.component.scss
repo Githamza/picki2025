@@ -27,7 +27,7 @@
   display: flex;
   flex-direction: column;
   gap: 48px;
-  flex: 1;
+  /* flex: 1; */
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -49,12 +49,10 @@
 .product-image-container {
   flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  align-self: center;
 
   .product-image {
     max-width: 400px;
-    width: 100%;
     height: auto;
     max-height: 400px;
     object-fit: contain;
@@ -65,11 +63,10 @@
 
   @media (max-width: 768px) {
     flex: none;
-    width: 100%;
-
+    align-self: center;
     .product-image {
       max-width: 100%;
-      max-height: 300px;
+      max-height: 240px;
     }
   }
 }
@@ -83,7 +80,7 @@
   @media (max-width: 768px) {
     flex: none;
     width: 100%;
-    gap: 16px;
+    gap: 0px;
   }
 }
 
@@ -100,7 +97,6 @@
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
 
   .product-short-description {
     font-size: 1.1rem;
@@ -307,8 +303,8 @@
   }
 
   .product-header {
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    margin-bottom: 0px;
+    padding-bottom: 0px;
 
     h1 {
       font-size: 1.5rem;
@@ -342,7 +338,7 @@
   }
 
   .product-content {
-    gap: 16px;
+    gap: 0px;
   }
 }
 
@@ -531,6 +527,130 @@
       .step-title {
         font-size: 1.1rem;
       }
+    }
+  }
+}
+
+// Customisations Section Styles
+.customisations-section {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.customisation-group {
+  padding: 20px;
+  background: var(--mat-sys-surface-container);
+  border-radius: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+
+  .customisation-header {
+    margin-bottom: 20px;
+    text-align: center;
+
+    .customisation-title {
+      margin: 0 0 8px 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--mat-sys-on-surface);
+    }
+
+    .customisation-description {
+      margin-bottom: 12px;
+
+      p {
+        margin: 0;
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 0.9rem;
+      }
+    }
+
+    .selection-hint {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--mat-sys-primary);
+      font-weight: 500;
+    }
+  }
+
+  .options-container {
+    .customisation-options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+}
+
+.customisation-option-item {
+  display: block;
+  padding: 12px 0;
+  width: 100%;
+
+  .option-label-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+
+    .option-name {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--mat-sys-on-surface);
+      flex: 1;
+      min-width: 0; // Allow text wrapping
+    }
+
+    .option-price {
+      font-size: 0.875rem;
+      color: var(--mat-sys-primary);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
+
+  .option-description {
+    font-size: 0.75rem;
+    color: var(--mat-sys-on-surface-variant);
+    margin-top: 4px;
+    margin-left: 0;
+    line-height: 1.4;
+    display: block;
+  }
+
+  // Disabled state styling
+  ::ng-deep &.mat-mdc-checkbox-disabled,
+  ::ng-deep &.mat-mdc-radio-button-disabled {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .customisation-group {
+    padding: 16px;
+
+    .customisation-header {
+      .customisation-title {
+        font-size: 1.1rem;
+      }
+    }
+  }
+
+  .customisation-option-item {
+    padding: 0px;
+
+    ::ng-deep .mdc-checkbox,
+    ::ng-deep .mdc-radio {
+      margin-right: 10px;
+    }
+
+    .option-description {
+      font-size: 0.7rem;
+      margin-left: 0;
+      margin-top: 6px;
     }
   }
 }

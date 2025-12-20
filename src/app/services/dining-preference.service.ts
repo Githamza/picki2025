@@ -8,7 +8,7 @@ export interface DiningPreferenceData {
   preference: DiningPreference;
   timing: OrderTiming;
   scheduledDate?: Date;
-  scheduledTime?: Date;
+  scheduledTime?: string; // Changed from Date to string to store time in HH:MM format
 }
 
 @Injectable({
@@ -52,9 +52,7 @@ export class DiningPreferenceService {
         if (data.scheduledDate) {
           data.scheduledDate = new Date(data.scheduledDate);
         }
-        if (data.scheduledTime) {
-          data.scheduledTime = new Date(data.scheduledTime);
-        }
+        // scheduledTime is already stored as string in HH:MM format, no conversion needed
         this._diningPreferenceData.set(data);
         this._hasSelectedPreference.set(true);
       } catch (e) {
@@ -70,7 +68,7 @@ export class DiningPreferenceService {
     localStorage.removeItem('dining-preference'); // Clean up old format
   }
 
-  getDiningPreferenceText(): string {
+  getDiningPreferenceText(full: boolean = true): string {
     const data = this._diningPreferenceData();
     if (!data) return '';
 
@@ -81,42 +79,48 @@ export class DiningPreferenceService {
         break;
       case 'take-away':
         text = 'À emporter';
-        if (
-          data.timing === 'later' &&
-          data.scheduledDate &&
-          data.scheduledTime
-        ) {
-          const date = new Date(data.scheduledDate);
-          const time = new Date(data.scheduledTime);
-          date.setHours(time.getHours(), time.getMinutes());
+        if (full) {
+          if (
+            data.timing === 'later' &&
+            data.scheduledDate &&
+            data.scheduledTime
+          ) {
+            const date = new Date(data.scheduledDate);
+            // Parse time string in HH:MM format
+            const [hours, minutes] = data.scheduledTime.split(':').map(Number);
+            date.setHours(hours, minutes);
 
-          const dateStr =
-            this.frenchDateService.formatDiningPreferenceDate(date);
-          const timeStr =
-            this.frenchDateService.formatDiningPreferenceTime(date);
-          text += ` - ${dateStr} à ${timeStr}`;
-        } else if (data.timing === 'asap') {
-          text += ' - Dès que possible';
+            const dateStr =
+              this.frenchDateService.formatDiningPreferenceDate(date);
+            const timeStr =
+              this.frenchDateService.formatDiningPreferenceTime(date);
+            text += ` - ${dateStr} à ${timeStr}`;
+          } else if (data.timing === 'asap') {
+            text += ' - Dès que possible';
+          }
         }
         break;
       case 'delivery':
         text = 'Livraison';
-        if (
-          data.timing === 'later' &&
-          data.scheduledDate &&
-          data.scheduledTime
-        ) {
-          const date = new Date(data.scheduledDate);
-          const time = new Date(data.scheduledTime);
-          date.setHours(time.getHours(), time.getMinutes());
+        if (full) {
+          if (
+            data.timing === 'later' &&
+            data.scheduledDate &&
+            data.scheduledTime
+          ) {
+            const date = new Date(data.scheduledDate);
+            // Parse time string in HH:MM format
+            const [hours, minutes] = data.scheduledTime.split(':').map(Number);
+            date.setHours(hours, minutes);
 
-          const dateStr =
-            this.frenchDateService.formatDiningPreferenceDate(date);
-          const timeStr =
-            this.frenchDateService.formatDiningPreferenceTime(date);
-          text += ` - ${dateStr} à ${timeStr}`;
-        } else if (data.timing === 'asap') {
-          text += ' - Dès que possible';
+            const dateStr =
+              this.frenchDateService.formatDiningPreferenceDate(date);
+            const timeStr =
+              this.frenchDateService.formatDiningPreferenceTime(date);
+            text += ` - ${dateStr} à ${timeStr}`;
+          } else if (data.timing === 'asap') {
+            text += ' - Dès que possible';
+          }
         }
         break;
     }
@@ -135,8 +139,9 @@ export class DiningPreferenceService {
     }
 
     const dateTime = new Date(data.scheduledDate);
-    const time = new Date(data.scheduledTime);
-    dateTime.setHours(time.getHours(), time.getMinutes());
+    // Parse time string in HH:MM format
+    const [hours, minutes] = data.scheduledTime.split(':').map(Number);
+    dateTime.setHours(hours, minutes);
     return dateTime;
   }
 }

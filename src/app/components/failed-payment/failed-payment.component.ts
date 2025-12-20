@@ -335,7 +335,7 @@ export class FailedPaymentComponent implements OnInit {
   }
 
   goToMenu(): void {
-    this.vendorNavigation.navigateWithVendor('products');
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 
   contactSupport(): void {

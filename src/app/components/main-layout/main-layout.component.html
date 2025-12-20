@@ -34,15 +34,8 @@
       (click)="changeDiningPreference()"
       aria-label="Changer la préférence de restauration"
     >
-      <mat-icon class="preference-icon">
-        {{
-          diningPreferenceService.diningPreference() === "eat-in"
-            ? "restaurant"
-            : "takeout_dining"
-        }}
-      </mat-icon>
       <span class="preference-text">{{
-        diningPreferenceService.getDiningPreferenceText()
+        diningPreferenceService.getDiningPreferenceText(!(isHandset$ | async))
       }}</span>
       <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
     </button>

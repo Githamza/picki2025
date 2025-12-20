@@ -156,6 +156,6 @@ export class HorizontalCategoryMenuComponent implements OnInit {
       .replace(/[^a-z0-9-]/g, '');
 
     // Use vendor-aware navigation
-    this.vendorNavigation.navigateWithVendor([kebab, 'products']);
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', kebab, 'products']);
   }
 }

@@ -39,35 +39,85 @@
       </div>
     </div>
 
-    <!-- Single-Step Product Options -->
+    <!-- Customisations Section -->
     <div
-      class="step-options-section"
-      *ngIf="isSingleStepProduct && currentStep"
+      class="customisations-section"
+      *ngIf="product.hasCustomisations && productCustomisations.length > 0"
     >
-      <div class="step-header">
-        <h3 class="step-title">{{ currentStep.name }}</h3>
-        <div class="step-description" *ngIf="currentStep.description">
-          <p>{{ currentStep.description }}</p>
+      @for (customisation of productCustomisations; track customisation.id) {
+      <div class="customisation-group">
+        <div class="customisation-header">
+          <h3 class="customisation-title">{{ customisation.name }}</h3>
+          <div
+            class="customisation-description"
+            *ngIf="customisation.description"
+          >
+            <p>{{ customisation.description }}</p>
+          </div>
+          <div class="selection-info">
+            <p class="selection-hint">
+              {{ getCustomisationHint(customisation) }}
+            </p>
+          </div>
         </div>
-        <div class="selection-info">
-          <p class="selection-hint">{{ getSelectionHint() }}</p>
-        </div>
-      </div>
 
-      <!-- Options List -->
-      <div class="options-container">
-        <div class="option-cards-grid">
-          <app-product-option-card
-            *ngFor="let option of stepOptions; trackBy: trackByOptionId"
-            [option]="option"
-            [step]="currentStep!"
-            [isSelected]="isOptionSelected(option.id)"
-            [isDisabled]="!option.isAvailable"
-            (optionClicked)="onOptionCardClicked($event)"
-            (imageClicked)="onImageClicked($event)"
-          ></app-product-option-card>
+        <!-- Options List -->
+        <div class="options-container">
+          @if (customisation.selection_type === 'single-select') {
+          <mat-radio-group
+            [value]="getSelectedOptionId(customisation.id)"
+            (change)="onRadioChange(customisation, $event)"
+            class="customisation-options-list"
+          >
+            @for (option of customisation.options; track option.id) {
+            <mat-radio-button
+              [value]="option.id"
+              [disabled]="!option.is_available"
+              class="customisation-option-item"
+            >
+              <div class="option-label-content">
+                <span class="option-name">{{ option.name }}</span>
+                @if (option.price_adjustment && option.price_adjustment > 0) {
+                <span class="option-price">
+                  +{{ option.price_adjustment.toFixed(2) }} €
+                </span>
+                }
+              </div>
+              @if (option.description) {
+              <div class="option-description">{{ option.description }}</div>
+              }
+            </mat-radio-button>
+            }
+          </mat-radio-group>
+          } @else {
+          <div class="customisation-options-list">
+            @for (option of customisation.options; track option.id) {
+            <mat-checkbox
+              [checked]="
+                isCustomisationOptionSelected(customisation.id, option.id)
+              "
+              [disabled]="!option.is_available"
+              (change)="onCheckboxChange(customisation, option, $event)"
+              class="customisation-option-item"
+            >
+              <div class="option-label-content">
+                <span class="option-name">{{ option.name }}</span>
+                @if (option.price_adjustment && option.price_adjustment > 0) {
+                <span class="option-price">
+                  +{{ option.price_adjustment.toFixed(2) }} €
+                </span>
+                }
+              </div>
+              @if (option.description) {
+              <div class="option-description">{{ option.description }}</div>
+              }
+            </mat-checkbox>
+            }
+          </div>
+          }
         </div>
       </div>
+      }
     </div>
   </div>
 
@@ -122,10 +172,12 @@
       >
         <mat-icon>shopping_cart</mat-icon>
         <div class="button-content">
-          <span class="button-text">Ajouter au panier</span>
-          <span class="" *ngIf="isSingleStepProduct && totalPrice > 0">
-            {{ formatPrice(totalPrice) }}
-          </span>
+          <span class="button-text"
+            >Ajouter au panier
+            <span class="" *ngIf="totalPrice > 0">
+              {{ formatPrice(totalPrice) }}
+            </span></span
+          >
         </div>
       </button>
     </div>

@@ -35,164 +35,194 @@ import { EmailService } from '../../services/email.service';
       <mat-card class="payment-card">
         <mat-card-content>
           <div *ngIf="!isProcessing; else processing">
-            <div class="success-icon">
-              <mat-icon class="success-icon-svg">check_circle</mat-icon>
-            </div>
-            <h1>Paiement réussi !</h1>
-            <p class="success-message">
-              Votre commande a été confirmée avec succès.
-            </p>
-
-            <!-- Order Information -->
-            <div class="order-details" *ngIf="orderDetails">
-              <div class="order-header">
-                <h2>Détails de la commande</h2>
-                <div class="order-meta">
-                  <p class="order-info order-number">
-                    <strong>Nº:</strong> {{ orderDetails.orderNumber }}
-                  </p>
-                  <p class="order-info">
-                    {{ getOrderTypeText(orderDetails.orderType) }}
-                  </p>
-                  <p class="order-info" *ngIf="orderDetails.timing">
-                    {{ getTimingText(orderDetails.timing) }}
-                  </p>
-                  <p class="order-info" *ngIf="orderDetails.scheduledTime">
-                    <strong>Heure prévue:</strong>
-                    {{ orderDetails.scheduledTime | date : 'short' : 'fr-FR' }}
-                  </p>
-                  <h1
-                    class="status-badge"
-                    [ngClass]="'status-' + orderDetails.status"
-                  >
-                    {{ getStatusText(orderDetails.status) }}
-                  </h1>
-                </div>
-              </div>
-
-              <!-- Delivery Information -->
-              <div
-                class="delivery-info"
-                *ngIf="orderDetails?.orderType === 'delivery' && deliveryInfo"
-              >
-                <h3>Informations de livraison</h3>
+            <!-- Show warning if payment details error -->
+            <div *ngIf="paymentDetailsError" class="global-error-banner">
+              <mat-icon>error</mat-icon>
+              <div class="error-text">
+                <h3>Impossible de récupérer les informations de paiement</h3>
                 <p>
-                  <strong>Statut:</strong>
-                  {{ getDeliveryStatusText(deliveryInfo?.status) }}
+                  Une erreur s'est produite lors de la récupération des détails de votre paiement.
+                  <span *ngIf="orderDetails">
+                    Votre commande <strong>#{{ orderDetails.orderNumber }}</strong> a été enregistrée.
+                  </span>
+                  <span *ngIf="!orderDetails">
+                    Veuillez vérifier votre email de confirmation ou contacter le restaurant directement.
+                  </span>
                 </p>
-                <p *ngIf="etaRemainingMinutes !== undefined">
-                  <strong>Arrivée estimée:</strong>
-                  dans {{ etaRemainingMinutes }} min
-                </p>
-                <div
-                  *ngIf="deliveryInfo?.tracking_url"
-                  class="tracking-section"
-                >
-                  <p>
-                    <a
-                      mat-button
-                      [href]="deliveryInfo.tracking_url"
-                      rel="noopener"
-                      target="_blank"
-                      >Ouvrir le suivi dans un nouvel onglet</a
+              </div>
+            </div>
+
+            <!-- Only show success indicators if no payment error -->
+            <div *ngIf="!paymentDetailsError">
+              <div class="success-icon">
+                <mat-icon class="success-icon-svg">check_circle</mat-icon>
+              </div>
+              <h1>Paiement réussi !</h1>
+              <p class="success-message">
+                Votre commande a été confirmée avec succès.
+              </p>
+              <!-- Order Information -->
+              <div class="order-details" *ngIf="orderDetails">
+                <div class="order-header">
+                  <h2>Détails de la commande</h2>
+                  <div class="order-meta">
+                    <p class="order-info order-number">
+                      <strong>Nº:</strong> {{ orderDetails.orderNumber }}
+                    </p>
+                    <p class="order-info">
+                      {{ getOrderTypeText(orderDetails.orderType) }}
+                    </p>
+                    <p class="order-info" *ngIf="orderDetails.timing">
+                      {{ getTimingText(orderDetails.timing) }}
+                    </p>
+                    <p class="order-info" *ngIf="orderDetails.scheduledTime">
+                      <strong>Heure prévue:</strong>
+                      {{ orderDetails.scheduledTime | date : 'short' : 'fr-FR' }}
+                    </p>
+                    <h1
+                      class="status-badge"
+                      [ngClass]="'status-' + orderDetails.status"
                     >
+                      {{ getStatusText(orderDetails.status) }}
+                    </h1>
+                  </div>
+                </div>
+  
+                <!-- Delivery Information -->
+                <div
+                  class="delivery-info"
+                  *ngIf="orderDetails?.orderType === 'delivery' && deliveryInfo"
+                >
+                  <h3>Informations de livraison</h3>
+                  <p>
+                    <strong>Statut:</strong>
+                    {{ getDeliveryStatusText(deliveryInfo?.status) }}
+                  </p>
+                  <p *ngIf="etaRemainingMinutes !== undefined">
+                    <strong>Arrivée estimée:</strong>
+                    dans {{ etaRemainingMinutes }} min
                   </p>
                   <div
-                    class="tracking-iframe-container"
-                    *ngIf="
-                      getSafeTrackingUrl() &&
-                      !deliveryInfo?.tracking_url?.includes('uber.com')
-                    "
+                    *ngIf="deliveryInfo?.tracking_url"
+                    class="tracking-section"
                   >
-                    <iframe
-                      [src]="getSafeTrackingUrl()"
-                      class="tracking-iframe"
-                      frameborder="0"
-                      allowfullscreen
-                      referrerpolicy="no-referrer-when-downgrade"
-                      sandbox="allow-scripts allow-same-origin allow-forms"
-                      loading="lazy"
-                      title="Suivi de livraison"
+                    <p>
+                      <a
+                        mat-button
+                        [href]="deliveryInfo.tracking_url"
+                        rel="noopener"
+                        target="_blank"
+                        >Ouvrir le suivi dans un nouvel onglet</a
+                      >
+                    </p>
+                    <div
+                      class="tracking-iframe-container"
+                      *ngIf="
+                        getSafeTrackingUrl() &&
+                        !deliveryInfo?.tracking_url?.includes('uber.com')
+                      "
                     >
-                    </iframe>
+                      <iframe
+                        [src]="getSafeTrackingUrl()"
+                        class="tracking-iframe"
+                        frameborder="0"
+                        allowfullscreen
+                        referrerpolicy="no-referrer-when-downgrade"
+                        sandbox="allow-scripts allow-same-origin allow-forms"
+                        loading="lazy"
+                        title="Suivi de livraison"
+                      >
+                      </iframe>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <!-- Customer Information -->
-              <div class="customer-info" *ngIf="orderDetails.customer">
-                <h3>Informations client</h3>
-                <p>
-                  <strong>Nom:</strong> {{ orderDetails.customer.firstName }}
-                  {{ orderDetails.customer.lastName }}
-                </p>
-                <p><strong>Email:</strong> {{ orderDetails.customer.email }}</p>
-                <p *ngIf="orderDetails.customer.phone">
-                  <strong>Téléphone:</strong> {{ orderDetails.customer.phone }}
-                </p>
-              </div>
-
-              <!-- Order Items -->
-              <div class="order-items">
-                <h3>Articles commandés</h3>
-                <div class="items-list">
-                  <div class="item" *ngFor="let item of orderDetails.items">
-                    <div class="item-info">
-                      <span class="item-name">{{ item.productName }}</span>
-                      <span class="item-quantity">x{{ item.quantity }}</span>
+  
+                <!-- Customer Information -->
+                <div class="customer-info" *ngIf="orderDetails.customer">
+                  <h3>Informations client</h3>
+                  <p>
+                    <strong>Nom:</strong> {{ orderDetails.customer.firstName }}
+                    {{ orderDetails.customer.lastName }}
+                  </p>
+                  <p><strong>Email:</strong> {{ orderDetails.customer.email }}</p>
+                  <p *ngIf="orderDetails.customer.phone">
+                    <strong>Téléphone:</strong> {{ orderDetails.customer.phone }}
+                  </p>
+                </div>
+  
+                <!-- Order Items -->
+                <div class="order-items">
+                  <h3>Articles commandés</h3>
+                  <div class="items-list">
+                    <div class="item" *ngFor="let item of orderDetails.items">
+                      <div class="item-info">
+                        <span class="item-name">{{ item.productName }}</span>
+                        <span class="item-quantity">x{{ item.quantity }}</span>
+                      </div>
+                      <div class="item-price">
+                        {{
+                          item.price * item.quantity
+                            | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
+                        }}
+                      </div>
                     </div>
-                    <div class="item-price">
+                  </div>
+  
+                  <div class="total">
+                    <strong
+                      >Total:
                       {{
-                        item.price * item.quantity
+                        orderDetails.totalAmount
                           | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
-                      }}
-                    </div>
+                      }}</strong
+                    >
                   </div>
                 </div>
-
-                <div class="total">
-                  <strong
-                    >Total:
+  
+                <!-- Payment Information -->
+                <div class="payment-info" *ngIf="paymentDetails && !paymentDetailsError">
+                  <h3>Informations de paiement</h3>
+                  <p><strong>Méthode:</strong> {{ getPaymentMethodText() }}</p>
+                  <p>
+                    <strong>Montant:</strong>
                     {{
-                      orderDetails.totalAmount
+                      paymentDetails.amount
                         | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
-                    }}</strong
-                  >
+                    }}
+                  </p>
+                  <p><strong>Statut:</strong> {{ paymentDetails.status }}</p>
+                  <p *ngIf="paymentDetails.platforms?.length">
+                    <strong>Plateforme:</strong> {{ paymentDetails.platforms[0] }}
+                  </p>
                 </div>
-              </div>
-
-              <!-- Payment Information -->
-              <div class="payment-info" *ngIf="paymentDetails">
-                <h3>Informations de paiement</h3>
-                <p><strong>Méthode:</strong> {{ getPaymentMethodText() }}</p>
-                <p>
-                  <strong>Montant:</strong>
-                  {{
-                    paymentDetails.amount
-                      | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
-                  }}
-                </p>
-                <p><strong>Statut:</strong> {{ paymentDetails.status }}</p>
-                <p *ngIf="paymentDetails.platforms?.length">
-                  <strong>Plateforme:</strong> {{ paymentDetails.platforms[0] }}
-                </p>
-              </div>
-
-              <!-- Notes -->
-              <div class="order-notes" *ngIf="orderDetails.notes">
-                <h3>Notes</h3>
-                <p>{{ orderDetails.notes }}</p>
+  
+                <!-- Notes -->
+                <div class="order-notes" *ngIf="orderDetails.notes">
+                  <h3>Notes</h3>
+                  <p>{{ orderDetails.notes }}</p>
+                </div>
+  
+                <!-- Refuse Reason -->
+                <div class="refuse-reason" *ngIf="orderDetails.status === 'refused' && orderDetails.refuse_reason">
+                  <h3>Motif de refus</h3>
+                  <p>{{ orderDetails.refuse_reason }}</p>
+                </div>
               </div>
             </div>
 
-            <!-- Fallback order number display -->
-            <p class="order-info" *ngIf="orderNumber && !orderDetails">
-              Numéro de commande: <strong>{{ orderNumber }}</strong>
-            </p>
 
-            <p class="order-info">
-              Un email de confirmation vous a été envoyé.
-            </p>
+            <!-- Fallback order number display -->
+            @if(paymentDetails && orderNumber && !orderDetails) {
+
+              <p class="order-info" >
+                Numéro de commande: <strong>{{ orderNumber }}</strong>
+                
+              </p>
+              <p class="order-info">
+                Un email de confirmation vous a été envoyé.
+              </p>
+            }
+
 
             <div class="action-buttons">
               <button
@@ -231,6 +261,44 @@ import { EmailService } from '../../services/email.service';
         width: 100%;
         text-align: center;
         padding: 40px 20px;
+      }
+
+      .global-error-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+        margin-bottom: 30px;
+        background-color: #ffebee;
+        border: 1px solid #ef5350;
+        border-radius: 8px;
+        text-align: left;
+
+        mat-icon {
+          color: #d32f2f;
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+          flex-shrink: 0;
+        }
+
+        .error-text {
+          flex: 1;
+
+          h3 {
+            margin: 0 0 8px 0;
+            color: #c62828;
+            font-size: 18px;
+            font-weight: 600;
+          }
+
+          p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+        }
       }
 
       .success-icon {
@@ -291,14 +359,33 @@ import { EmailService } from '../../services/email.service';
         border-left: 4px solid #4caf50;
       }
 
+      .refuse-reason {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #ffebee;
+        border-radius: 6px;
+        border-left: 4px solid #f44336;
+      }
+
       .customer-info h3,
       .order-items h3,
       .payment-info h3,
       .delivery-info h3,
-      .order-notes h3 {
+      .order-notes h3,
+      .refuse-reason h3 {
         color: #333;
         margin: 0 0 15px 0;
         font-size: 18px;
+      }
+
+      .refuse-reason h3 {
+        color: #c62828;
+      }
+
+      .refuse-reason p {
+        margin: 8px 0;
+        color: #c62828;
+        font-weight: 500;
       }
 
       .items-list {
@@ -531,6 +618,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   orderNumber?: string;
   orderDetails?: Order;
   paymentDetails?: any;
+  paymentDetailsError = false;
   // Delivery display state
   deliveryInfo?: any;
   etaRemainingMinutes?: number;
@@ -672,6 +760,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       // Check if payment was successful
       if (status !== 'authorized' && status !== 'succeeded') {
         console.error('Payment was not successful:', status);
+        this.paymentDetailsError = true;
         this.isProcessing = false;
         return;
       }
@@ -749,6 +838,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         }
       } catch (error) {
         console.error('Error retrieving payment details:', error);
+        this.paymentDetailsError = true;
       }
 
       if (orderId) {
@@ -900,8 +990,9 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         metadata.scheduledTime
       ) {
         scheduledDateTime = new Date(metadata.scheduledDate);
-        const time = new Date(metadata.scheduledTime);
-        scheduledDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
+        // Parse time string in HH:MM format
+        const [hours, minutes] = metadata.scheduledTime.split(':').map(Number);
+        scheduledDateTime.setHours(hours, minutes, 0, 0);
       }
 
       // Create order object
@@ -986,12 +1077,9 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         let scheduledDateTime: Date | undefined;
         if (timing === 'later' && scheduledDate && scheduledTime) {
           scheduledDateTime = new Date(scheduledDate);
-          scheduledDateTime.setHours(
-            scheduledTime.getHours(),
-            scheduledTime.getMinutes(),
-            0,
-            0
-          );
+          // Parse time string in HH:MM format
+          const [hours, minutes] = scheduledTime.split(':').map(Number);
+          scheduledDateTime.setHours(hours, minutes, 0, 0);
         }
 
         // Create order items
@@ -1090,7 +1178,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   }
 
   navigateHome() {
-    this.vendorNavigation.navigateWithVendor('products');
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 
   getStatusText(status: string): string {
@@ -1269,13 +1357,11 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
       console.log('Sending confirmation email for order:', order.orderNumber);
 
-      // Extract vendor slug from current URL
-      let vendorSlug: string | undefined;
-      const currentPath = window.location.pathname;
-      const vendorMatch = currentPath.match(/^\/([^\/]+)\//);
-      if (vendorMatch && vendorMatch[1]) {
-        vendorSlug = vendorMatch[1];
-      }
+      // Prefer the resolved vendor context (works for both /vendor/:slug and custom domains)
+      const currentVendor = this.vendorService.getCurrentVendor();
+      const vendorSlug = currentVendor
+        ? this.vendorService.getVendorSlug(currentVendor)
+        : undefined;
 
       // Generate tracking URL
       const trackingUrl = this.emailService.generateTrackingUrl(

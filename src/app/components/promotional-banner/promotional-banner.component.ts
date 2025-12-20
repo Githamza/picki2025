@@ -3,22 +3,27 @@ import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { SupabaseAuthService } from '../../services/supabase-auth.service';
 import { VendorService } from '../../services/vendor.service';
+import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { Tables } from '../../types/supabase.types';
 import { interval, Subscription } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { AppState } from '../../store/models/app.state';
+import * as CategoryActions from '../../store/actions/category.actions';
+import { RouterOutlet } from '@angular/router';
 
 type Banner = Tables<'banners'>;
 
 @Component({
   selector: 'app-promotional-banner',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterOutlet],
   template: `
     <div class="promotional-banner" *ngIf="banners.length > 0">
       <div class="banner-container">
-        <a
-          [href]="currentBanner.link_url || '#'"
+        <div
           class="banner-link"
-          [target]="currentBanner.link_url ? '_blank' : '_self'"
+          (click)="navigateToProducts()"
+          [style.cursor]="'pointer'"
         >
           <img
             [src]="currentBanner.image_url"
@@ -28,18 +33,19 @@ type Banner = Tables<'banners'>;
           <div class="banner-overlay" *ngIf="currentBanner.title">
             <h3 class="banner-title">{{ currentBanner.title }}</h3>
           </div>
-        </a>
+        </div>
       </div>
       <div class="banner-indicators" *ngIf="banners.length > 1">
         <button
           *ngFor="let banner of banners; let i = index"
           class="indicator"
           [class.active]="i === currentIndex"
-          (click)="goToBanner(i)"
+          (click)="goToBanner(i); $event.stopPropagation()"
           [attr.aria-label]="'Go to banner ' + (i + 1)"
         ></button>
       </div>
     </div>
+    <router-outlet></router-outlet>
   `,
   styles: [
     `
@@ -136,9 +142,10 @@ type Banner = Tables<'banners'>;
   ],
 })
 export class PromotionalBannerComponent implements OnInit, OnDestroy {
-  private supabaseService = inject(SupabaseService);
   private supabaseAuthService = inject(SupabaseAuthService);
   private vendorService = inject(VendorService);
+  private vendorNavigation = inject(VendorNavigationService);
+  private store = inject(Store<AppState>);
 
   banners: Banner[] = [];
   currentIndex = 0;
@@ -204,5 +211,11 @@ export class PromotionalBannerComponent implements OnInit, OnDestroy {
   previousBanner() {
     this.currentIndex =
       this.currentIndex === 0 ? this.banners.length - 1 : this.currentIndex - 1;
+  }
+
+  navigateToProducts() {
+    // Clear selected category when navigating to products
+    this.store.dispatch(CategoryActions.clearSelectedCategory());
+    this.vendorNavigation.navigateWithVendor('promotional-banner');
   }
 }

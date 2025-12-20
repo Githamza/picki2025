@@ -63,7 +63,11 @@ export const completeConfiguration = createAction(
 // Add to cart
 export const addMultiStepProductToCart = createAction(
   '[Multi-Step Product] Add To Cart',
-  props<{ configuration: MultiStepProductConfiguration; comment?: string }>()
+  props<{ 
+    configuration: MultiStepProductConfiguration; 
+    comment?: string;
+    optionCustomisationSelections?: Map<string, Map<number, number[]>>;
+  }>()
 );
 
 export const addMultiStepProductToCartSuccess = createAction(

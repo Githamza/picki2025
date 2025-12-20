@@ -6,6 +6,11 @@
   line-height: 26px !important;
   background-color: var(--mat-sys-primary) !important;
 }
+@media (max-width: 768px) {
+  .margins-mobile {
+    margin-right: 20px;
+  }
+}
 .option-card {
   cursor: pointer;
   transition: all 0.3s ease, background-color 0.3s ease, color 0.3s ease;
@@ -102,6 +107,7 @@
               background: var(--mat-sys-surface-container-high);
               color: var(--mat-sys-inverse-on-surface);
               border-color: var(--mat-sys-outline);
+              display: none;
             }
           }
         }
@@ -162,7 +168,17 @@
         align-items: center;
         justify-content: center;
         background: var(--mat-sys-surface-variant);
-        cursor: zoom-in;
+        cursor: pointer; // Default cursor for desktop (card selection)
+
+        // Only show zoom cursor on mobile
+        &.mobile-only-zoom {
+          cursor: zoom-in;
+        }
+
+        // Ensure pointer cursor on desktop (non-mobile)
+        @media (min-width: 769px) {
+          cursor: pointer;
+        }
 
         img {
           width: 100%;
@@ -262,6 +278,7 @@
               color: var(--mat-sys-on-surface-variant);
               background-color: var(--mat-sys-surface-variant, #f5f5f5);
               font-style: italic;
+              display: none;
             }
           }
         }

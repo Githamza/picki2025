@@ -56,10 +56,6 @@ export class ProductAddComponent implements OnInit, OnDestroy {
   product: Product | undefined;
   quantity: number = 1;
 
-  // Multi-step observables
-  steps$!: Observable<any[]>;
-  isSingleStepProduct$!: Observable<boolean | null>;
-
   private destroy$ = new Subject<void>();
   private lastInitializedProductId: number | null = null;
 
@@ -111,44 +107,20 @@ export class ProductAddComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       shareReplay(1) // Share the observable to prevent multiple subscriptions
     );
+  }
 
-    // Initialize multi-step observables
-    this.steps$ = this.store
-      .select(MultiStepProductSelectors.selectProductSteps)
-      .pipe(
-        startWith([]), // Start with empty array to prevent undefined issues
-        distinctUntilChanged(
-          (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)
-        ),
-        takeUntil(this.destroy$),
-        shareReplay(1) // Share the observable to prevent multiple subscriptions
-      );
+  private navigateBackToProducts(): void {
+    const category = this.route.snapshot.paramMap.get('category');
+    if (category) {
+      this.vendorNavigation.navigateWithVendor([
+        'promotional-banner',
+        category,
+        'products',
+      ]);
+      return;
+    }
 
-    // Observable to detect if multi-step product has only one step (excluding summary)
-    this.isSingleStepProduct$ = combineLatest([
-      this.product$,
-      this.steps$,
-    ]).pipe(
-      debounceTime(0), // Ensure this runs after the current change detection cycle
-      map(([product, steps]): boolean | null => {
-        if (!product?.isMultiStep) return false;
-
-        // If no steps loaded yet, return null to indicate still loading
-        if (!steps || steps.length === 0) {
-          return null;
-        }
-
-        // Filter out summary steps and check if only one step remains
-        const nonSummarySteps = steps.filter(
-          (step) => step.stepType !== 'summary'
-        );
-        return nonSummarySteps.length === 1;
-      }),
-      distinctUntilChanged(), // Prevent unnecessary emissions
-      startWith(null), // Start with null to indicate loading state
-      takeUntil(this.destroy$),
-      shareReplay(1) // Share the observable to prevent multiple subscriptions
-    );
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 
   incrementQuantity(): void {
@@ -163,54 +135,38 @@ export class ProductAddComponent implements OnInit, OnDestroy {
 
   removeItem(): void {
     this.quantity = 0;
-    // Navigate back to products page
-    this.vendorNavigation.navigateWithVendor('products');
+    this.navigateBackToProducts();
   }
 
-  addToCart(data: { product: Product; comment?: string }): void {
+  addToCart(data: {
+    product: Product;
+    comment?: string;
+    customisationSelections?: Map<number, number[]>;
+  }): void {
     this.store.dispatch(
       addToCart({
         product: data.product,
         quantity: this.quantity,
         comment: data.comment,
+        customisationSelections: data.customisationSelections,
       })
     );
     // Navigate to the products page with smooth transition
     if (document.startViewTransition) {
       document.startViewTransition(() => {
-        this.vendorNavigation.navigateWithVendor('products');
+        this.navigateBackToProducts();
       });
     } else {
       // Fallback for browsers that don't support view transitions
-      this.vendorNavigation.navigateWithVendor('products');
+      this.navigateBackToProducts();
     }
   }
 
   closePage(): void {
-    this.vendorNavigation.navigateWithVendor('products');
+    this.navigateBackToProducts();
   }
 
   // Handle swipe gestures on mobile
-  @HostListener('touchstart', ['$event'])
-  onTouchStart(event: TouchEvent): void {
-    this.touchStartX = event.touches[0].clientX;
-  }
-
-  @HostListener('touchend', ['$event'])
-  onTouchEnd(event: TouchEvent): void {
-    if (!this.touchStartX) return;
-
-    const touchEndX = event.changedTouches[0].clientX;
-    const diff = this.touchStartX - touchEndX;
-
-    // Swipe right to close (if swipe is more than 50px)
-    if (diff < -50) {
-      this.closePage();
-    }
-
-    this.touchStartX = null;
-  }
-
   private touchStartX: number | null = null;
 
   ngOnDestroy(): void {

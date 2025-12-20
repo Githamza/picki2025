@@ -1,5 +1,11 @@
 export const environment = {
   production: true,
+  // Hosts that should be treated as "pikiapp" (non-custom) domains.
+  // If the app is loaded on a host NOT in this list (or its subdomains),
+  // we treat it as a vendor custom domain and resolve the vendor by domain.
+  //
+  // Start with localhost for consistency (some prod-like previews use it).
+  pikiappDomains: ['localhost', 'pikiapp.z6.web.core.windows.net'],
   // Temporary toggle to force a specific delivery provider in production if needed
   // Use cautiously. Recommended values: 'auto' | 'all'.
   // Can be set to 'uber' or 'stuart' for targeted testing deployments.

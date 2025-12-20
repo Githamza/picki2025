@@ -1,8 +1,9 @@
 .product-title {
+  font: var(--mat-sys-headline-small);
+
   @media (max-width: 768px) {
     font: var(--mat-sys-headline-small);
   }
-  font: var(--mat-sys-headline-small);
 }
 .multi-step-container {
   margin: 0 auto;
@@ -112,10 +113,11 @@
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
           gap: 16px;
+          padding: 0;
+
           @media (min-width: 768px) {
             padding: 20px;
           }
-          padding: 0;
         }
 
         .option-card {
@@ -241,7 +243,7 @@
 .step-actions {
   background-color: var(--mat-sys-surface-container);
   position: sticky;
-  top: 39px;
+  bottom: 0px;
   z-index: 1000;
   place-items: space-between;
   display: flex;
@@ -249,7 +251,14 @@
   gap: 12px;
   padding: 16px;
   z-index: 1000;
-
+  &.bottom-up {
+    @media (max-width: 768px) {
+      bottom: 136px;
+    }
+    @media (min-width: 768px) {
+      bottom: 86px;
+    }
+  }
   .spacer {
     flex: 1;
   }
@@ -551,6 +560,7 @@
     .multi-step-tabs {
       .step-content {
         .options-container {
+          padding-top: 16px;
           overflow: auto;
           .option-cards-list {
             .option-card {
@@ -728,9 +738,6 @@
   padding: 0px 8px 24px 8px !important;
 }
 :host ::ng-deep .mat-mdc-tab-header {
-  top: 80px;
   z-index: 1000;
-  position: sticky;
-  position: -webkit-sticky; /* macOS/iOS Safari */
   background-color: var(--mat-sys-surface-container);
 }

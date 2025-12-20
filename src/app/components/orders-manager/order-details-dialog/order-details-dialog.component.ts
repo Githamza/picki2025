@@ -4,6 +4,7 @@ import {
   MatDialogRef,
   MatDialogModule,
   MAT_DIALOG_DATA,
+  MatDialog,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -12,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Order, OrderStatus } from '../../../models/order.model';
+import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reason-dialog.component';
 
 @Component({
   selector: 'app-order-details-dialog',
@@ -31,6 +33,12 @@ import { Order, OrderStatus } from '../../../models/order.model';
         <h2 mat-dialog-title>
           Commande #{{ data.order.orderNumber }}
         </h2>
+        <div class="header-total">
+          <span class="total-amount">{{
+            data.order.totalAmount
+              | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
+          }}</span>
+        </div>
         <button
           mat-icon-button
           (click)="closeDialog()"
@@ -42,153 +50,170 @@ import { Order, OrderStatus } from '../../../models/order.model';
       </div>
 
       <mat-dialog-content>
-        <!-- Two-column layout for status and customer -->
-        <div class="top-sections-grid">
-          <!-- Status and Type Info -->
-          <div class="status-section">
-            <mat-chip [color]="statusColors[data.order.status]" selected>
-              {{ statusLabels[data.order.status] }}
-            </mat-chip>
-            @if (data.order.orderType !== 'eat-in') {
-            <mat-chip
-              [color]="
-                data.order.orderType === 'take-away' ? 'primary' : 'accent'
-              "
-              class="order-type-chip"
-            >
-              <mat-icon matChipAvatar>{{
-                data.order.orderType === 'take-away'
-                  ? 'shopping_bag'
-                  : 'local_shipping'
-              }}</mat-icon>
-              {{
-                data.order.orderType === 'take-away'
-                  ? 'À Emporter'
-                  : 'Livraison'
-              }}
-            </mat-chip>
-            }
-            @if (data.order.timing === 'asap') {
-            <mat-chip color="warn">
-              <mat-icon matChipAvatar>schedule</mat-icon>
-              IMMÉDIAT
-            </mat-chip>
-            }
-            @if (
-              data.order.timing === 'later' && data.order.scheduledTime
-            ) {
-            <div class="scheduled-time">
-              <mat-icon>access_time</mat-icon>
-              {{ formatScheduledDate(data.order.scheduledTime) }} à
-              {{ formatScheduledTime(data.order.scheduledTime) }}
+        <div class="content-grid">
+          <!-- Left Section: Order Items + Notes (3/4 width) -->
+          <div class="left-section">
+            @if (data.order.tableNumber) {
+            <div class="table-section">
+              <mat-icon>table_restaurant</mat-icon>
+              <span>Table {{ data.order.tableNumber }}</span>
             </div>
             }
-          </div>
 
-          <!-- Customer Info -->
-          <div class="customer-section">
-            <div class="customer-info">
-              <span class="customer-name">
-                {{ data.order.customer.firstName }}
-                {{ data.order.customer.lastName }}
-              </span>
-              <span class="contact-item">
-                <mat-icon>email</mat-icon>
-                {{ data.order.customer.email }}
-              </span>
-              @if (data.order.customer.phone) {
-              <span class="contact-item">
-                <mat-icon>phone</mat-icon>
-                {{ data.order.customer.phone }}
-              </span>
-              }
-            </div>
-          </div>
-        </div>
-
-        @if (data.order.tableNumber) {
-        <div class="table-section">
-          <mat-icon>table_restaurant</mat-icon>
-          <span>Table {{ data.order.tableNumber }}</span>
-        </div>
-        }
-
-        <mat-divider></mat-divider>
-
-        <!-- Order Items -->
-        <div class="items-section">
-          <h3 class="section-title">
-            <mat-icon>restaurant</mat-icon>
-            Articles ({{ data.order.items.length }})
-          </h3>
-          <div class="order-items">
-            @for (item of data.order.items; track item.productId + $index) {
-            <div class="order-item">
-              <span class="item-quantity">{{ item.quantity }}x</span>
-              <div class="item-details">
-                <span class="item-name">{{ item.productName }}</span>
-                @if (item.metadata) {
-                <div class="multi-step-details">
-                  @for (
-                    step of item.metadata.stepSelections;
-                    track step.stepName
-                  ) {
-                  <div class="step-detail">
-                    <span class="step-name">{{ step.stepName }}:</span>
-                    @for (
-                      option of step.selectedOptions;
-                      track option.optionName;
-                      let last = $last
-                    ) {
-                    <span class="option-name">
-                      {{ option.optionName }}@if (!last) {, }
-                    </span>
+            <!-- Order Items -->
+            <div class="items-section">
+              <h3 class="section-title">
+                <mat-icon>restaurant</mat-icon>
+                Articles ({{ data.order.items.length }})
+              </h3>
+              <div class="order-items">
+                @for (item of data.order.items; track item.productId + $index) {
+                <div class="order-item">
+                  <span class="item-quantity">{{ item.quantity }}x</span>
+                  <div class="item-details">
+                    <span class="item-name">{{ item.productName }}</span>
+                    @if (item.metadata) {
+                    <div class="multi-step-details">
+                      @for (
+                        step of item.metadata.stepSelections;
+                        track step.stepName
+                      ) {
+                      <div class="step-detail">
+                        <span class="step-name">{{ step.stepName }}:</span>
+                        @for (
+                          option of step.selectedOptions;
+                          track option.optionName;
+                          let last = $last
+                        ) {
+                        <span class="option-name">
+                          {{ option.optionName }}@if (!last) {, }
+                        </span>
+                        }
+                      </div>
+                      }
+                    </div>
+                    }
+                    @if (item.customisationSelections && item.customisationSelections.length > 0) {
+                    <div class="customisation-details">
+                      @for (
+                        customisation of item.customisationSelections;
+                        track customisation.customisationId
+                      ) {
+                      <div class="customisation-detail">
+                        <span class="customisation-name">{{ customisation.customisationName }}:</span>
+                        @for (
+                          option of customisation.selectedOptions;
+                          track option.optionId;
+                          let last = $last
+                        ) {
+                        <span class="option-name">
+                          {{ option.optionName }}@if (option.priceAdjustment > 0) {
+                            <span class="price-supplement"> (+{{ option.priceAdjustment | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr' }})</span>
+                          }@if (!last) {, }
+                        </span>
+                        }
+                      </div>
+                      }
+                    </div>
+                    }
+                    @if (item.comment) {
+                    <div class="item-comment">
+                      <mat-icon>comment</mat-icon>
+                      <span>{{ item.comment }}</span>
+                    </div>
                     }
                   </div>
-                  }
-                </div>
-                }
-                @if (item.comment) {
-                <div class="item-comment">
-                  <mat-icon>comment</mat-icon>
-                  <span>{{ item.comment }}</span>
+                  <span
+                    class="item-price"
+                    [style.visibility]="
+                      item.price * item.quantity > 0 ? 'visible' : 'hidden'
+                    "
+                    >{{
+                      item.price * item.quantity
+                        | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
+                    }}</span
+                  >
                 </div>
                 }
               </div>
-              <span
-                class="item-price"
-                [style.visibility]="
-                  item.price * item.quantity > 0 ? 'visible' : 'hidden'
-                "
-                >{{
-                  item.price * item.quantity
-                    | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
-                }}</span
-              >
+            </div>
+
+            @if (data.order.notes) {
+            <div class="order-notes">
+              <mat-icon>note</mat-icon>
+              <span>{{ data.order.notes }}</span>
             </div>
             }
           </div>
+
+          <!-- Right Section: Status + Customer (1/4 width) -->
+          <div class="right-section">
+            <!-- Status and Type Info -->
+            <div class="status-section">
+              <h4 class="section-title-small">Statut</h4>
+              <mat-chip [color]="statusColors[data.order.status]" selected>
+                {{ statusLabels[data.order.status] }}
+              </mat-chip>
+              @if (data.order.orderType !== 'eat-in') {
+              <mat-chip
+                [color]="
+                  data.order.orderType === 'take-away' ? 'primary' : 'accent'
+                "
+                class="order-type-chip"
+              >
+                <mat-icon matChipAvatar>{{
+                  data.order.orderType === 'take-away'
+                    ? 'shopping_bag'
+                    : 'local_shipping'
+                }}</mat-icon>
+                {{
+                  data.order.orderType === 'take-away'
+                    ? 'À Emporter'
+                    : 'Livraison'
+                }}
+              </mat-chip>
+              }
+              @if (data.order.timing === 'asap') {
+              <mat-chip color="warn">
+                <mat-icon matChipAvatar>schedule</mat-icon>
+                IMMÉDIAT
+              </mat-chip>
+              }
+              @if (
+                data.order.timing === 'later' && data.order.scheduledTime
+              ) {
+              <div class="scheduled-time">
+                <mat-icon>access_time</mat-icon>
+                {{ formatScheduledDate(data.order.scheduledTime) }} à
+                {{ formatScheduledTime(data.order.scheduledTime) }}
+              </div>
+              }
+            </div>
+
+            <mat-divider class="section-divider"></mat-divider>
+
+            <!-- Customer Info -->
+            <div class="customer-section">
+              <h4 class="section-title-small">Client</h4>
+              <div class="customer-info">
+                <span class="customer-name">
+                  {{ data.order.customer.firstName }}
+                  {{ data.order.customer.lastName }}
+                </span>
+                <span class="contact-item">
+                  <mat-icon>email</mat-icon>
+                  {{ data.order.customer.email }}
+                </span>
+                @if (data.order.customer.phone) {
+                <span class="contact-item">
+                  <mat-icon>phone</mat-icon>
+                  {{ data.order.customer.phone }}
+                </span>
+                }
+              </div>
+            </div>
+          </div>
         </div>
-
-        <mat-divider></mat-divider>
-
-        <!-- Order Total -->
-        <div class="order-total">
-          <strong>Total:</strong>
-          <span>{{
-            data.order.totalAmount
-              | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
-          }}</span>
-        </div>
-
-        @if (data.order.notes) {
-        <div class="order-notes">
-          <mat-icon>note</mat-icon>
-          <span>{{ data.order.notes }}</span>
-        </div>
-        }
-
-
       </mat-dialog-content>
 
       <mat-dialog-actions>
@@ -236,10 +261,9 @@ import { Order, OrderStatus } from '../../../models/order.model';
         <button
           mat-fab
           extended
-          [color]="buttonColors[data.order.status]"
           (click)="updateStatus()"
           [disabled]="isProcessing()"
-          class="order-action-button"
+          [class]="'order-action-button status-button-' + data.order.status"
         >
           @if (isProcessing()) {
           <mat-spinner diameter="16"></mat-spinner>
@@ -267,7 +291,7 @@ import { Order, OrderStatus } from '../../../models/order.model';
       }
 
       .order-details-dialog {
-        max-width: 600px;
+        max-width: 800px;
         width: 100%;
         display: flex;
         flex-direction: column;
@@ -282,6 +306,7 @@ import { Order, OrderStatus } from '../../../models/order.model';
         padding: 0px 16px;
         border-bottom: 1px solid var(--mat-sys-outline-variant);
         flex-shrink: 0;
+        gap: 16px;
 
         h2 {
           margin: 0;
@@ -289,8 +314,30 @@ import { Order, OrderStatus } from '../../../models/order.model';
           font-weight: 500;
         }
 
-        .close-button {
+        .header-total {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           margin-left: auto;
+          padding: 4px 12px;
+          background: var(--mat-sys-primary-container);
+          color: var(--mat-sys-on-primary-container);
+          border-radius: 20px;
+          font-weight: 500;
+
+          .total-label {
+            font-size: 13px;
+            font-weight: 500;
+          }
+
+          .total-amount {
+            font-size: 16px;
+            font-weight: 600;
+          }
+        }
+
+        .close-button {
+          margin-left: 0;
         }
       }
 
@@ -301,33 +348,69 @@ import { Order, OrderStatus } from '../../../models/order.model';
         min-height: 0;
       }
 
-      .top-sections-grid {
+      .content-grid {
         display: grid;
-        grid-template-rows: 1fr 1fr;
-        gap: 8px;
-        margin-bottom: 8px;
+        grid-template-columns: 2fr 1fr;
+        gap: 16px;
+        align-items: start;
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           grid-template-columns: 1fr;
+          gap: 12px;
         }
+      }
+
+      .left-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .right-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        align-self: start;
+
+        @media (max-width: 768px) {
+          position: static;
+        }
+      }
+
+      .section-title-small {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: var(--mat-sys-on-surface);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .section-divider {
+        margin: 8px 0;
       }
 
       .status-section {
         display: flex;
-        flex-wrap: nowrap;
-        gap: 6px;
-        align-items: center;
-        padding: 6px 8px;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
         background-color: var(--mat-sys-surface-container);
-        border-radius: 6px;
-        overflow-x: auto;
+        border-radius: 8px;
 
         mat-chip {
           font-size: 11px;
           font-weight: 500;
           height: 24px;
           min-height: 24px;
-          flex-shrink: 0;
+          width: 100%;
+          justify-content: center;
 
           mat-icon {
             margin-right: 4px;
@@ -343,8 +426,10 @@ import { Order, OrderStatus } from '../../../models/order.model';
           gap: 4px;
           color: var(--mat-sys-on-surface-variant);
           font-size: 11px;
-          flex-shrink: 0;
           white-space: nowrap;
+          padding: 4px 8px;
+          background-color: var(--mat-sys-secondary-container);
+          border-radius: 4px;
 
           mat-icon {
             font-size: 14px;
@@ -373,42 +458,40 @@ import { Order, OrderStatus } from '../../../models/order.model';
       }
 
       .customer-section {
-        padding: 6px 8px;
-        background-color: var(--mat-sys-surface-container);
-        border-radius: 6px;
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        padding: 10px 12px;
+        background-color: var(--mat-sys-surface-container);
+        border-radius: 8px;
       }
 
       .customer-info {
         display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: nowrap;
+        flex-direction: column;
+        gap: 8px;
         width: 100%;
-        overflow-x: auto;
 
         .customer-name {
           font-size: 13px;
           font-weight: 500;
           color: var(--mat-sys-on-surface);
-          flex-shrink: 0;
+          margin-bottom: 4px;
         }
 
         .contact-item {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
           font-size: 11px;
           color: var(--mat-sys-on-surface-variant);
-          flex-shrink: 0;
-          white-space: nowrap;
+          word-break: break-word;
 
           mat-icon {
             font-size: 13px;
             width: 13px;
             height: 13px;
             color: var(--mat-sys-primary);
+            flex-shrink: 0;
           }
         }
       }
@@ -504,6 +587,40 @@ import { Order, OrderStatus } from '../../../models/order.model';
             }
           }
 
+          .customisation-details {
+            margin-top: 2px;
+            padding: 6px;
+            border-left: 2px solid var(--mat-sys-tertiary);
+            background-color: var(--mat-sys-tertiary-container);
+            border-radius: 4px;
+          }
+
+          .customisation-detail {
+            margin-bottom: 2px;
+            font-size: 16px;
+            color: var(--mat-sys-on-surface-variant);
+            line-height: 1.3;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            .customisation-name {
+              font-weight: 500;
+              color: var(--mat-sys-tertiary);
+            }
+
+            .option-name {
+              color: var(--mat-sys-on-tertiary-container);
+              
+              .price-supplement {
+                font-weight: 600;
+                color: var(--mat-sys-tertiary);
+                margin-left: 2px;
+              }
+            }
+          }
+
           .item-comment {
             display: flex;
             align-items: center;
@@ -535,31 +652,6 @@ import { Order, OrderStatus } from '../../../models/order.model';
         }
       }
 
-      mat-divider {
-        margin: 6px 0;
-      }
-
-      .order-total {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 14px;
-        padding: 8px;
-        background: var(--mat-sys-primary-container);
-        color: var(--mat-sys-on-primary-container);
-        border-radius: 6px;
-        margin-bottom: 6px;
-        font-weight: 500;
-
-        strong {
-          font-weight: 500;
-        }
-
-        span {
-          font-weight: 600;
-          font-size: 16px;
-        }
-      }
 
       .order-notes {
         display: flex;
@@ -699,13 +791,73 @@ import { Order, OrderStatus } from '../../../models/order.model';
         mat-spinner {
           margin: 0;
         }
+
+        // Status-specific button colors
+        &.status-button-paid,
+        &.status-button-todo {
+          --mat-fab-foreground-color: #ffffff;
+          --mat-fab-state-layer-color: #ffffff;
+          --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+          --mat-fab-hover-state-layer-opacity: 0.08;
+          --mat-fab-focus-state-layer-opacity: 0.12;
+          --mat-fab-pressed-state-layer-opacity: 0.12;
+          --mat-fab-container-color: #00acc1; // Cyan/Teal for "À traiter" and "En cours"
+          --mat-fab-hover-container-elevation: 4;
+          --mat-fab-focus-container-elevation: 4;
+          --mat-fab-pressed-container-elevation: 8;
+          --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
+          --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
+
+          &:hover:not([disabled]) {
+            --mat-fab-container-color: #0097a7; // Darker cyan on hover
+          }
+        }
+
+        &.status-button-ongoing {
+          --mat-fab-foreground-color: #ffffff;
+          --mat-fab-state-layer-color: #ffffff;
+          --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+          --mat-fab-hover-state-layer-opacity: 0.08;
+          --mat-fab-focus-state-layer-opacity: 0.12;
+          --mat-fab-pressed-state-layer-opacity: 0.12;
+          --mat-fab-container-color: #4caf50; // Green for "Prête" button
+          --mat-fab-hover-container-elevation: 4;
+          --mat-fab-focus-container-elevation: 4;
+          --mat-fab-pressed-container-elevation: 8;
+          --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
+          --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
+
+          &:hover:not([disabled]) {
+            --mat-fab-container-color: #45a049; // Darker green on hover
+          }
+        }
+
+        &.status-button-done {
+          --mat-fab-foreground-color: #ffffff;
+          --mat-fab-state-layer-color: #ffffff;
+          --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+          --mat-fab-hover-state-layer-opacity: 0.08;
+          --mat-fab-focus-state-layer-opacity: 0.12;
+          --mat-fab-pressed-state-layer-opacity: 0.12;
+          --mat-fab-container-color: #66bb6a; // Lighter green for "Récupérée" button
+          --mat-fab-hover-container-elevation: 4;
+          --mat-fab-focus-container-elevation: 4;
+          --mat-fab-pressed-container-elevation: 8;
+          --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
+          --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
+
+          &:hover:not([disabled]) {
+            --mat-fab-container-color: #81c784; // Even lighter green on hover
+          }
+        }
       }
     `,
   ],
 })
 export class OrderDetailsDialogComponent {
   dialogRef = inject(MatDialogRef<OrderDetailsDialogComponent>);
-  data = inject<{ order: Order; onAccept?: () => void; onRefuse?: () => void; onUpdateStatus?: (status: OrderStatus) => void }>(MAT_DIALOG_DATA);
+  dialog = inject(MatDialog);
+  data = inject<{ order: Order; onAccept?: () => void; onRefuse?: (reason?: string) => void; onUpdateStatus?: (status: OrderStatus) => void }>(MAT_DIALOG_DATA);
 
   isProcessing = this.data.onAccept ? signal(false) : signal(false);
 
@@ -834,14 +986,38 @@ export class OrderDetailsDialogComponent {
 
   async refuseOrder() {
     if (!this.data.onRefuse) return;
-    this.isProcessing.set(true);
-    try {
-      await this.data.onRefuse();
-      this.closeDialog();
-    } catch (error) {
-      console.error('Error refusing order:', error);
-    } finally {
-      this.isProcessing.set(false);
+    
+    // Close current dialog
+    this.dialogRef.close({ action: 'refuse-requested' });
+    
+    // Open refuse reason dialog
+    const refuseReasonDialogRef = this.dialog.open(RefuseReasonDialogComponent, {
+      data: { order: this.data.order },
+      disableClose: false,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+
+    const result = await refuseReasonDialogRef.afterClosed().toPromise();
+    
+    if (result?.confirmed) {
+      // User confirmed the refusal with a reason
+      this.isProcessing.set(true);
+      try {
+        await this.data.onRefuse(result.reason);
+      } catch (error) {
+        console.error('Error refusing order:', error);
+      } finally {
+        this.isProcessing.set(false);
+      }
+    } else {
+      // User cancelled, reopen the order details dialog
+      this.dialog.open(OrderDetailsDialogComponent, {
+        data: this.data,
+        disableClose: false,
+        width: '800px',
+        maxWidth: '95vw',
+      });
     }
   }
 

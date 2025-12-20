@@ -1,0 +1,190 @@
+import { TestBed } from '@angular/core/testing';
+import { ProductService } from './product.service';
+import { SupabaseService } from './supabase.service';
+import { CategoryService } from './category.service';
+import { CustomisationService } from './customisation.service';
+import { of } from 'rxjs';
+
+describe('ProductService', () => {
+  let service: ProductService;
+  let mockSupabaseService: jasmine.SpyObj<SupabaseService>;
+  let mockCategoryService: jasmine.SpyObj<CategoryService>;
+  let mockCustomisationService: jasmine.SpyObj<CustomisationService>;
+
+  beforeEach(() => {
+    const supabaseSpy = jasmine.createSpyObj('SupabaseService', [
+      'getProducts',
+      'getAllProducts',
+      'getProductById'
+    ]);
+    
+    const categorySpy = jasmine.createSpyObj('CategoryService', [
+      'getCategories',
+      'getCategoriesByVendor'
+    ]);
+    
+    const customisationSpy = jasmine.createSpyObj('CustomisationService', [
+      'getProductCustomisations'
+    ]);
+
+    TestBed.configureTestingModule({
+      providers: [
+        ProductService,
+        { provide: SupabaseService, useValue: supabaseSpy },
+        { provide: CategoryService, useValue: categorySpy },
+        { provide: CustomisationService, useValue: customisationSpy }
+      ]
+    });
+    
+    service = TestBed.inject(ProductService);
+    mockSupabaseService = TestBed.inject(SupabaseService) as jasmine.SpyObj<SupabaseService>;
+    mockCategoryService = TestBed.inject(CategoryService) as jasmine.SpyObj<CategoryService>;
+    mockCustomisationService = TestBed.inject(CustomisationService) as jasmine.SpyObj<CustomisationService>;
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
+  describe('getProducts', () => {
+    it('should load products without customisations for product grid', (done) => {
+      // Mock product data
+      const mockProducts = [
+        { 
+          id: 1, 
+          name: 'Product 1', 
+          price: 10, 
+          category_id: 1, 
+          vendor_id: 'vendor1',
+          has_customisations: true,
+          display_order: 1
+        },
+        { 
+          id: 2, 
+          name: 'Product 2', 
+          price: 20, 
+          category_id: 1, 
+          vendor_id: 'vendor1',
+          has_customisations: false,
+          display_order: 2
+        }
+      ];
+
+      // Mock category data
+      const mockCategories = [
+        { id: 1, name: 'Category 1', displayOrder: 1 }
+      ];
+
+      // Setup spies
+      mockSupabaseService.getProducts.and.returnValue(Promise.resolve(mockProducts));
+      mockCategoryService.getCategories.and.returnValue(of(mockCategories));
+      mockCustomisationService.getProductCustomisations.and.returnValue(of([]));
+
+      // Call the method
+      service.getProducts().subscribe({
+        next: (products) => {
+          // Verify products are returned
+          expect(products.length).toBe(2);
+          expect(products[0].name).toBe('Product 1');
+          expect(products[1].name).toBe('Product 2');
+          
+          // Verify customisations were NOT loaded (this is the key test)
+          expect(mockCustomisationService.getProductCustomisations).not.toHaveBeenCalled();
+          
+          done();
+        },
+        error: done.fail
+      });
+    });
+  });
+
+  describe('getProductWithCustomisations', () => {
+    it('should load product with customisations when needed', (done) => {
+      // Mock product data
+      const mockProduct = { 
+        id: 1, 
+        name: 'Product 1', 
+        price: 10, 
+        category_id: 1, 
+        vendor_id: 'vendor1',
+        has_customisations: true,
+        display_order: 1
+      };
+
+      // Mock customisations
+      const mockCustomisations = [
+        { 
+          id: 1, 
+          name: 'Size', 
+          options: [
+            { id: 1, name: 'Small', price: 0 },
+            { id: 2, name: 'Large', price: 2 }
+          ]
+        }
+      ];
+
+      // Setup spies
+      mockSupabaseService.getProductById.and.returnValue(Promise.resolve(mockProduct));
+      mockCustomisationService.getProductCustomisations.and.returnValue(of(mockCustomisations));
+
+      // Call the method
+      service.getProductWithCustomisations(1).subscribe({
+        next: (product) => {
+          // Verify product is returned with customisations
+          expect(product).toBeTruthy();
+          expect(product!.id).toBe(1);
+          expect(product!.name).toBe('Product 1');
+          expect(product!.customisations).toEqual(mockCustomisations);
+          
+          // Verify customisations WERE loaded for individual product
+          expect(mockCustomisationService.getProductCustomisations).toHaveBeenCalledWith(1);
+          
+          done();
+        },
+        error: done.fail
+      });
+    });
+  });
+
+  describe('getAllProducts', () => {
+    it('should load all products without customisations for product grid', (done) => {
+      // Mock product data
+      const mockProducts = [
+        { 
+          id: 1, 
+          name: 'Product 1', 
+          price: 10, 
+          category_id: 1, 
+          vendor_id: 'vendor1',
+          has_customisations: true,
+          display_order: 1
+        }
+      ];
+
+      // Mock category data
+      const mockCategories = [
+        { id: 1, name: 'Category 1', displayOrder: 1 }
+      ];
+
+      // Setup spies
+      mockSupabaseService.getAllProducts.and.returnValue(Promise.resolve(mockProducts));
+      mockCategoryService.getCategories.and.returnValue(of(mockCategories));
+      mockCustomisationService.getProductCustomisations.and.returnValue(of([]));
+
+      // Call the method
+      service.getAllProducts().subscribe({
+        next: (products) => {
+          // Verify products are returned
+          expect(products.length).toBe(1);
+          expect(products[0].name).toBe('Product 1');
+          
+          // Verify customisations were NOT loaded (this is the key test)
+          expect(mockCustomisationService.getProductCustomisations).not.toHaveBeenCalled();
+          
+          done();
+        },
+        error: done.fail
+      });
+    });
+  });
+});

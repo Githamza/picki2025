@@ -18,7 +18,7 @@ export const cartReducer = createReducer(
     addToCart,
     (
       state,
-      { product, quantity, comment, selectedComplements, totalPrice, metadata }
+      { product, quantity, comment, selectedComplements, totalPrice, metadata, customisationSelections }
     ) => {
       // Helper function to compare complement selections
       const areComplementsEqual = (comp1?: any[], comp2?: any[]) => {
@@ -42,12 +42,31 @@ export const cartReducer = createReducer(
         return JSON.stringify(meta1) === JSON.stringify(meta2);
       };
 
+      // Helper function to compare customisation selections
+      const areCustomisationsEqual = (
+        custom1?: Map<number, number[]>,
+        custom2?: Map<number, number[]>
+      ) => {
+        if (!custom1 && !custom2) return true;
+        if (!custom1 || !custom2) return false;
+        if (custom1.size !== custom2.size) return false;
+
+        for (const [key, value] of custom1.entries()) {
+          const value2 = custom2.get(key);
+          if (!value2) return false;
+          if (value.length !== value2.length) return false;
+          if (!value.every((v, i) => v === value2[i])) return false;
+        }
+        return true;
+      };
+
       const existingItem = state.items.find(
         (item) =>
           item.product.id === product.id &&
           item.comment === comment &&
           areComplementsEqual(item.selectedComplements, selectedComplements) &&
-          areMetadataEqual(item.metadata, metadata)
+          areMetadataEqual(item.metadata, metadata) &&
+          areCustomisationsEqual(item.customisationSelections, customisationSelections)
       );
 
       if (existingItem) {
@@ -57,7 +76,8 @@ export const cartReducer = createReducer(
             item.product.id === product.id &&
             item.comment === comment &&
             areComplementsEqual(item.selectedComplements, selectedComplements) &&
-            areMetadataEqual(item.metadata, metadata)
+            areMetadataEqual(item.metadata, metadata) &&
+            areCustomisationsEqual(item.customisationSelections, customisationSelections)
               ? {
                   ...item,
                   quantity: item.quantity + quantity,
@@ -75,7 +95,7 @@ export const cartReducer = createReducer(
           ...state,
           items: [
             ...state.items,
-            { product, quantity, comment, selectedComplements, totalPrice, metadata },
+            { product, quantity, comment, selectedComplements, totalPrice, metadata, customisationSelections },
           ],
         };
       }

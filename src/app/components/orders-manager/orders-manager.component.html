@@ -29,13 +29,17 @@
     <div class="header-right">
       <!-- Total Amount Display -->
       <div class="total-amount-display">
-        <span class="total-label">Total:</span>
         <span class="total-value"
           >{{ periodTotalAmount() | number : "1.2-2" }} €</span
         >
       </div>
 
       <div class="action-buttons">
+        @if ((isHandset$ | async)) {
+        <button mat-icon-button (click)="refreshOrders()">
+          <mat-icon>refresh</mat-icon>
+        </button>
+        } @else {
         <button
           mat-raised-button
           color="primary"
@@ -44,11 +48,10 @@
           class="refresh-button"
         >
           <mat-icon>refresh</mat-icon>
-          @if (isLoading()) {
-          <mat-spinner diameter="20"></mat-spinner>
-          } @else { Actualiser }
+          @if (isLoading() ) {
+          <mat-spinner diameter="20"></mat-spinner>} @else { Actualiser }
         </button>
-
+        }
         <!-- Sound notification toggle -->
         <button
           mat-icon-button

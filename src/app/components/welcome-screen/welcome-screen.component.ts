@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild, OnInit, computed, signal } from '@angular/core';
+import { Component, inject, OnInit, computed, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -6,9 +6,6 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { MatDatepicker } from '@angular/material/datepicker';
-import { Router } from '@angular/router';
-import { Location } from '@angular/common';
 import { materialComponents } from '../../material.components';
 import { AddressAutocompleteComponent } from '../../shared/components/address-autocomplete/address-autocomplete.component';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
@@ -16,6 +13,7 @@ import { DiningPreferenceService } from '../../services/dining-preference.servic
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService, type BusinessHours } from '../../services/vendor.service';
 import { DeliveryQuote } from '../../services/delivery/delivery.types';
+import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
 
 @Component({
   selector: 'app-welcome-screen',
@@ -25,27 +23,22 @@ import { DeliveryQuote } from '../../services/delivery/delivery.types';
     ReactiveFormsModule,
     ...materialComponents,
     AddressAutocompleteComponent,
+    PromotionalBannerComponent
   ],
   templateUrl: './welcome-screen.component.html',
   styleUrls: ['./welcome-screen.component.scss'],
 })
 export class WelcomeScreenComponent implements OnInit {
-  @ViewChild('datePicker') datePicker!: MatDatepicker<Date>;
-  @ViewChild('datePicker2') datePicker2!: MatDatepicker<Date>;
-
   private diningPreferenceService = inject(DiningPreferenceService);
   private fb = inject(FormBuilder);
-  private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
-  private location = inject(Location);
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
 
   selectedPreference: 'eat-in' | 'take-away' | 'delivery' | null = null;
   selectedTiming: 'asap' | 'later' | null = null;
-  selectedDate: Date | null = null;
-  selectedTime: Date | null = null;
-  minDate = new Date();
+  selectedTime: string | null = null;
+  vendor$ = this.vendorService.getCurrentVendor()
 
   showTimingSelection = false;
   showDateTimeSelection = false;
@@ -56,46 +49,92 @@ export class WelcomeScreenComponent implements OnInit {
   isLoadingBusinessHours = signal<boolean>(false);
 
   orderForm: FormGroup = this.fb.group({
-    scheduledDate: [new Date()],
     scheduledTime: [null, Validators.required],
   });
 
-  // Date filter to disable closed days
-  dateFilter = (date: Date | null): boolean => {
-    if (!date) return true;
+  // Effect to set preselected time when conditions are met
+  private setPreselectedTimeEffect = effect(() => {
+    const timeSlots = this.availableTimeSlots();
+    const existingTime = this.selectedTime;
+    const timing = this.selectedTiming;
     
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const hours = this.getDayBusinessHours(dayOfWeek);
+    console.log('Preselected time effect triggered:', {
+      timeSlots: timeSlots.length,
+      existingTime,
+      timing,
+      conditionsMet: timeSlots.length > 0 && existingTime && timing === 'later'
+    });
     
-    // Allow if restaurant is open on this day
-    return hours ? !hours.is_closed : true;
-  };
+    // Only proceed if we have time slots, an existing time, and 'later' timing
+    if (timeSlots.length > 0 && existingTime && timing === 'later') {
+      // Check if the existing time is available in the current slots
+      if (timeSlots.includes(existingTime)) {
+        // Additional check: make sure the time is not in the past
+        const scheduledDateTime = new Date();
+        const [hours, minutes] = existingTime.split(':').map(Number);
+        scheduledDateTime.setHours(hours, minutes, 0, 0);
+        
+        if (scheduledDateTime > new Date()) {
+          console.log('Setting form value to preselected time:', existingTime);
+          // Set the form control value to preselect the dropdown
+          this.orderForm.patchValue({
+            scheduledTime: existingTime
+          });
+        } else {
+          console.warn(`Stored time ${existingTime} is in the past, not preselecting`);
+          // Don't preselect past times, but keep the stored value in case user wants to see what they had
+        }
+      } else {
+        // If the stored time is not available (e.g., outside business hours), reset it
+        console.warn(`Stored time ${existingTime} is not available in current time slots`);
+        this.selectedTime = null;
+        this.orderForm.get('scheduledTime')?.reset();
+      }
+    }
+  });
 
-  // Computed signal for available time slots
+  // Computed signal for available time slots (today only)
   availableTimeSlots = computed<string[]>(() => {
-    const selectedDate = this.orderForm.get('scheduledDate')?.value;
-    if (!selectedDate || this.businessHours().length === 0) {
+    console.log('🕐 Computing available time slots...');
+    console.log('📊 Business hours length:', this.businessHours().length);
+    console.log('📊 Business hours:', this.businessHours());
+    
+    if (this.businessHours().length === 0) {
+      console.log('⚠️ No business hours available');
       return [];
     }
     
-    const dayOfWeek = selectedDate.getDay();
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    console.log('📅 Today is day index:', dayOfWeek);
+    
     const hours = this.getDayBusinessHours(dayOfWeek);
+    console.log('🕐 Hours for today:', hours);
     
     if (!hours || hours.is_closed) {
+      console.log('❌ Restaurant is closed or no hours found');
       return [];
     }
     
-    return this.generateTimeSlots(
+    console.log('✅ Generating time slots:', {
+      openTime: hours.open_time,
+      closeTime: hours.close_time
+    });
+    
+    const slots = this.generateTimeSlots(
       hours.open_time || '00:00',
       hours.close_time || '23:59',
-      selectedDate
+      today
     );
+    
+    console.log('🎯 Generated slots:', slots);
+    return slots;
   });
 
   ngOnInit(): void {
     // Load business hours
     this.loadBusinessHours();
-
+    this.selectPreference('take-away');
     // Check if user has already made selections
     const existingData = this.diningPreferenceService.diningPreferenceData();
     this.showDelivery = existingData?.preference === 'delivery';
@@ -103,8 +142,13 @@ export class WelcomeScreenComponent implements OnInit {
     if (existingData) {
       this.selectedPreference = existingData.preference;
       this.selectedTiming = existingData.timing;
-      this.selectedDate = existingData.scheduledDate || null;
-      this.selectedTime = existingData.scheduledTime || null;
+      
+      // If a time string was stored, use it
+      if (existingData.scheduledTime) {
+        console.log('Setting selectedTime from existing data:', existingData.scheduledTime);
+        this.selectedTime = existingData.scheduledTime;
+      }
+      
       this.showTimingSelection = true;
       this.showDateTimeSelection = this.selectedTiming === 'later';
     }
@@ -119,10 +163,6 @@ export class WelcomeScreenComponent implements OnInit {
       this.selectedTiming = 'asap';
     }
 
-    // Reset time when date changes
-    this.orderForm.get('scheduledDate')?.valueChanges.subscribe(() => {
-      this.orderForm.get('scheduledTime')?.reset();
-    });
   }
 
   selectPreference(preference: 'eat-in' | 'take-away' | 'delivery') {
@@ -141,14 +181,42 @@ export class WelcomeScreenComponent implements OnInit {
     this.showDateTimeSelection = timing === 'later';
 
     if (timing === 'asap') {
-      this.selectedDate = null;
       this.selectedTime = null;
+      this.orderForm.get('scheduledTime')?.reset();
     }
   }
 
-  onDateTimeSelected() {
-    if (this.selectedDate && this.selectedTime) {
-      this.proceedToMenu();
+  // Method to manually set preselected time (useful for debugging or explicit calls)
+  private setPreselectedTime(): void {
+    const timeSlots = this.availableTimeSlots();
+    const existingTime = this.selectedTime;
+    
+    console.log('Manual setPreselectedTime called:', {
+      timeSlots: timeSlots.length,
+      existingTime,
+      timing: this.selectedTiming
+    });
+    
+    if (timeSlots.length > 0 && existingTime && this.selectedTiming === 'later') {
+      if (timeSlots.includes(existingTime)) {
+        // Additional check: make sure the time is not in the past
+        const scheduledDateTime = new Date();
+        const [hours, minutes] = existingTime.split(':').map(Number);
+        scheduledDateTime.setHours(hours, minutes, 0, 0);
+        
+        if (scheduledDateTime > new Date()) {
+          console.log('Setting form value manually to:', existingTime);
+          this.orderForm.patchValue({
+            scheduledTime: existingTime
+          });
+        } else {
+          console.warn(`Time ${existingTime} is in the past, not preselecting`);
+        }
+      } else {
+        console.warn(`Time ${existingTime} not available in current slots`);
+        this.selectedTime = null;
+        this.orderForm.get('scheduledTime')?.reset();
+      }
     }
   }
 
@@ -156,54 +224,18 @@ export class WelcomeScreenComponent implements OnInit {
     this.deliverySelection.setAddressFromPlaceId(placeId);
   }
 
-  private proceedToMenu() {
-    if (this.selectedPreference && this.selectedTiming) {
-      const preferenceData = {
-        preference: this.selectedPreference,
-        timing: this.selectedTiming as 'asap' | 'later',
-        scheduledDate: this.selectedDate || undefined,
-        scheduledTime: this.selectedTime || undefined,
-      };
-
-      this.diningPreferenceService.setDiningPreference(preferenceData);
-      this.vendorNavigation.navigateWithVendor('products');
-    }
-  }
-
-  canProceed(): boolean {
-    if (!this.selectedPreference || !this.selectedTiming) {
-      return false;
-    }
-
-    if (this.selectedTiming === 'later') {
-      return !!(this.selectedDate && this.selectedTime);
-    }
-
-    return this.selectedTiming === 'asap';
-  }
-
-  openDatePicker(): void {
-    if (this.selectedPreference === 'delivery' && this.datePicker2) {
-      this.datePicker2.open();
-    } else if (this.datePicker) {
-      this.datePicker.open();
-    }
-  }
-
   onValidate(): void {
     if (!this.selectedPreference) return;
 
+    const selectedTimeValue = this.orderForm.get('scheduledTime')?.value;
+    
     const orderData = {
       preference: this.selectedPreference,
       timing: this.selectedTiming as 'asap' | 'later',
       scheduledDate:
-        this.selectedTiming === 'later'
-          ? this.orderForm.get('scheduledDate')?.value
-          : undefined,
+        this.selectedTiming === 'later' ? new Date() : undefined,
       scheduledTime:
-        this.selectedTiming === 'later'
-          ? this.orderForm.get('scheduledTime')?.value
-          : undefined,
+        this.selectedTiming === 'later' ? selectedTimeValue : undefined,
     };
 
     // Validate scheduled time is not in the past
@@ -216,7 +248,7 @@ export class WelcomeScreenComponent implements OnInit {
     // Store the complete dining preference data
     this.diningPreferenceService.setDiningPreference(orderData);
     // Navigate back to vendor products page
-    this.vendorNavigation.navigateWithVendor('products');
+    this.vendorNavigation.navigateWithVendor(['promotional-banner']);
   }
 
   get canValidate(): boolean {
@@ -237,23 +269,17 @@ export class WelcomeScreenComponent implements OnInit {
   }
 
   private isValidFutureTime(): boolean {
-    const selectedDate = this.orderForm.get('scheduledDate')?.value;
     const selectedTime = this.orderForm.get('scheduledTime')?.value;
 
-    if (!selectedDate || !selectedTime) return false;
+    if (!selectedTime) return false;
 
-    // Create a combined date-time
-    const scheduledDateTime = new Date(selectedDate);
+    // Create a combined date-time for today
+    const scheduledDateTime = new Date();
 
-    // Handle time value based on its type
-    if (selectedTime instanceof Date) {
-      // If time is a Date object from mat-timepicker
-      scheduledDateTime.setHours(selectedTime.getHours());
-      scheduledDateTime.setMinutes(selectedTime.getMinutes());
-    } else if (typeof selectedTime === 'string') {
-      // If time is still a string (fallback for HTML time input)
+    // Parse the time string (format: "HH:MM")
+    if (typeof selectedTime === 'string') {
       const [hours, minutes] = selectedTime.split(':');
-      scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
+      scheduledDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
     }
 
     return scheduledDateTime > new Date();
@@ -283,6 +309,8 @@ export class WelcomeScreenComponent implements OnInit {
           this.businessHours.set(hours);
         }
         this.isLoadingBusinessHours.set(false);
+        // Try to set preselected time after business hours are loaded
+        this.setPreselectedTime();
       },
       error: (error) => {
         console.error('Error loading business hours:', error);
@@ -294,13 +322,13 @@ export class WelcomeScreenComponent implements OnInit {
   // Map business hours by day index
   private mapBusinessHoursByDayIndex(businessHours: BusinessHours[]): BusinessHours[] {
     const dayMap: { [key: string]: number } = {
-      'Sunday': 0,
-      'Monday': 1,
-      'Tuesday': 2,
-      'Wednesday': 3,
-      'Thursday': 4,
-      'Friday': 5,
-      'Saturday': 6
+      'Dimanche': 0,    // Sunday
+      'Lundi': 1,       // Monday
+      'Mardi': 2,       // Tuesday
+      'Mercredi': 3,    // Wednesday
+      'Jeudi': 4,       // Thursday
+      'Vendredi': 5,    // Friday
+      'Samedi': 6       // Saturday
     };
 
     const hoursArray: BusinessHours[] = new Array(7);
@@ -327,16 +355,36 @@ export class WelcomeScreenComponent implements OnInit {
     closeTime: string,
     selectedDate: Date
   ): string[] {
+    console.log('🎰 generateTimeSlots called with:', { openTime, closeTime, selectedDate });
+    
     const slots: string[] = [];
+    // Handle HH:MM:SS format (split and take first two parts)
     const [openHour, openMin] = openTime.split(':').map(Number);
-    const [closeHour, closeMin] = closeTime.split(':').map(Number);
+    let [closeHour, closeMin] = closeTime.split(':').map(Number);
     const interval = 15; // 15-minute intervals
+    
+    // Handle times that span midnight (close time is next day)
+    // If close time is less than open time, it means it's past midnight
+    const spansNextDay = closeHour < openHour || (closeHour === 0 && closeMin === 0);
+    if (spansNextDay) {
+      closeHour += 24; // Add 24 hours to handle next day
+    }
+    
+    console.log('⏰ Parsed times:', { 
+      openHour, 
+      openMin, 
+      closeHour, 
+      closeMin,
+      spansNextDay 
+    });
     
     const now = new Date();
     const isToday = 
       selectedDate.getDate() === now.getDate() &&
       selectedDate.getMonth() === now.getMonth() &&
       selectedDate.getFullYear() === now.getFullYear();
+    
+    console.log('📅 Is today:', isToday, 'Current time:', now.toLocaleTimeString());
     
     let startHour = openHour;
     let startMin = openMin;
@@ -350,6 +398,13 @@ export class WelcomeScreenComponent implements OnInit {
       const totalCurrentMinutes = currentHour * 60 + currentMin + bufferMinutes;
       const totalOpenMinutes = openHour * 60 + openMin;
       
+      console.log('🕐 Current calculation:', {
+        currentHour,
+        currentMin,
+        totalCurrentMinutes,
+        totalOpenMinutes
+      });
+      
       if (totalCurrentMinutes > totalOpenMinutes) {
         startHour = Math.floor(totalCurrentMinutes / 60);
         startMin = Math.ceil((totalCurrentMinutes % 60) / interval) * interval;
@@ -358,41 +413,47 @@ export class WelcomeScreenComponent implements OnInit {
           startHour += 1;
           startMin = 0;
         }
+        console.log('⏰ Adjusted start time:', { startHour, startMin });
       }
     }
     
     const totalEndMinutes = closeHour * 60 + closeMin;
     let currentMinutes = startHour * 60 + startMin;
     
+    console.log('🔄 Loop params:', { totalEndMinutes, currentMinutes });
+    
     while (currentMinutes <= totalEndMinutes) {
       const hour = Math.floor(currentMinutes / 60);
       const min = currentMinutes % 60;
       
-      // Don't include slots past closing time
-      if (hour > closeHour || (hour === closeHour && min > closeMin)) {
-        break;
-      }
+      // For display, convert back to 24-hour format
+      const displayHour = hour % 24;
       
-      const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+      const timeStr = `${String(displayHour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
       slots.push(timeStr);
       currentMinutes += interval;
     }
     
+    console.log('✅ Total slots generated:', slots.length);
     return slots;
   }
 
-  // Get business hours hint text
+  // Get business hours hint text (for today)
   getBusinessHoursHint(): string | null {
-    const selectedDate = this.orderForm.get('scheduledDate')?.value;
-    if (!selectedDate) return null;
-    
-    const dayOfWeek = selectedDate.getDay();
+    const today = new Date();
+    const dayOfWeek = today.getDay();
     const hours = this.getDayBusinessHours(dayOfWeek);
     
     if (!hours || hours.is_closed) {
-      return 'Fermé ce jour';
+      return 'Fermé aujourd\'hui';
     }
     
-    return `Horaires: ${hours.open_time} - ${hours.close_time}`;
+    // Format time to remove seconds (HH:MM:SS -> HH:MM)
+    const formatTime = (time: string | null) => {
+      if (!time) return '';
+      return time.substring(0, 5); // Take only HH:MM
+    };
+    
+    return `Horaires: ${formatTime(hours.open_time)} - ${formatTime(hours.close_time)}`;
   }
 }

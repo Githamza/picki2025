@@ -1,5 +1,6 @@
 import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -19,11 +20,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductAdminService } from '../../../services/product-admin.service';
+import { CustomisationService } from '../../../services/customisation.service';
 import {
   ProductAdmin,
   Category,
   ProductFormData,
 } from '../../../models/product-admin.interface';
+import { Customisation } from '../../../models/customisation.interface';
 import { ImageUploadComponent } from '../../../shared/components';
 
 export interface DialogData {
@@ -80,7 +83,7 @@ export interface DialogData {
             type="number"
             formControlName="price"
             placeholder="0.00"
-            step="0.01"
+            step="0.50"
             min="0"
           />
           <span matTextPrefix>€&nbsp;</span>
@@ -143,6 +146,24 @@ export interface DialogData {
           ></textarea>
         </mat-form-field>
 
+        <!-- Customisations -->
+        <mat-form-field appearance="fill">
+          <mat-label>Customisations</mat-label>
+          <mat-select formControlName="customisations" multiple (selectionChange)="onCustomisationSelectionChange($event)">
+            @for (customisation of availableCustomisations; track customisation.id) {
+              <mat-option [value]="customisation.id">
+                {{ customisation.name }}
+                <span class="option-hint"> ({{ customisation.options?.length || 0 }} options)</span>
+              </mat-option>
+            }
+            <mat-option [value]="'CREATE_NEW'" class="create-new-option">
+              <mat-icon>add</mat-icon>
+              Créer une nouvelle customisation
+            </mat-option>
+          </mat-select>
+          <mat-hint>Sélectionnez les customisations à attacher à ce produit</mat-hint>
+        </mat-form-field>
+
         <!-- Stock Quantity -->
         <mat-form-field appearance="fill">
           <mat-label>Quantité en stock (optionnel)</mat-label>
@@ -166,7 +187,7 @@ export interface DialogData {
           </mat-slide-toggle>
 
           <mat-slide-toggle formControlName="is_multi_step">
-            Menu multi-étapes
+            Formules
           </mat-slide-toggle>
         </div>
 
@@ -227,7 +248,6 @@ export interface DialogData {
 
       .dialog-content {
         min-width: 500px;
-        max-height: 70vh;
         overflow-y: auto;
       }
 
@@ -268,6 +288,24 @@ export interface DialogData {
         font-size: 0.875rem;
       }
 
+      .option-hint {
+        font-size: 0.75rem;
+        color: var(--mat-sys-on-surface-variant);
+        margin-left: 4px;
+      }
+
+      .create-new-option {
+        border-top: 1px solid var(--mat-sys-outline-variant);
+        background: var(--mat-sys-surface-variant);
+      }
+
+      .create-new-option mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 8px;
+      }
+
       .dialog-actions {
         margin-top: 24px;
         gap: 8px;
@@ -285,11 +323,14 @@ export interface DialogData {
 export class ProductEditDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private productAdminService = inject(ProductAdminService);
+  private customisationService = inject(CustomisationService);
+  private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private dialogRef = inject(MatDialogRef<ProductEditDialogComponent>);
 
   productForm: FormGroup;
   categories: Category[] = [];
+  availableCustomisations: Customisation[] = [];
   saving = false;
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {
@@ -298,6 +339,7 @@ export class ProductEditDialogComponent implements OnInit {
 
   ngOnInit() {
     this.loadCategories();
+    this.loadCustomisations();
     if (this.data.product) {
       this.populateForm(this.data.product);
     }
@@ -312,6 +354,7 @@ export class ProductEditDialogComponent implements OnInit {
       image_url: [''],
       short_description: [''],
       long_description: [''],
+      customisations: [[]],
       stock_quantity: [null],
       is_available: [true],
       is_multi_step: [false],
@@ -320,7 +363,9 @@ export class ProductEditDialogComponent implements OnInit {
   }
 
   private loadCategories() {
-    this.productAdminService.getCategories().subscribe({
+    if (!this.data.vendorId) return;
+
+    this.productAdminService.getCategories(this.data.vendorId).subscribe({
       next: (categories) => {
         this.categories = categories;
       },
@@ -337,7 +382,53 @@ export class ProductEditDialogComponent implements OnInit {
     });
   }
 
+  private loadCustomisations() {
+    if (!this.data.vendorId) return;
+
+    this.customisationService.getCustomisations(this.data.vendorId).subscribe({
+      next: (customisations) => {
+        this.availableCustomisations = customisations;
+      },
+      error: (error) => {
+        console.error('Error loading customisations:', error);
+        this.snackBar.open(
+          'Erreur lors du chargement des customisations',
+          'Fermer',
+          {
+            duration: 3000,
+          }
+        );
+      },
+    });
+  }
+
+  onCustomisationSelectionChange(event: any) {
+    const selectedValues = event.value;
+
+    // Check if 'CREATE_NEW' was selected
+    if (selectedValues.includes('CREATE_NEW')) {
+      // Remove 'CREATE_NEW' from the form value
+      const filteredValues = selectedValues.filter((v: any) => v !== 'CREATE_NEW');
+      this.productForm.patchValue({ customisations: filteredValues });
+
+      // Close this dialog and navigate to customisations tab
+      this.dialogRef.close(null);
+      this.router.navigate(['/product-manager'], {
+        queryParams: { tab: 'customisations' },
+      });
+      this.snackBar.open(
+        'Créez votre customisation, puis revenez éditer ce produit',
+        'OK',
+        {
+          duration: 5000,
+        }
+      );
+    }
+  }
+
   private populateForm(product: ProductAdmin) {
+    const customisationIds = product.customisations?.map((c) => c.id) || [];
+
     this.productForm.patchValue({
       name: product.name,
       price: product.price,
@@ -346,6 +437,7 @@ export class ProductEditDialogComponent implements OnInit {
       image_url: product.image_url,
       short_description: product.short_description,
       long_description: product.long_description,
+      customisations: customisationIds,
       stock_quantity: product.stock_quantity,
       is_available: product.is_available ?? true,
       is_multi_step: product.is_multi_step ?? false,
@@ -360,7 +452,21 @@ export class ProductEditDialogComponent implements OnInit {
     }
 
     this.saving = true;
-    const formData: ProductFormData = this.productForm.value;
+    const formData: ProductFormData = {
+      name: this.productForm.value.name,
+      price: this.productForm.value.price,
+      image_url: this.productForm.value.image_url,
+      short_description: this.productForm.value.short_description,
+      long_description: this.productForm.value.long_description,
+      category_id: this.productForm.value.category_id,
+      is_available: this.productForm.value.is_available,
+      stock_quantity: this.productForm.value.stock_quantity,
+      is_multi_step: this.productForm.value.is_multi_step,
+      no_catalogable: this.productForm.value.no_catalogable,
+      display_order: this.productForm.value.display_order,
+    };
+
+    const customisationIds: number[] = this.productForm.value.customisations || [];
 
     const operation = this.data.product
       ? this.productAdminService.updateProduct(this.data.product.id, formData)
@@ -368,7 +474,30 @@ export class ProductEditDialogComponent implements OnInit {
 
     operation.subscribe({
       next: (product) => {
-        this.dialogRef.close(product);
+        // Attach customisations if any selected
+        if (customisationIds.length > 0 || this.data.product?.has_customisations) {
+          this.customisationService
+            .attachToProduct(product.id, customisationIds)
+            .subscribe({
+              next: () => {
+                this.dialogRef.close(product);
+              },
+              error: (error) => {
+                console.error('Error attaching customisations:', error);
+                this.snackBar.open(
+                  'Produit sauvegardé mais erreur lors de l\'attachement des customisations',
+                  'Fermer',
+                  {
+                    duration: 5000,
+                    panelClass: ['error-snackbar'],
+                  }
+                );
+                this.dialogRef.close(product);
+              },
+            });
+        } else {
+          this.dialogRef.close(product);
+        }
       },
       error: (error) => {
         console.error('Error saving product:', error);

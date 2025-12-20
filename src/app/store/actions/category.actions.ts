@@ -29,5 +29,10 @@ export const selectCategory = createAction(
   props<{ categoryId: number }>()
 );
 
+// Clear selected category
+export const clearSelectedCategory = createAction(
+  '[Category] Clear Selected Category'
+);
+
 // Add mock categories (for demo purposes)
 export const addMockCategories = createAction('[Category] Add Mock Categories');

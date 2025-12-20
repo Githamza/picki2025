@@ -13,8 +13,10 @@ export const diningPreferenceGuard: CanActivateFn = (route) => {
     // Get vendor slug from route params
     const vendorSlug = route.parent?.paramMap.get('vendorSlug');
     if (vendorSlug) {
-      return router.createUrlTree([vendorSlug, 'dining-preference']);
+      // Vendor-scoped routing (pikiapp domains): /vendor/:vendorSlug/dining-preference
+      return router.createUrlTree(['/vendor', vendorSlug, 'dining-preference']);
     }
+    // Custom domain routing: /dining-preference
     return router.createUrlTree(['/dining-preference']);
   }
 

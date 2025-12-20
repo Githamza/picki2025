@@ -2,12 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { Order } from '../models/order.model';
 import { environment } from '../../environments/environment';
+import { DomainService } from './domain.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class EmailService {
   private supabaseService = inject(SupabaseService);
+  private domainService = inject(DomainService);
 
   async sendOrderConfirmationEmail(
     order: Order,
@@ -224,24 +226,37 @@ export class EmailService {
    */
   generateTrackingUrl(orderId: string, vendorSlug?: string): string {
     const baseUrl = window.location.origin;
+    const hostname = this.domainService.getHostname();
+    const isCustomDomain = this.domainService.isCustomDomain(hostname);
 
-    if (vendorSlug) {
-      // If vendor slug is provided, use the vendor-specific route
-      // Format: /vendorSlug/successPayment?orderId=xxx
-      return `${baseUrl}/${vendorSlug}/successPayment?orderId=${orderId}`;
-    } else {
-      // Try to extract vendor from current URL if not provided
-      const currentPath = window.location.pathname;
-      const vendorMatch = currentPath.match(/^\/([^\/]+)\//);
-
-      if (vendorMatch && vendorMatch[1]) {
-        const extractedVendorSlug = vendorMatch[1];
-        return `${baseUrl}/${extractedVendorSlug}/successPayment?orderId=${orderId}`;
-      }
-
-      // Fallback to non-vendor specific URL (though this should rarely happen)
+    // On vendor custom domains, the success route is NOT vendor-prefixed.
+    if (isCustomDomain) {
       return `${baseUrl}/successPayment?orderId=${orderId}`;
     }
+
+    // On pikiapp domains, prefer /vendor/:vendorSlug/successPayment.
+    const resolvedSlug =
+      vendorSlug ||
+      (() => {
+        const currentPath = window.location.pathname;
+        // Supported shapes:
+        // - /vendor/<slug>/...
+        // - /<slug>/... (legacy)
+        const matchVendorPrefixed = currentPath.match(/^\/vendor\/([^\/]+)(\/|$)/);
+        if (matchVendorPrefixed?.[1]) return matchVendorPrefixed[1];
+
+        const matchLegacy = currentPath.match(/^\/([^\/]+)(\/|$)/);
+        if (matchLegacy?.[1] && matchLegacy[1] !== 'vendor') return matchLegacy[1];
+
+        return undefined;
+      })();
+
+    if (resolvedSlug) {
+      return `${baseUrl}/vendor/${resolvedSlug}/successPayment?orderId=${orderId}`;
+    }
+
+    // Fallback (should rarely happen)
+    return `${baseUrl}/successPayment?orderId=${orderId}`;
   }
 
   /**

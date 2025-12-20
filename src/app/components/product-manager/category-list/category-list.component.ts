@@ -654,6 +654,9 @@ import { ImageUploadComponent } from '../../../shared/components';
       .cdk-drag-placeholder {
         opacity: 0.4;
       }
+      .mat-expansion-panel-header {
+        height: auto !important;
+      }
 
       @media (max-width: 768px) {
         .category-manager {
@@ -664,6 +667,10 @@ import { ImageUploadComponent } from '../../../shared/components';
           flex-direction: column;
           gap: 16px;
           align-items: stretch;
+        }
+
+        mat-panel-description {
+          display: none;
         }
 
         .products-header {

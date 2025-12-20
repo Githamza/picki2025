@@ -6,6 +6,7 @@
   flex-direction: column;
   position: relative;
   overflow: auto;
+  overflow-x: hidden;
 }
 .close-btn-wrapper {
   display: flex;
@@ -63,7 +64,7 @@
     height: 40px;
 
     mat-icon {
-      font-size: 20px;
+      font-size: 24px;
     }
   }
 }

@@ -39,9 +39,6 @@
               [class.negative]="option.priceAdjustment < 0"
               [class.neutral]="option.priceAdjustment === 0"
             >
-              <ng-container *ngIf="option.priceAdjustment === 0">
-                Inclus
-              </ng-container>
               <ng-container *ngIf="option.priceAdjustment !== 0">
                 {{ option.priceAdjustment > 0 ? "+" : ""
                 }}{{ formatPrice(option.priceAdjustment || 0) }}

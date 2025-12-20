@@ -26,11 +26,15 @@ export class ProductAdminService {
   }
 
   // Get categories for dropdown
-  getCategories(): Observable<Category[]> {
-    return from(this.getCategoriesByVendor(this.supabaseAuthService.getCurrentVendorId()));
+  getCategories(vendorId: string): Observable<Category[]> {
+    return from(this.getCategoriesByVendor(vendorId));
   }
 
   async getCategoriesByVendor(vendorId: string) {
+    if (!vendorId) {
+      throw new Error('ProductAdminService.getCategoriesByVendor: vendorId is required');
+    }
+
     const { data, error } = await this.supabaseAuthService
       .getClient()
       .from('categories')
@@ -96,6 +100,7 @@ export class ProductAdminService {
         products?.map((product: any) => ({
           ...product,
           category_name: product.categories?.name || null,
+          has_customisations: product.has_customisations ?? undefined,
         })) || []
       );
     } catch (error) {
@@ -159,6 +164,7 @@ export class ProductAdminService {
       category_name: (product as any).categories?.name || null,
       no_catalogable: (product as any).no_catalogable ?? false,
       display_order: (product as any).display_order ?? 0,
+      has_customisations: product.has_customisations ?? undefined,
     };
   }
 
@@ -193,6 +199,7 @@ export class ProductAdminService {
       category_name: (product as any).categories?.name || null,
       no_catalogable: (product as any).no_catalogable ?? false,
       display_order: (product as any).display_order ?? 0,
+      has_customisations: product.has_customisations ?? undefined,
     };
   }
 
@@ -305,6 +312,7 @@ export class ProductAdminService {
           return {
             ...menu,
             category_name: menu.categories?.name || null,
+            has_customisations: menu.has_customisations ?? undefined,
             steps: stepsWithOptions,
             step_count: menu.product_steps?.length || 0,
           };
@@ -397,6 +405,7 @@ export class ProductAdminService {
       ...menu,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
+      has_customisations: menu.has_customisations ?? undefined,
       steps: sortedSteps,
       step_count: menu.product_steps?.length || 0,
     };
@@ -433,6 +442,7 @@ export class ProductAdminService {
       ...menu,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
+      has_customisations: menu.has_customisations ?? undefined,
       steps: [],
       step_count: 0,
     };
@@ -467,6 +477,7 @@ export class ProductAdminService {
       ...menu,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
+      has_customisations: menu.has_customisations ?? undefined,
     };
   }
 
@@ -509,6 +520,7 @@ export class ProductAdminService {
       products?.map((product: any) => ({
         ...product,
         category_name: product.categories?.name || null,
+        has_customisations: product.has_customisations ?? undefined,
       })) || []
     );
   }

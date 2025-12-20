@@ -187,7 +187,7 @@ export class AdminAuthGuard implements CanActivate {
     if (vendorSlug) {
       // Redirect to vendor-specific login
       const loginUrl = this.router.createUrlTree(
-        [`/${vendorSlug}/admin/login`],
+        [`/vendor/${vendorSlug}/admin/login`],
         {
           queryParams: {
             returnUrl: state.url,
@@ -197,20 +197,14 @@ export class AdminAuthGuard implements CanActivate {
       );
       return of(loginUrl);
     } else {
-      // Log debugging info when vendor slug not found
-      console.warn('AdminAuthGuard: Could not find vendor slug in route', {
-        url: state.url,
-        routePath: route.routeConfig?.path,
-        params: route.params,
-        parentParams: route.parent?.params,
-        pathFromRoot: route.pathFromRoot.map((r) => ({
-          path: r.routeConfig?.path,
-          params: r.params,
-        })),
+      // Redirect to generic admin login
+      const loginUrl = this.router.createUrlTree(['/admin/login'], {
+        queryParams: {
+          returnUrl: state.url,
+          ...(message && { message }),
+        },
       });
-
-      // Fallback to vendor selection
-      return this.redirectToVendorSelection();
+      return of(loginUrl);
     }
   }
 

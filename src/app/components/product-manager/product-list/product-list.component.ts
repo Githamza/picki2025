@@ -68,6 +68,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           matSort
           class="product-table"
         >
+
           <!-- Image Column -->
           <ng-container matColumnDef="image">
             <th mat-header-cell *matHeaderCellDef>Image</th>
@@ -118,7 +119,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
                 @if (product.is_available) {
                 <mat-chip
                   class="status-chip available clickable"
-                  (click)="toggleProductAvailability(product)"
+                  (click)="toggleProductAvailability(product); $event.stopPropagation()"
                   [disabled]="isProductLoading(product.id)"
                 >
                   Disponible
@@ -131,7 +132,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
                 } @else {
                 <mat-chip
                   class="status-chip unavailable clickable"
-                  (click)="toggleProductAvailability(product)"
+                  (click)="toggleProductAvailability(product); $event.stopPropagation()"
                   [disabled]="isProductLoading(product.id)"
                 >
                   Indisponible
@@ -142,22 +143,24 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
                   >
                 </mat-chip>
                 } @if (product.no_catalogable) {
-                <mat-chip class="status-chip not-catalogable"
+                <mat-chip
+                  class="status-chip not-catalogable"
+                  (click)="$event.stopPropagation()"
                   >Hors catalogue</mat-chip
                 >
                 }
               </div>
             </td>
           </ng-container>
+                  <!-- Actions Column -->
 
-          <!-- Actions Column -->
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let product">
               <div class="action-buttons">
                 <button
                   mat-icon-button
-                  (click)="editProduct(product)"
+                  (click)="editProduct(product); $event.stopPropagation()"
                   matTooltip="Modifier"
                 >
                   <mat-icon>edit</mat-icon>
@@ -165,7 +168,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
                 <button
                   mat-icon-button
                   color="warn"
-                  (click)="deleteProduct(product)"
+                  (click)="deleteProduct(product); $event.stopPropagation()"
                   matTooltip="Supprimer"
                 >
                   <mat-icon>delete</mat-icon>
@@ -175,7 +178,13 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: displayedColumns"
+            (click)="onRowClick(row)"
+            [class.mobile-clickable]="isMobile()"
+            [class.unavailable-row]="!row.is_available"
+          ></tr>
         </table>
 
         @if (dataSource.data.length === 0) {
@@ -222,6 +231,8 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
         overflow: auto;
         border: 1px solid var(--mat-sys-outline-variant);
         border-radius: 8px;
+        /* on mobile */
+
       }
 
       .product-table {
@@ -349,6 +360,28 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
         margin: 0;
       }
 
+      .mobile-clickable {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+
+      .mobile-clickable:hover {
+        background-color: var(--mat-sys-surface-variant);
+      }
+
+      .mobile-clickable:active {
+        background-color: var(--mat-sys-primary-container);
+      }
+
+      .unavailable-row {
+        opacity: 0.5;
+        background-color: var(--mat-sys-surface-variant);
+      }
+
+      .unavailable-row:hover {
+        background-color: var(--mat-sys-surface-variant);
+      }
+
       @media (max-width: 768px) {
         .list-header {
           flex-direction: column;
@@ -357,6 +390,11 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
 
         .search-field {
           max-width: none;
+        }
+
+        /* Ensure rows are clickable on mobile */
+        .mobile-clickable {
+          cursor: pointer;
         }
       }
     `,
@@ -524,6 +562,14 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openProductDialog(product?: ProductAdmin) {
+    if (!this.currentVendorId) {
+      this.snackBar.open('Vendor ID non disponible', 'Fermer', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+      return;
+    }
+
     const dialogRef = this.dialog.open(ProductEditDialogComponent, {
       width: '600px',
       maxWidth: '90vw',
@@ -567,6 +613,17 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
             });
           },
         });
+    }
+  }
+
+  isMobile(): boolean {
+    return typeof window !== 'undefined' && window.innerWidth <= 768;
+  }
+
+  onRowClick(product: ProductAdmin): void {
+    // Only open edit dialog on mobile
+    if (this.isMobile()) {
+      this.editProduct(product);
     }
   }
 }

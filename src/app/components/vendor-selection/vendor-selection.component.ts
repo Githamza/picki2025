@@ -18,7 +18,7 @@ export class VendorSelectionComponent implements OnInit {
   vendors: Vendor[] = [];
 
   async ngOnInit() {
-    await this.loadVendors();
+    //await this.loadVendors();
   }
 
   private async loadVendors() {
@@ -57,7 +57,7 @@ export class VendorSelectionComponent implements OnInit {
   selectVendor(vendor: Vendor) {
     if (vendor.is_active) {
       const vendorSlug = this.vendorService.getVendorSlug(vendor);
-      this.router.navigate([vendorSlug]);
+      this.router.navigate(['/vendor', vendorSlug]);
     } else {
       console.warn(
         'Attempting to navigate to inactive vendor:',
@@ -65,7 +65,7 @@ export class VendorSelectionComponent implements OnInit {
       );
       // Still navigate even if inactive, in case we want to show a "closed" message
       const vendorSlug = this.vendorService.getVendorSlug(vendor);
-      this.router.navigate([vendorSlug]);
+      this.router.navigate(['/vendor', vendorSlug]);
     }
   }
 }

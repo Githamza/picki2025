@@ -29,10 +29,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.scss",
-              "@angular/material/prebuilt-themes/rose-red.css"
-            ],
+            "styles": ["src/styles.scss"],
             "scripts": [],
             "allowedCommonJsDependencies": ["ws"]
           },
@@ -93,10 +90,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.scss",
-              "@angular/material/prebuilt-themes/rose-red.css"
-            ],
+            "styles": ["src/styles.scss"],
             "scripts": []
           }
         }

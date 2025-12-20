@@ -133,6 +133,11 @@
   mat-form-field {
     min-width: 200px;
   }
+
+  .time-field {
+    width: 100%;
+    max-width: 400px;
+  }
 }
 
 .business-hours-hint {

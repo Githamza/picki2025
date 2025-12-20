@@ -132,7 +132,7 @@ import {
                     matInput
                     type="number"
                     formControlName="price"
-                    step="0.01"
+                    step="0.50"
                     min="0"
                   />
                   <span matTextPrefix>€&nbsp;</span>
@@ -349,20 +349,12 @@ import {
                       <h4>Produits assignés</h4>
                       <div class="assignment-actions">
                         <button
-                          mat-button
-                          color="primary"
-                          (click)="openProductSelector(i)"
-                        >
-                          <mat-icon>add</mat-icon>
-                          Ajouter un produit
-                        </button>
-                        <button
                           mat-raised-button
                           color="accent"
                           (click)="openBulkProductSelector(i)"
                         >
                           <mat-icon>playlist_add</mat-icon>
-                          Ajouter plusieurs
+                          Ajouter des produits
                         </button>
                       </div>
                     </div>
@@ -436,7 +428,7 @@ import {
                                 <input
                                   matInput
                                   type="number"
-                                  step="0.01"
+                                  step="0.50"
                                   [value]="
                                     getProductPriceAdjustmentByIndex(
                                       i,
@@ -631,7 +623,7 @@ import {
         background: var(--mat-sys-primary);
         color: var(--mat-sys-on-primary);
         border-radius: 50%;
-        width: 24px;
+        min-width: 24px;
         height: 24px;
         display: flex;
         align-items: center;
@@ -727,6 +719,7 @@ import {
 
       .product-item {
         padding: 12px 16px;
+        height: auto !important;
       }
 
       .product-info {
@@ -785,6 +778,7 @@ import {
         display: flex;
         flex-direction: column;
         gap: 16px;
+        margin-top: 16px;
       }
 
       .drag-handle {
@@ -822,6 +816,9 @@ import {
 
       .step-title {
         align-items: center;
+      }
+      .mat-expansion-panel-header {
+        height: auto !important;
       }
 
       @media (max-width: 768px) {
@@ -863,7 +860,15 @@ import {
           width: 18px;
           height: 18px;
         }
+
+        mat-panel-description {
+          display: none;
+        }
+        mat-mdc-form-field-infix {
+          width: fit-content !important;
+        }
       }
+      
     `,
   ],
 })
@@ -943,8 +948,10 @@ export class MenuEditComponent implements OnInit, OnDestroy {
   }
 
   private loadCategories() {
+    if (!this.currentVendorId) return;
+
     this.productAdminService
-      .getCategories()
+      .getCategories(this.currentVendorId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (categories) => {
@@ -1136,9 +1143,6 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     this.filteredProducts = newFilteredProducts;
   }
 
-  openProductSelector(stepIndex: number) {
-    this.showProductSelector[stepIndex] = true;
-  }
 
   closeProductSelector(stepIndex: number) {
     this.showProductSelector[stepIndex] = false;

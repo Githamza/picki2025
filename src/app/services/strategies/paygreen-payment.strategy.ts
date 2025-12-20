@@ -7,6 +7,7 @@ import {
 } from '../payment-strategy.interface';
 import { PayGreenPaymentOrderRequest } from '../paygreen.types';
 import { PaygreenBackendService } from '../paygreen-backend.service';
+import { VendorNavigationService } from '../vendor-navigation.service';
 
 @Injectable({
   providedIn: 'root',
@@ -15,7 +16,10 @@ export class PaygreenPaymentStrategy implements PaymentStrategy {
   readonly name = 'PayGreen';
   readonly provider = 'paygreen' as const;
 
-  constructor(private paygreenBackend: PaygreenBackendService) {}
+  constructor(
+    private paygreenBackend: PaygreenBackendService,
+    private vendorNavigation: VendorNavigationService
+  ) {}
 
   createPayment(request: PaymentRequest): Observable<PaymentResponse> {
     // Use the amount directly from the request (already calculated)
@@ -23,8 +27,10 @@ export class PaygreenPaymentStrategy implements PaymentStrategy {
 
     // Generate return URLs if not provided
     const baseUrl = window.location.origin;
-    const returnUrl = request.returnUrl || `${baseUrl}/successPayment`;
-    const cancelUrl = request.cancelUrl || `${baseUrl}/failedPayment`;
+    const defaultReturnPath = this.vendorNavigation.getVendorUrl('successPayment');
+    const defaultCancelPath = this.vendorNavigation.getVendorUrl('failedPayment');
+    const returnUrl = request.returnUrl || `${baseUrl}${defaultReturnPath}`;
+    const cancelUrl = request.cancelUrl || `${baseUrl}${defaultCancelPath}`;
 
     const paymentOrderRequest: PayGreenPaymentOrderRequest = {
       ttl: 600, // 10 minutes

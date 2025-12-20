@@ -81,14 +81,14 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Check if vendor is set
-    if (!this.currentVendor) {
-      this.snackBar.open('Please select a vendor first', 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      });
-      this.router.navigate(['/']);
-      return;
+    // For centralized login, vendor context is determined after login
+    // Keep vendor-specific login for backward compatibility
+    if (this.currentVendor) {
+      // Vendor-specific login mode
+      console.log('Using vendor-specific login for:', this.currentVendor.business_name);
+    } else {
+      // Centralized login mode - vendor will be determined after authentication
+      console.log('Using centralized login mode');
     }
 
     // Watch for authentication errors
@@ -195,7 +195,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
    * Get vendor display name
    */
   getVendorName(): string {
-    return this.currentVendor?.business_name || 'Restaurant';
+    return this.currentVendor?.business_name || 'Admin Portal';
   }
 
   // Private methods
@@ -205,11 +205,24 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
    */
   private redirectToAdmin(): void {
     const returnUrl = this.route.snapshot.queryParams['returnUrl'];
-    const defaultUrl = `/${this.vendorService.getVendorSlug(
-      this.currentVendor!
-    )}/admin`;
-
-    this.router.navigate([returnUrl || defaultUrl]);
+    
+    // Check if we're in centralized login mode (no vendor context)
+    if (!this.currentVendor) {
+      const currentUser = this.authService.currentUser();
+      if (currentUser?.vendor?.slug) {
+        const defaultUrl = `/${currentUser.vendor.slug}/admin`;
+        this.router.navigate([returnUrl || defaultUrl]);
+      } else {
+        // Fallback to vendor selection
+        this.router.navigate(['/']);
+      }
+    } else {
+      // Vendor-specific login mode
+      const defaultUrl = `/${this.vendorService.getVendorSlug(
+        this.currentVendor
+      )}/admin`;
+      this.router.navigate([returnUrl || defaultUrl]);
+    }
   }
 
   /**

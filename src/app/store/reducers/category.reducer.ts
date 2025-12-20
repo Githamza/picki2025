@@ -90,6 +90,10 @@ export const categoryReducer = createReducer(
     ...state,
     selectedCategoryId: categoryId,
   })),
+  on(CategoryActions.clearSelectedCategory, (state) => ({
+    ...state,
+    selectedCategoryId: null,
+  })),
   on(CategoryActions.addMockCategories, (state) => ({
     ...state,
     categories: mockCategories,

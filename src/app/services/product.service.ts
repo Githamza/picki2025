@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { from, Observable, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { from, Observable, combineLatest, forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
 import { CategoryService } from './category.service';
+import { CustomisationService } from './customisation.service';
 import { Tables } from '../types/supabase.types';
 import {
   ProductWithComplements,
@@ -24,6 +25,8 @@ export interface Product {
   isMultiStep?: boolean;
   displayOrder: number;
   stockQuantity?: number | null;
+  hasCustomisations?: boolean;
+  customisations?: import('../models/customisation.interface').Customisation[];
 }
 
 @Injectable({
@@ -32,6 +35,7 @@ export interface Product {
 export class ProductService {
   private supabaseService = inject(SupabaseService);
   private categoryService = inject(CategoryService);
+  private customisationService = inject(CustomisationService);
 
   getProducts(vendorId?: string): Observable<Product[]> {
     // Combine products and categories to sort by category displayOrder when no category filter is applied
@@ -119,6 +123,32 @@ export class ProductService {
   getProductById(id: number): Observable<Product | null> {
     return from(this.supabaseService.getProductById(id)).pipe(
       map((product) => (product ? this.mapToProduct(product) : null))
+    );
+  }
+
+  getProductWithCustomisations(id: number): Observable<Product | null> {
+    return from(this.supabaseService.getProductById(id)).pipe(
+      switchMap((dbProduct) => {
+        if (!dbProduct) {
+          return of(null);
+        }
+
+        const product = this.mapToProduct(dbProduct);
+
+        // If product has customisations, fetch them
+        if (product.hasCustomisations && product.vendorId) {
+          return this.customisationService
+            .getProductCustomisations(product.id)
+            .pipe(
+              map((customisations) => ({
+                ...product,
+                customisations,
+              }))
+            );
+        }
+
+        return of(product);
+      })
     );
   }
 
@@ -265,6 +295,7 @@ export class ProductService {
       isMultiStep: dbProduct.is_multi_step,
       displayOrder: dbProduct.display_order || 0,
       stockQuantity: dbProduct.stock_quantity,
+      hasCustomisations: dbProduct.has_customisations || false,
     };
   }
 
@@ -304,5 +335,48 @@ export class ProductService {
           }
         : undefined,
     };
+  }
+
+  private loadCustomisationsForProducts(
+    products: Product[]
+  ): Observable<Product[]> {
+    // Find products that have customisations
+    const productsWithCustomisations = products.filter(
+      (p) => p.hasCustomisations
+    );
+
+    if (productsWithCustomisations.length === 0) {
+      return of(products);
+    }
+
+    // Load customisations for each product that has them
+    const customisationRequests = productsWithCustomisations.map((product) =>
+      this.customisationService.getProductCustomisations(product.id).pipe(
+        map((customisations) => ({
+          productId: product.id,
+          customisations,
+        }))
+      )
+    );
+
+    return forkJoin(customisationRequests).pipe(
+      map((results) => {
+        // Create a map of product ID to customisations
+        const customisationsMap = new Map(
+          results.map((r) => [r.productId, r.customisations])
+        );
+
+        // Return products with customisations attached
+        return products.map((product) => {
+          if (product.hasCustomisations) {
+            return {
+              ...product,
+              customisations: customisationsMap.get(product.id) || [],
+            };
+          }
+          return product;
+        });
+      })
+    );
   }
 }

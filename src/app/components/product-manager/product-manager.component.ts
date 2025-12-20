@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterOutlet } from '@angular/router';
-
+import { MatDialog } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,11 +15,13 @@ import { ProductAdminService } from '../../services/product-admin.service';
 import { VendorService } from '../../services/vendor.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { SupabaseAuthService } from '../../services/supabase-auth.service';
+import { CustomisationService } from '../../services/customisation.service';
 import {
   MenuAdmin,
   Category,
   MenuFormData,
 } from '../../models/product-admin.interface';
+import { Customisation } from '../../models/customisation.interface';
 
 @Component({
   selector: 'app-product-manager',
@@ -43,17 +45,17 @@ import {
       </div>
 
       <mat-tab-group class="product-tabs" animationDuration="300ms">
-        <mat-tab label="Mes Items">
+        <mat-tab label="Mes produits">
           <div class="tab-content">
             <app-product-list></app-product-list>
           </div>
         </mat-tab>
 
-        <mat-tab label="Menus Multi-étapes">
+        <mat-tab label="Formules">
           <div class="tab-content">
             <!-- Menu Header -->
             <div class="menu-header">
-              <h2>Menus Multi-étapes (2+ étapes)</h2>
+              <h2>Déclarez vos formules</h2>
               <button mat-raised-button color="primary" (click)="createMenu()">
                 <mat-icon>add</mat-icon>
                 Créer un menu
@@ -167,75 +169,68 @@ import {
           </div>
         </mat-tab>
 
-        <mat-tab label="Menus 1 étape">
+        <mat-tab label="Customisations">
           <div class="tab-content">
-            <!-- Single Step Menu Header -->
+            <!-- Customisation Header -->
             <div class="menu-header">
-              <h2>Menus à choix simple (1 étape)</h2>
-              <button mat-raised-button color="accent" (click)="createMenu()">
+              <h2>Customisations</h2>
+              <button mat-raised-button color="accent" (click)="createCustomisation()">
                 <mat-icon>add</mat-icon>
-                Créer un menu simple
+                Créer une customisation
               </button>
             </div>
 
-            <!-- Single Step Menu Cards Grid -->
-            <div class="menu-grid" *ngIf="singleStepMenus.length > 0">
+            <!-- Customisation Cards Grid -->
+            <div class="menu-grid" *ngIf="customisations.length > 0">
               <mat-card
-                class="menu-card single-step-menu"
-                *ngFor="let menu of singleStepMenus; trackBy: trackByMenuId"
+                class="menu-card customisation-card"
+                *ngFor="let customisation of customisations; trackBy: trackByCustomisationId"
               >
                 <mat-card-header>
-                  <div mat-card-avatar class="menu-avatar single-step">
-                    <mat-icon>view_list</mat-icon>
+                  <div mat-card-avatar class="menu-avatar customisation">
+                    <mat-icon>tune</mat-icon>
                   </div>
-                  <mat-card-title>{{ menu.name }}</mat-card-title>
+                  <mat-card-title>{{ customisation.name }}</mat-card-title>
                   <mat-card-subtitle>{{
-                    menu.category_name || 'Sans catégorie'
+                    customisation.description || 'Sans description'
                   }}</mat-card-subtitle>
                 </mat-card-header>
 
-                <div class="menu-image-container" *ngIf="menu.image_url">
-                  <img
-                    [src]="menu.image_url"
-                    [alt]="menu.name"
-                    loading="lazy"
-                    class="menu-image"
-                  />
-                </div>
-
                 <mat-card-content>
-                  <p class="menu-description">
-                    {{ menu.short_description || 'Aucune description' }}
-                  </p>
-
                   <div class="menu-meta">
                     <div class="menu-chips">
-                      <mat-chip>{{
-                        menu.price
-                          | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
-                      }}</mat-chip>
                       <mat-chip
                         [class]="
-                          menu.is_available
+                          customisation.is_available
                             ? 'chip-available clickable'
                             : 'chip-unavailable clickable'
                         "
-                        (click)="toggleMenuAvailability(menu)"
-                        [disabled]="isMenuLoading(menu.id)"
+                        (click)="toggleCustomisationAvailability(customisation)"
+                        [disabled]="isCustomisationLoading(customisation.id)"
                       >
-                        {{ menu.is_available ? 'Disponible' : 'Indisponible' }}
+                        {{ customisation.is_available ? 'Disponible' : 'Indisponible' }}
                         <mat-icon
-                          *ngIf="isMenuLoading(menu.id)"
+                          *ngIf="isCustomisationLoading(customisation.id)"
                           class="loading-icon"
                           >refresh</mat-icon
                         >
                       </mat-chip>
-                      <mat-chip class="chip-single-step">1 étape</mat-chip>
+                      <mat-chip class="chip-type">
+                        {{ customisation.selection_type === 'single-select' ? 'Choix unique' : 'Choix multiple' }}
+                      </mat-chip>
                       <mat-chip
                         class="chip-options"
-                        *ngIf="getTotalOptionsCount(menu) > 0"
-                        >{{ getTotalOptionsCount(menu) }} choix</mat-chip
+                        *ngIf="getCustomisationOptionsCount(customisation) > 0"
+                        >{{ getCustomisationOptionsCount(customisation) }} options</mat-chip
                       >
+                      <mat-chip
+                        class="chip-products"
+                        *ngIf="getCustomisationProductCount(customisation.id) > 0"
+                        >{{ getCustomisationProductCount(customisation.id) }} produits</mat-chip
+                      >
+                      <mat-chip *ngIf="customisation.is_required" class="chip-required">
+                        Requis
+                      </mat-chip>
                     </div>
                   </div>
                 </mat-card-content>
@@ -243,7 +238,7 @@ import {
                 <mat-card-actions class="menu-actions">
                   <button
                     mat-button
-                    (click)="editMenu(menu)"
+                    (click)="editCustomisation(customisation)"
                     class="action-button"
                   >
                     <mat-icon>edit</mat-icon>
@@ -251,7 +246,7 @@ import {
                   </button>
                   <button
                     mat-button
-                    (click)="duplicateMenu(menu)"
+                    (click)="duplicateCustomisation(customisation)"
                     class="action-button"
                   >
                     <mat-icon>content_copy</mat-icon>
@@ -260,7 +255,7 @@ import {
                   <button
                     mat-button
                     color="warn"
-                    (click)="deleteMenu(menu)"
+                    (click)="deleteCustomisation(customisation)"
                     class="action-button"
                   >
                     <mat-icon>delete</mat-icon>
@@ -270,17 +265,16 @@ import {
               </mat-card>
             </div>
 
-            <!-- Single Step Empty State -->
-            <div class="empty-state" *ngIf="singleStepMenus.length === 0">
-              <mat-icon>view_list</mat-icon>
-              <h3>Aucun menu à étape unique trouvé</h3>
+            <!-- Customisations Empty State -->
+            <div class="empty-state" *ngIf="customisations.length === 0">
+              <mat-icon>tune</mat-icon>
+              <h3>Aucune customisation trouvée</h3>
               <p>
-                Les menus à étape unique permettent aux clients de choisir parmi
-                une liste d'options
+                Les customisations permettent aux clients de personnaliser leurs produits
               </p>
-              <button mat-raised-button color="accent" (click)="createMenu()">
+              <button mat-raised-button color="accent" (click)="createCustomisation()">
                 <mat-icon>add</mat-icon>
-                Créer mon premier menu simple
+                Créer ma première customisation
               </button>
             </div>
           </div>
@@ -300,13 +294,14 @@ import {
   styles: [
     `
       .product-manager {
-        padding: 24px;
         max-width: 1200px;
         margin: 0 auto;
       }
 
       .header {
-        margin-bottom: 32px;
+        @media (max-width: 768px) {
+          text-align: center;
+        }
       }
 
       h1 {
@@ -380,6 +375,25 @@ import {
         border-left: 4px solid var(--mat-sys-tertiary);
       }
 
+      .customisation-card {
+        border-left: 4px solid var(--mat-sys-secondary);
+      }
+
+      .menu-avatar.customisation {
+        background: var(--mat-sys-secondary-container);
+        color: var(--mat-sys-on-secondary-container);
+      }
+
+      .chip-type {
+        background: var(--mat-sys-secondary-container);
+        color: var(--mat-sys-on-secondary-container);
+      }
+
+      .chip-required {
+        background: var(--mat-sys-primary-container);
+        color: var(--mat-sys-on-primary-container);
+      }
+
       .menu-image-container {
         height: 120px;
         overflow: hidden;
@@ -450,6 +464,11 @@ import {
         color: var(--mat-sys-on-tertiary-container);
       }
 
+      .chip-products {
+        background: var(--mat-sys-secondary-container);
+        color: var(--mat-sys-on-secondary-container);
+      }
+
       .clickable {
         cursor: pointer;
         transition: opacity 0.2s ease;
@@ -469,9 +488,8 @@ import {
       .menu-actions {
         padding: 8px 8px 8px 8px;
         display: flex;
-        flex-wrap: wrap;
         gap: 1px;
-        justify-content: flex-center;
+        justify-content: space-between;
       }
 
       .action-button {
@@ -528,9 +546,7 @@ import {
       }
 
       @media (max-width: 768px) {
-        .product-manager {
-          padding: 16px;
-        }
+
 
         h1 {
           font-size: 1.5rem;
@@ -556,7 +572,6 @@ import {
         }
 
         .menu-actions {
-          flex-direction: column;
           gap: 8px;
         }
 
@@ -575,16 +590,23 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
   private vendorService = inject(VendorService);
   private supabaseService = inject(SupabaseService);
   private supabaseAuthService = inject(SupabaseAuthService);
+  private customisationService = inject(CustomisationService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   private destroy$ = new Subject<void>();
 
   menus: MenuAdmin[] = [];
   singleStepMenus: MenuAdmin[] = [];
+  customisations: Customisation[] = [];
   categories: Category[] = [];
   currentVendorId: string | null = null;
 
-  // Track loading states for individual menus
+  // Track loading states for individual menus and customisations
   private loadingMenus = new Set<number>();
+  private loadingCustomisations = new Set<number>();
+  
+  // Track product counts for customisations
+  customisationProductCounts = new Map<number, number>();
 
   ngOnInit() {
     this.loadCurrentVendor();
@@ -603,13 +625,16 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
         if (vendor?.id) {
           this.currentVendorId = vendor.id;
           this.loadMenus();
+          this.loadCustomisations();
         }
       });
   }
 
   private loadCategories() {
+    if (!this.currentVendorId) return;
+
     this.productAdminService
-      .getCategories()
+      .getCategories(this.currentVendorId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (categories) => {
@@ -922,6 +947,325 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error deleting menu:', error);
+            this.snackBar.open('Erreur lors de la suppression', 'Fermer', {
+              duration: 5000,
+              panelClass: ['error-snackbar'],
+            });
+          },
+        });
+    }
+  }
+
+  // Customisation methods
+
+  private loadCustomisations() {
+    if (!this.currentVendorId) return;
+
+    this.customisationService
+      .getCustomisations(this.currentVendorId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (customisations) => {
+          this.customisations = customisations;
+          // Load product counts for each customisation
+          this.loadCustomisationProductCounts();
+        },
+        error: (error) => {
+          console.error('Error loading customisations:', error);
+          this.snackBar.open(
+            'Erreur lors du chargement des customisations',
+            'Fermer',
+            {
+              duration: 5000,
+              panelClass: ['error-snackbar'],
+            }
+          );
+        },
+      });
+  }
+
+  private loadCustomisationProductCounts() {
+    this.customisations.forEach((customisation) => {
+      this.customisationService
+        .getCustomisationProducts(customisation.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (productIds) => {
+            this.customisationProductCounts.set(customisation.id, productIds.length);
+          },
+          error: (error) => {
+            console.error(`Error loading product count for customisation ${customisation.id}:`, error);
+          },
+        });
+    });
+  }
+
+  getCustomisationProductCount(customisationId: number): number {
+    return this.customisationProductCounts.get(customisationId) || 0;
+  }
+
+  trackByCustomisationId(index: number, customisation: Customisation): number {
+    return customisation.id;
+  }
+
+  getCustomisationOptionsCount(customisation: Customisation): number {
+    return customisation.options?.length || 0;
+  }
+
+  isCustomisationLoading(customisationId: number): boolean {
+    return this.loadingCustomisations.has(customisationId);
+  }
+
+  createCustomisation() {
+    // Will be implemented with the customisation edit dialog
+    import('./customisation-edit-dialog/customisation-edit-dialog.component').then(
+      ({ CustomisationEditDialogComponent }) => {
+        const dialogRef = this.dialog.open(CustomisationEditDialogComponent, {
+          width: '90vw',
+          maxWidth: '1200px',
+          height: '90vh',
+          maxHeight: '900px',
+          data: {
+            vendorId: this.currentVendorId,
+          },
+          disableClose: true,
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            this.loadCustomisations();
+          }
+        });
+      }
+    );
+  }
+
+  editCustomisation(customisation: Customisation) {
+    import('./customisation-edit-dialog/customisation-edit-dialog.component').then(
+      ({ CustomisationEditDialogComponent }) => {
+        const dialogRef = this.dialog.open(CustomisationEditDialogComponent, {
+          width: '90vw',
+          maxWidth: '1200px',
+          height: '90vh',
+          maxHeight: '900px',
+          data: {
+            customisation,
+            vendorId: this.currentVendorId,
+          },
+          disableClose: true,
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            this.loadCustomisations();
+          }
+        });
+      }
+    );
+  }
+
+  duplicateCustomisation(customisation: Customisation) {
+    if (
+      !confirm(`Voulez-vous dupliquer la customisation "${customisation.name}" ?`)
+    ) {
+      return;
+    }
+
+    if (!this.currentVendorId) {
+      this.snackBar.open('Vendor ID non disponible', 'Fermer', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+      return;
+    }
+
+    this.snackBar.open('Duplication en cours...', '', {
+      duration: 0,
+    });
+
+    // First, get the complete customisation data
+    this.customisationService
+      .getCustomisation(customisation.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (completeCustomisation) => {
+          // Create the duplicated customisation data
+          const duplicatedData = {
+            name: `${completeCustomisation.name} (Copie)`,
+            description: completeCustomisation.description,
+            selection_type: completeCustomisation.selection_type,
+            is_required: completeCustomisation.is_required,
+            min_selections: completeCustomisation.min_selections,
+            max_selections: completeCustomisation.max_selections,
+            display_order: completeCustomisation.display_order,
+            is_available: completeCustomisation.is_available,
+          };
+
+          // Create the new customisation
+          this.customisationService
+            .createCustomisation(this.currentVendorId!, duplicatedData)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (newCustomisation) => {
+                // If the original has options, duplicate them
+                if (
+                  completeCustomisation.options &&
+                  completeCustomisation.options.length > 0
+                ) {
+                  const optionPromises = completeCustomisation.options.map(
+                    (option) => {
+                      const optionData = {
+                        name: option.name,
+                        product_id: option.product_id,
+                        price_adjustment: option.price_adjustment,
+                        display_order: option.display_order,
+                        is_available: option.is_available,
+                        option_type: option.option_type,
+                        description: option.description,
+                        image_url: option.image_url,
+                      };
+                      return this.customisationService
+                        .addOption(newCustomisation.id, optionData)
+                        .toPromise();
+                    }
+                  );
+
+                  Promise.all(optionPromises)
+                    .then(() => {
+                      this.snackBar.dismiss();
+                      this.snackBar.open(
+                        `Customisation "${newCustomisation.name}" dupliquée avec succès`,
+                        'Fermer',
+                        {
+                          duration: 5000,
+                          panelClass: ['success-snackbar'],
+                        }
+                      );
+                      this.loadCustomisations();
+                    })
+                    .catch((error) => {
+                      console.error('Error duplicating options:', error);
+                      this.snackBar.dismiss();
+                      this.snackBar.open(
+                        'Erreur lors de la duplication des options',
+                        'Fermer',
+                        {
+                          duration: 5000,
+                          panelClass: ['error-snackbar'],
+                        }
+                      );
+                    });
+                } else {
+                  this.snackBar.dismiss();
+                  this.snackBar.open(
+                    `Customisation "${newCustomisation.name}" dupliquée avec succès`,
+                    'Fermer',
+                    {
+                      duration: 5000,
+                      panelClass: ['success-snackbar'],
+                    }
+                  );
+                  this.loadCustomisations();
+                }
+              },
+              error: (error) => {
+                console.error('Error creating duplicated customisation:', error);
+                this.snackBar.dismiss();
+                this.snackBar.open(
+                  'Erreur lors de la création de la customisation',
+                  'Fermer',
+                  {
+                    duration: 5000,
+                    panelClass: ['error-snackbar'],
+                  }
+                );
+              },
+            });
+        },
+        error: (error) => {
+          console.error('Error fetching customisation for duplication:', error);
+          this.snackBar.dismiss();
+          this.snackBar.open(
+            'Erreur lors de la récupération des données',
+            'Fermer',
+            {
+              duration: 5000,
+              panelClass: ['error-snackbar'],
+            }
+          );
+        },
+      });
+  }
+
+  async toggleCustomisationAvailability(customisation: Customisation) {
+    if (this.isCustomisationLoading(customisation.id)) {
+      return;
+    }
+
+    this.loadingCustomisations.add(customisation.id);
+
+    try {
+      const newAvailability = !customisation.is_available;
+
+      // Optimistic update
+      this.customisations = this.customisations.map((c) =>
+        c.id === customisation.id
+          ? { ...c, is_available: newAvailability }
+          : c
+      );
+
+      // Perform the actual update
+      await this.customisationService
+        .toggleCustomisationAvailability(customisation.id, newAvailability)
+        .toPromise();
+
+      const statusText = newAvailability ? 'disponible' : 'indisponible';
+      this.snackBar.open(
+        `${customisation.name} est maintenant ${statusText}`,
+        'OK',
+        {
+          duration: 3000,
+          panelClass: ['success-snackbar'],
+        }
+      );
+    } catch (error: any) {
+      console.error('Error updating customisation availability:', error);
+
+      // Revert optimistic update
+      this.loadCustomisations();
+
+      this.snackBar.open(
+        'Erreur lors de la mise à jour de la customisation',
+        'Fermer',
+        {
+          duration: 5000,
+          panelClass: ['error-snackbar'],
+        }
+      );
+    } finally {
+      this.loadingCustomisations.delete(customisation.id);
+    }
+  }
+
+  deleteCustomisation(customisation: Customisation) {
+    if (
+      confirm(
+        `Êtes-vous sûr de vouloir supprimer la customisation "${customisation.name}" ?`
+      )
+    ) {
+      this.customisationService
+        .deleteCustomisation(customisation.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.loadCustomisations();
+            this.snackBar.open('Customisation supprimée avec succès', 'Fermer', {
+              duration: 3000,
+              panelClass: ['success-snackbar'],
+            });
+          },
+          error: (error) => {
+            console.error('Error deleting customisation:', error);
             this.snackBar.open('Erreur lors de la suppression', 'Fermer', {
               duration: 5000,
               panelClass: ['error-snackbar'],

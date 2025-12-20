@@ -1,5 +1,11 @@
 export const environment = {
   production: false,
+  // Hosts that should be treated as "pikiapp" (non-custom) domains.
+  // If the app is loaded on a host NOT in this list (or its subdomains),
+  // we treat it as a vendor custom domain and resolve the vendor by domain.
+  //
+  // Start with localhost for local development.
+  pikiappDomains: ['localhost'],
 
   // Stripe configuration
   stripePublishableKey: 'pk_test_your_stripe_publishable_key_here', // Replace with your actual key

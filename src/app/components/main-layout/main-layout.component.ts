@@ -14,6 +14,10 @@ import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility
 import { VendorService } from '../../services/vendor.service';
 import { MatDialog } from '@angular/material/dialog';
 import { RestaurantInfoDialogComponent } from '../restaurant-info-dialog/restaurant-info-dialog.component';
+import { Store } from '@ngrx/store';
+import { AppState } from '../../store/models/app.state';
+import * as CategoryActions from '../../store/actions/category.actions';
+import { PromotionalBannerComponent } from "../promotional-banner/promotional-banner.component";
 
 @Component({
   selector: 'app-main-layout',
@@ -24,19 +28,19 @@ import { RestaurantInfoDialogComponent } from '../restaurant-info-dialog/restaur
     ...materialComponents,
     CategoryMenuComponent,
     CartBadgeComponent,
-  ],
+],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss'],
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
   private breakpointObserver = inject(BreakpointObserver);
   protected diningPreferenceService = inject(DiningPreferenceService);
-  private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
   private restaurantStatusService = inject(RestaurantStatusService);
   private cartBadgeVisibilityService = inject(CartBadgeVisibilityService);
   private vendorService = inject(VendorService);
   private dialog = inject(MatDialog);
+  private store = inject(Store<AppState>);
 
   private subscription = new Subscription();
 
@@ -131,12 +135,14 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   toggleTheme() {
     this.isDarkTheme = !this.isDarkTheme;
     if (this.isDarkTheme) {
-      document.body.classList.add('dark-mode');
+      document.documentElement.classList.add('dark-mode');
     } else {
-      document.body.classList.remove('dark-mode');
+      document.documentElement.classList.remove('dark-mode');
     }
   }
   gotoRestaurantHomepage() {
-    this.vendorNavigation.navigateWithVendor('products');
+    // Clear selected category when navigating to products
+    this.store.dispatch(CategoryActions.clearSelectedCategory());
+    this.vendorNavigation.navigateWithVendor('promotional-banner');
   }
 }

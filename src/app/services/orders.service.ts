@@ -429,6 +429,38 @@ export class OrdersService {
     }
   }
 
+  async updateOrderWithRefuseReason(orderId: string, status: OrderStatus, refuseReason: string): Promise<void> {
+    try {
+      await this.supabaseAuthService.updateOrderWithRefuseReason(
+        orderId,
+        status as Database['public']['Enums']['order_status'],
+        refuseReason
+      );
+      await this.loadOrders();
+    } catch (error: any) {
+      console.error('Error updating order with refuse reason:', error);
+
+      // Provide more specific error messages
+      if (error.message?.includes('not found')) {
+        throw new Error(
+          `Commande introuvable. Elle a peut-être été supprimée.`
+        );
+      } else if (error.message?.includes('Failed to update')) {
+        throw new Error(
+          `Impossible de mettre à jour la commande. Veuillez réessayer.`
+        );
+      } else if (error.code === 'PGRST116') {
+        throw new Error(`Commande introuvable dans la base de données.`);
+      } else if (error.message?.includes('network')) {
+        throw new Error(
+          `Erreur de connexion. Vérifiez votre connexion internet.`
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
   async saveOrderDeliverySelection(params: {
     orderId: string;
     best: DeliveryQuote;

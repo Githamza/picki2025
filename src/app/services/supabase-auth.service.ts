@@ -146,7 +146,11 @@ export class SupabaseAuthService implements OnDestroy {
           id,
           business_name,
           logo_url,
-          is_active
+          is_active,
+          enabled_order_types,
+          online_payments_enabled,
+          delivery_system,
+          own_delivery_price
         )
       `
       )
@@ -170,7 +174,11 @@ export class SupabaseAuthService implements OnDestroy {
           id,
           business_name,
           logo_url,
-          is_active
+          is_active,
+          enabled_order_types,
+          online_payments_enabled,
+          delivery_system,
+          own_delivery_price
         )
       `
       )
@@ -394,6 +402,35 @@ export class SupabaseAuthService implements OnDestroy {
       .from('vendors')
       .update({
         online_payments_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
+  async updateVendorDeliverySettings(
+    vendorId: string,
+    settings: {
+      deliverySystem: 'picki' | 'own';
+      ownDeliveryPrice: number;
+    }
+  ) {
+    const { deliverySystem, ownDeliveryPrice } = settings;
+
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        delivery_system: deliverySystem,
+        own_delivery_price: ownDeliveryPrice,
         updated_at: new Date().toISOString(),
       })
       .eq('id', vendorId)

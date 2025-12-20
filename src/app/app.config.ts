@@ -24,6 +24,7 @@ import { BannerEffects } from './store/effects/banner.effects';
 import { CategoryEffects } from './store/effects/category.effects';
 import { ProductEffects } from './store/effects/product.effects';
 import { MultiStepProductEffects } from './store/effects/multi-step-product.effects';
+import { CartEffects } from './store/effects/cart.effects';
 import { productReducer } from './store/reducers/product.reducer';
 import { categoryReducer } from './store/reducers/category.reducer';
 import { bannerReducer } from './store/reducers/banner.reducer';
@@ -51,6 +52,7 @@ export const appConfig: ApplicationConfig = {
       CategoryEffects,
       ProductEffects,
       MultiStepProductEffects,
+      CartEffects,
     ]),
     provideStore({
       product: productReducer,

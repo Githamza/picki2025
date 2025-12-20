@@ -16,6 +16,7 @@ import { Order, OrderStatus } from '../../../models/order.model';
 import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reason-dialog.component';
 import { SupabaseAuthService } from '../../../services/supabase-auth.service';
 import { MapLocationViewerComponent } from '../../../shared/components/map-location-viewer/map-location-viewer.component';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-order-details-dialog',
@@ -29,6 +30,7 @@ import { MapLocationViewerComponent } from '../../../shared/components/map-locat
     MatDividerModule,
     MatProgressSpinnerModule,
     MapLocationViewerComponent,
+    VendorCurrencyPipe,
   ],
   template: `
     <div class="order-details-dialog">
@@ -39,7 +41,7 @@ import { MapLocationViewerComponent } from '../../../shared/components/map-locat
         <div class="header-total">
           <span class="total-amount">{{
             data.order.totalAmount
-              | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
+              | vendorCurrency
           }}</span>
         </div>
         <button
@@ -111,7 +113,7 @@ import { MapLocationViewerComponent } from '../../../shared/components/map-locat
                         ) {
                         <span class="option-name">
                           {{ option.optionName }}@if (option.priceAdjustment > 0) {
-                            <span class="price-supplement"> (+{{ option.priceAdjustment | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr' }})</span>
+                            <span class="price-supplement"> (+{{ option.priceAdjustment | vendorCurrency }})</span>
                           }@if (!last) {, }
                         </span>
                         }
@@ -133,7 +135,7 @@ import { MapLocationViewerComponent } from '../../../shared/components/map-locat
                     "
                     >{{
                       item.price * item.quantity
-                        | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
+                        | vendorCurrency
                     }}</span
                   >
                 </div>

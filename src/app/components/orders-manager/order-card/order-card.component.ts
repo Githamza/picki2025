@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Order, OrderStatus } from '../../../models/order.model';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-order-card',
@@ -19,6 +20,7 @@ import { Order, OrderStatus } from '../../../models/order.model';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    VendorCurrencyPipe,
   ],
   templateUrl: './order-card.component.html',
   styleUrl: './order-card.component.scss',

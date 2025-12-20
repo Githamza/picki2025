@@ -31,3 +31,12 @@ export const removeCartItem = createAction(
 );
 
 export const clearCart = createAction('[Cart] Clear Cart');
+
+export const upsertDeliveryFee = createAction(
+  '[Cart] Upsert Delivery Fee',
+  props<{
+    amount: number;
+  }>()
+);
+
+export const removeDeliveryFee = createAction('[Cart] Remove Delivery Fee');

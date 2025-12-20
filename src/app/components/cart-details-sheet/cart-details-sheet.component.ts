@@ -93,7 +93,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           Prix: {{ getItemPrice(item) | vendorCurrency }}
         </div>
         <!-- Multi-step product details -->
-        <div matListItemLine *ngIf="item.metadata" class="multi-step-details">
+        <div matListItemLine *ngIf="item.metadata?.stepSelections?.length" class="multi-step-details">
           <div *ngFor="let step of item.metadata.stepSelections" class="step-detail">
             <span class="step-name">{{ step.stepName }}:</span>
             <span *ngFor="let option of step.selectedOptions; let last = last" class="option-name">
@@ -107,15 +107,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         </div>
       </mat-list-item>
       <mat-divider></mat-divider>
-      <!-- Delivery info -->
-      <div
-        class="delivery-summary"
-        *ngIf="deliverySelection.bestOption() as best"
-      >
-        <mat-icon>local_shipping</mat-icon>
-        <span>Livraison: {{ (best.totalAmount / 100) | vendorCurrency }}</span>
-        <span *ngIf="best.etaMinutes"> • {{ best.etaMinutes }} min</span>
-      </div>
       <div class="total-row">
         <span>Total:</span>
         <span class="total-price">{{ getTotal(items) | vendorCurrency }}</span>
@@ -236,13 +227,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .option-name {
         color: var(--mat-sys-on-surface);
       }
-      .delivery-summary {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 8px;
-        color: var(--mat-sys-on-surface-variant);
-      }
+      /* delivery-summary removed: delivery fee is shown as a cart item */
     `,
   ],
 })
@@ -265,19 +250,11 @@ export class CartDetailsSheetComponent {
   }
 
   getTotal(items: CartItem[]): number {
-    const itemsTotal = items.reduce((sum, item) => {
+    return items.reduce((sum, item) => {
       // Use stored totalPrice for multi-step products, otherwise calculate normally
       const itemTotal = item.totalPrice || item.product.price * item.quantity;
       return sum + itemTotal;
     }, 0);
-
-    // Add delivery fee when delivery is selected and a quote exists
-    const isDelivery =
-      this.diningPreferenceService.diningPreference() === 'delivery';
-    const best = this.deliverySelection.bestOption();
-    const deliveryFee = isDelivery && best ? best.totalAmount / 100 : 0;
-
-    return itemsTotal + deliveryFee;
   }
 
   getItemPrice(item: CartItem): number {
@@ -443,7 +420,7 @@ export class CartDetailsSheetComponent {
         const isDeliveryMode =
           this.diningPreferenceService.diningPreference() === 'delivery';
         const bestOption = this.deliverySelection.bestOption();
-        if (isDeliveryMode && bestOption) {
+        if (isDeliveryMode) {
           const vendorInfo = await this.vendorService
             .getRestaurantInfo()
             .toPromise();
@@ -464,25 +441,21 @@ export class CartDetailsSheetComponent {
                 lat: undefined,
                 lng: undefined,
               };
-          const drop = this.deliverySelection.selectedAddress();
-          if (drop) {
-            await this.ordersService['supabaseService'].upsertOrderDelivery({
-              order_id: createdOrder.id,
-              provider: bestOption.providerId,
-              quote_amount_minor: bestOption.totalAmount,
-              currency: bestOption.currency,
-              eta_minutes: bestOption.etaMinutes ?? null,
-              status: 'waiting_payment',
+          const dropoff = this.deliverySelection.selectedAddress();
+          if (dropoff) {
+            // Persist delivery coordinates even when no quote is available
+            const fallbackBest = {
+              providerId: 'internal',
+              providerName: 'Internal',
+              totalAmount: 0,
+              currency: this.vendorService.getCurrentCurrency() as any,
+              serviceLevel: 'instant' as const,
+            };
+            await this.ordersService.saveOrderDeliverySelection({
+              orderId: createdOrder.id,
+              best: bestOption ?? (fallbackBest as any),
               pickup,
-              dropoff: {
-                line1: drop.line1,
-                postal_code: drop.postalCode,
-                city: drop.city,
-                country_code: drop.countryCode,
-                lat: drop.coordinates?.lat ?? null,
-                lng: drop.coordinates?.lng ?? null,
-              },
-              raw: bestOption.raw ?? null,
+              dropoff,
             });
           }
         }
@@ -522,25 +495,14 @@ export class CartDetailsSheetComponent {
         throw new Error('No vendor selected for payment');
       }
 
-      // Prepare payment items and include delivery as a separate line when applicable
+      // Prepare payment items (delivery fee is already stored as a cart item when applicable)
       const paymentItems = items.map((item) => ({
         name: item.product.name,
         quantity: item.quantity,
         price: item.product.price,
       }));
 
-      const isDeliveryMode =
-        this.diningPreferenceService.diningPreference() === 'delivery';
       const bestOption = this.deliverySelection.bestOption();
-      const deliveryFeeSheet =
-        isDeliveryMode && bestOption ? bestOption.totalAmount / 100 : 0;
-      if (deliveryFeeSheet > 0) {
-        paymentItems.push({
-          name: 'Livraison',
-          quantity: 1,
-          price: deliveryFeeSheet,
-        });
-      }
 
       // Create unified payment request with order reference
       const paymentRequest: PaymentRequest = {

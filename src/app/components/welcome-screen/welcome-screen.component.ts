@@ -71,6 +71,16 @@ export class WelcomeScreenComponent implements OnInit {
       : 'address';
   });
 
+  readonly deliverySystem = computed<'picki' | 'own'>(() => {
+    const v = this.vendor();
+    return (v as any)?.delivery_system === 'own' ? 'own' : 'picki';
+  });
+
+  readonly ownDeliveryPrice = computed<number>(() => {
+    const v = this.vendor();
+    return Number((v as any)?.own_delivery_price ?? 0);
+  });
+
   readonly orderTypeOptions = [
     {
       type: 'take-away' as const,
@@ -316,7 +326,11 @@ export class WelcomeScreenComponent implements OnInit {
 
   onAddressSelected(placeId: string): void {
     this.deliveryMapConfirmed.set(false);
-    this.deliverySelection.setAddressFromPlaceId(placeId);
+    if (this.deliverySystem() === 'own') {
+      void this.deliverySelection.setAddressOnlyFromPlaceId(placeId);
+      return;
+    }
+    void this.deliverySelection.setAddressFromPlaceId(placeId);
   }
 
   onDeliveryCenterChange(coords: Coordinates): void {
@@ -327,6 +341,11 @@ export class WelcomeScreenComponent implements OnInit {
   async confirmDeliveryPosition(): Promise<void> {
     const center = this.deliveryMapCenter();
     if (!center) return;
+    if (this.deliverySystem() === 'own') {
+      await this.deliverySelection.setAddressOnlyFromCoordinates(center);
+      this.deliveryMapConfirmed.set(true);
+      return;
+    }
     await this.deliverySelection.setAddressFromCoordinates(center);
     this.deliveryMapConfirmed.set(true);
   }

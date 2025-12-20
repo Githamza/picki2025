@@ -16,6 +16,8 @@ import {
   type ValidationErrors,
   type ValidatorFn,
 } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef } from '@angular/core';
 import { materialComponents } from '../../material.components';
 import {
   VendorService,
@@ -126,6 +128,49 @@ import { ChangeDetectionStrategy } from '@angular/core';
 
               <div class="validation-error" *ngIf="restaurantForm.get('orderTypes')?.hasError('atLeastOne')">
                 Sélectionnez au moins un mode de commande.
+              </div>
+
+              <!-- Delivery settings (only when delivery enabled) -->
+              <div
+                class="delivery-settings"
+                *ngIf="restaurantForm.get('orderTypes.delivery')?.value"
+                formGroupName="deliverySettings"
+              >
+                <h4 class="delivery-settings-title">Paramètres de livraison</h4>
+
+                <mat-radio-group
+                  class="delivery-system-radio"
+                  formControlName="deliverySystem"
+                  aria-label="Choisir le système de livraison"
+                >
+                  <mat-radio-button value="picki">
+                    Utiliser le système de livraison Picki
+                  </mat-radio-button>
+                  <mat-radio-button value="own">
+                    Utiliser ma propre livraison
+                  </mat-radio-button>
+                </mat-radio-group>
+
+                <div *ngIf="restaurantForm.get('deliverySettings.deliverySystem')?.value === 'own'">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Prix de livraison</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      inputmode="decimal"
+                      min="0"
+                      step="0.01"
+                      formControlName="ownDeliveryPrice"
+                      placeholder="0.00"
+                    />
+                    <mat-error *ngIf="restaurantForm.get('deliverySettings.ownDeliveryPrice')?.hasError('required')">
+                      Le prix de livraison est requis.
+                    </mat-error>
+                    <mat-error *ngIf="restaurantForm.get('deliverySettings.ownDeliveryPrice')?.hasError('min')">
+                      Le prix de livraison doit être positif.
+                    </mat-error>
+                  </mat-form-field>
+                </div>
               </div>
             </mat-card-content>
           </mat-card>
@@ -396,6 +441,25 @@ import { ChangeDetectionStrategy } from '@angular/core';
         padding: 8px 0;
       }
 
+      .delivery-settings {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--mat-sys-outline-variant);
+      }
+
+      .delivery-settings-title {
+        margin: 0 0 12px 0;
+        font-weight: 600;
+        color: var(--mat-sys-on-surface);
+      }
+
+      .delivery-system-radio {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
       .validation-error {
         margin-top: 8px;
         color: var(--mat-sys-error);
@@ -478,6 +542,7 @@ export class RestaurantInfoAdminComponent implements OnInit {
   private vendorService = inject(VendorService);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   restaurantForm: FormGroup | null = null;
   isSaving = signal(false);
@@ -530,6 +595,16 @@ export class RestaurantInfoAdminComponent implements OnInit {
         this.createBusinessHoursControls(info.businessHours)
       ),
       orderTypes: this.createOrderTypesGroup(enabledTypes),
+      deliverySettings: this.fb.group({
+        deliverySystem: [
+          (info.vendor as any).delivery_system === 'own' ? 'own' : 'picki',
+          [Validators.required],
+        ],
+        ownDeliveryPrice: [
+          Number((info.vendor as any).own_delivery_price ?? 0),
+          [Validators.min(0)],
+        ],
+      }),
       payments: this.fb.group({
         onlinePaymentsEnabled: [info.vendor.online_payments_enabled ?? true],
       }),
@@ -546,12 +621,17 @@ export class RestaurantInfoAdminComponent implements OnInit {
       }),
     });
     console.log('Form initialized:', this.restaurantForm);
+    this.setupDeliverySettingsBehavior();
   }
 
   private initializeEmptyForm() {
     this.restaurantForm = this.fb.group({
       businessHours: this.fb.array(this.createEmptyBusinessHoursControls()),
       orderTypes: this.createOrderTypesGroup(['take-away', 'eat-in', 'delivery']),
+      deliverySettings: this.fb.group({
+        deliverySystem: ['picki', [Validators.required]],
+        ownDeliveryPrice: [0, [Validators.min(0)]],
+      }),
       payments: this.fb.group({
         onlinePaymentsEnabled: [true],
       }),
@@ -568,6 +648,58 @@ export class RestaurantInfoAdminComponent implements OnInit {
       }),
     });
     console.log('Empty form initialized:', this.restaurantForm);
+    this.setupDeliverySettingsBehavior();
+  }
+
+  private setupDeliverySettingsBehavior(): void {
+    if (!this.restaurantForm) return;
+
+    const deliveryEnabledCtrl = this.restaurantForm.get('orderTypes.delivery');
+    const deliverySettingsGroup = this.restaurantForm.get(
+      'deliverySettings'
+    ) as FormGroup | null;
+    const systemCtrl = deliverySettingsGroup?.get('deliverySystem');
+    const ownPriceCtrl = deliverySettingsGroup?.get('ownDeliveryPrice');
+
+    if (!deliveryEnabledCtrl || !deliverySettingsGroup || !systemCtrl || !ownPriceCtrl) {
+      return;
+    }
+
+    const applyValidators = () => {
+      const deliveryEnabled = !!deliveryEnabledCtrl.value;
+      const system = (systemCtrl.value as 'picki' | 'own' | null) ?? 'picki';
+
+      if (!deliveryEnabled) {
+        // Reset to safe defaults when delivery is disabled
+        deliverySettingsGroup.patchValue(
+          { deliverySystem: 'picki', ownDeliveryPrice: 0 },
+          { emitEvent: false }
+        );
+        ownPriceCtrl.clearValidators();
+        ownPriceCtrl.setValidators([Validators.min(0)]);
+      } else if (system === 'own') {
+        // Own delivery requires an explicit price
+        ownPriceCtrl.setValidators([Validators.required, Validators.min(0)]);
+      } else {
+        // Picki delivery doesn't require a fixed price
+        ownPriceCtrl.clearValidators();
+        ownPriceCtrl.setValidators([Validators.min(0)]);
+      }
+
+      ownPriceCtrl.updateValueAndValidity({ emitEvent: false });
+      this.cdr.detectChanges();
+    };
+
+    deliveryEnabledCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyValidators());
+
+    systemCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyValidators());
+
+    // Apply once for initial state
+    applyValidators();
   }
 
   private createOrderTypesGroup(enabled: OrderType[] | null | undefined): FormGroup {
@@ -682,6 +814,11 @@ export class RestaurantInfoAdminComponent implements OnInit {
         address: formValue.address,
         enabledOrderTypes,
         onlinePaymentsEnabled: !!formValue.payments?.onlinePaymentsEnabled,
+        deliverySettings: {
+          deliverySystem:
+            formValue.deliverySettings?.deliverySystem === 'own' ? 'own' : 'picki',
+          ownDeliveryPrice: Number(formValue.deliverySettings?.ownDeliveryPrice ?? 0),
+        },
       });
 
       this.snackBar.open('Informations sauvegardées avec succès', 'Fermer', {

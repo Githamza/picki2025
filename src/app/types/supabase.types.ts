@@ -1311,7 +1311,9 @@ export type Database = {
           created_at: string | null
           currency: string
           customDomain: string | null
+          delivery_system: string
           delivery_dropoff_input_mode: string
+          own_delivery_price: number
           enabled_order_types: Database["public"]["Enums"]["order_type"][]
           id: string
           is_active: boolean | null
@@ -1331,7 +1333,9 @@ export type Database = {
           created_at?: string | null
           currency?: string
           customDomain?: string | null
+          delivery_system?: string
           delivery_dropoff_input_mode?: string
+          own_delivery_price?: number
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
@@ -1351,7 +1355,9 @@ export type Database = {
           created_at?: string | null
           currency?: string
           customDomain?: string | null
+          delivery_system?: string
           delivery_dropoff_input_mode?: string
+          own_delivery_price?: number
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null

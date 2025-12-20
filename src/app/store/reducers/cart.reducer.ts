@@ -5,8 +5,12 @@ import {
   decrementCartItem,
   removeCartItem,
   clearCart,
+  upsertDeliveryFee,
+  removeDeliveryFee,
 } from '../actions/cart.actions';
 import { CartState } from '../models/app.state';
+
+const DELIVERY_FEE_PRODUCT_ID = -9999;
 
 const initialState: CartState = {
   items: [],
@@ -101,41 +105,97 @@ export const cartReducer = createReducer(
       }
     }
   ),
-  on(incrementCartItem, (state, { productId }) => ({
-    ...state,
-    items: state.items.map((item) =>
-      item.product.id === productId
-        ? {
-            ...item,
-            quantity: item.quantity + 1,
-            // Scale totalPrice for multi-step products
-            totalPrice: item.totalPrice
-              ? item.totalPrice * ((item.quantity + 1) / item.quantity)
-              : undefined,
-          }
-        : item
-    ),
-  })),
-  on(decrementCartItem, (state, { productId }) => ({
-    ...state,
-    items: state.items
-      .map((item) =>
-        item.product.id === productId && item.quantity > 1
+  on(incrementCartItem, (state, { productId }) => {
+    if (productId === DELIVERY_FEE_PRODUCT_ID) return state;
+    return {
+      ...state,
+      items: state.items.map((item) =>
+        item.product.id === productId
           ? {
               ...item,
-              quantity: item.quantity - 1,
+              quantity: item.quantity + 1,
               // Scale totalPrice for multi-step products
               totalPrice: item.totalPrice
-                ? item.totalPrice * ((item.quantity - 1) / item.quantity)
+                ? item.totalPrice * ((item.quantity + 1) / item.quantity)
                 : undefined,
             }
           : item
-      )
-      .filter((item) => item.quantity > 0),
-  })),
-  on(removeCartItem, (state, { productId }) => ({
+      ),
+    };
+  }),
+  on(decrementCartItem, (state, { productId }) => {
+    if (productId === DELIVERY_FEE_PRODUCT_ID) return state;
+    return {
+      ...state,
+      items: state.items
+        .map((item) =>
+          item.product.id === productId && item.quantity > 1
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+                // Scale totalPrice for multi-step products
+                totalPrice: item.totalPrice
+                  ? item.totalPrice * ((item.quantity - 1) / item.quantity)
+                  : undefined,
+              }
+            : item
+        )
+        .filter((item) => item.quantity > 0),
+    };
+  }),
+  on(removeCartItem, (state, { productId }) => {
+    if (productId === DELIVERY_FEE_PRODUCT_ID) return state;
+    return {
+      ...state,
+      items: state.items.filter((item) => item.product.id !== productId),
+    };
+  }),
+  on(upsertDeliveryFee, (state, { amount }) => {
+    // If invalid/zero, remove instead.
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return {
+        ...state,
+        items: state.items.filter((item) => item.product.id !== DELIVERY_FEE_PRODUCT_ID),
+      };
+    }
+
+    const feeItemIndex = state.items.findIndex(
+      (item) => item.product.id === DELIVERY_FEE_PRODUCT_ID
+    );
+
+    const feeItem = {
+      product: {
+        id: DELIVERY_FEE_PRODUCT_ID,
+        name: 'Livraison',
+        price: amount,
+        imageUrl: '',
+        categoryId: 0,
+        description: '',
+        shortDescription: '',
+        longDescription: '',
+        vendorId: undefined,
+        isMultiStep: false,
+        displayOrder: 0,
+      },
+      quantity: 1,
+      totalPrice: amount,
+      metadata: { type: 'delivery_fee' as const },
+    };
+
+    if (feeItemIndex >= 0) {
+      const nextItems = [...state.items];
+      nextItems[feeItemIndex] = {
+        ...nextItems[feeItemIndex],
+        ...feeItem,
+      };
+      return { ...state, items: nextItems };
+    }
+
+    return { ...state, items: [...state.items, feeItem as any] };
+  }),
+  on(removeDeliveryFee, (state) => ({
     ...state,
-    items: state.items.filter((item) => item.product.id !== productId),
+    items: state.items.filter((item) => item.product.id !== DELIVERY_FEE_PRODUCT_ID),
   })),
   on(clearCart, () => initialState)
 );

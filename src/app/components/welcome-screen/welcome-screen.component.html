@@ -125,7 +125,14 @@
       <!-- Delivery Address Autocomplete + Best Option -->
       <div class="delivery-section">
         <h3>Livraison</h3>
-        @if (deliveryDropoffInputMode() === 'address') {
+        @if (deliverySystem() === 'own') {
+        <div class="delivery-quote">
+          <span>
+            Frais de livraison:
+            {{ ownDeliveryPrice() | vendorCurrency }}
+          </span>
+        </div>
+        } @if (deliveryDropoffInputMode() === 'address') {
         <app-address-autocomplete
           (placeSelected)="onAddressSelected($event)"
           [address]="deliverySelection.selectedAddress()"
@@ -152,13 +159,14 @@
             Confirmer cette position
           </button>
         </div>
-        } @if (deliverySelection.loading()) {
+        } @if (deliverySystem() === 'picki' && deliverySelection.loading()) {
         <div class="delivery-quote">Calcul du tarif de livraison...</div>
         } @if (deliverySelection.error()) {
         <div class="delivery-quote">
           {{ deliverySelection.error() }}
         </div>
-        } @if (deliverySelection.bestOption(); as best) {
+        } @if (deliverySystem() === 'picki' && deliverySelection.bestOption();
+        as best) {
         <div class="delivery-quote">
           <span>
             Prix et délai de livraison approximatif:

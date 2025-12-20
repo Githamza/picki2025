@@ -41,6 +41,22 @@ export class DeliverySelectionService {
     await this.refreshQuote();
   }
 
+  /**
+   * Set dropoff address WITHOUT calculating quotes.
+   * Useful when the vendor uses their own delivery with a fixed price.
+   */
+  async setAddressOnlyFromPlaceId(placeId: string): Promise<void> {
+    this._error.set(null);
+    const details = await this.places.getPlaceDetails(placeId);
+    if (!details) {
+      this._error.set('Adresse introuvable.');
+      return;
+    }
+    this._selectedAddress.set(details.address);
+    this._bestOption.set(null);
+    this._quotes.set([]);
+  }
+
   async setAddressFromCoordinates(coords: Coordinates): Promise<void> {
     this._error.set(null);
     const details = await this.places.reverseGeocode(coords);
@@ -52,6 +68,23 @@ export class DeliverySelectionService {
     }
     this._selectedAddress.set(details.address);
     await this.refreshQuote();
+  }
+
+  /**
+   * Set dropoff address from coordinates WITHOUT calculating quotes.
+   */
+  async setAddressOnlyFromCoordinates(coords: Coordinates): Promise<void> {
+    this._error.set(null);
+    const details = await this.places.reverseGeocode(coords);
+    if (!details) {
+      this._error.set(
+        "Impossible de déterminer l'adresse à partir de votre position."
+      );
+      return;
+    }
+    this._selectedAddress.set(details.address);
+    this._bestOption.set(null);
+    this._quotes.set([]);
   }
 
   async refreshQuote(): Promise<void> {

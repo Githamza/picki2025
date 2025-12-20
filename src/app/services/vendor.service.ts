@@ -528,6 +528,10 @@ export class VendorService {
     };
     enabledOrderTypes?: OrderType[];
     onlinePaymentsEnabled?: boolean;
+    deliverySettings?: {
+      deliverySystem: 'picki' | 'own';
+      ownDeliveryPrice: number;
+    };
   }): Promise<void> {
     const currentVendor = this.getCurrentVendor();
     if (!currentVendor) {
@@ -561,6 +565,13 @@ export class VendorService {
         updatedVendor = await this.supabaseAuthService.updateVendorOnlinePaymentsEnabled(
           currentVendor.id,
           restaurantData.onlinePaymentsEnabled
+        );
+      }
+
+      if (restaurantData.deliverySettings) {
+        updatedVendor = await this.supabaseAuthService.updateVendorDeliverySettings(
+          currentVendor.id,
+          restaurantData.deliverySettings
         );
       }
 

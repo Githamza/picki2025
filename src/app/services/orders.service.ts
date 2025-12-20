@@ -338,7 +338,21 @@ export class OrdersService {
         // Create order items with proper vendor ID and comments
         const orderItems = order.items.map((item) => ({
           order_id: dbOrder.id,
-          product_id: parseInt(item.productId),
+          // Some cart rows are "virtual" (e.g. delivery fee uses id -9999) and must not
+          // be persisted as a FK to products. Keep them as order_items rows with NULL product_id.
+          product_id: (() => {
+            const parsed = Number.parseInt(item.productId, 10);
+            if (Number.isFinite(parsed) && parsed > 0) return parsed;
+            console.warn(
+              '[OrdersService] Skipping product FK for non-product cart item',
+              {
+                orderNumber: order.orderNumber,
+                productId: item.productId,
+                productName: item.productName,
+              }
+            );
+            return null;
+          })(),
           product_name: item.productName,
           quantity: item.quantity,
           unit_price: item.price, // This will now be the correct calculated price for multi-step products

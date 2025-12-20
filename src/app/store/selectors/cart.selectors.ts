@@ -9,5 +9,9 @@ export const selectCartItems = createSelector(
 );
 
 export const selectCartTotalCount = createSelector(selectCartItems, (items) =>
-  items.reduce((total, item) => total + item.quantity, 0)
+  items
+    .filter(
+      (item) => item.product.id !== -9999 && (item.metadata as any)?.type !== 'delivery_fee'
+    )
+    .reduce((total, item) => total + item.quantity, 0)
 );

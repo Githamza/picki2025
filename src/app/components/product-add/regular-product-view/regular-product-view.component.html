@@ -18,7 +18,7 @@
           class="product-price"
           [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
         >
-          €{{ product.price.toFixed(2) }}
+          {{ product.price | vendorCurrency }}
         </div>
 
         <div class="product-description-container">
@@ -79,7 +79,7 @@
                 <span class="option-name">{{ option.name }}</span>
                 @if (option.price_adjustment && option.price_adjustment > 0) {
                 <span class="option-price">
-                  +{{ option.price_adjustment.toFixed(2) }} €
+                  +{{ option.price_adjustment | vendorCurrency }}
                 </span>
                 }
               </div>
@@ -104,7 +104,7 @@
                 <span class="option-name">{{ option.name }}</span>
                 @if (option.price_adjustment && option.price_adjustment > 0) {
                 <span class="option-price">
-                  +{{ option.price_adjustment.toFixed(2) }} €
+                  +{{ option.price_adjustment | vendorCurrency }}
                 </span>
                 }
               </div>
@@ -175,7 +175,7 @@
           <span class="button-text"
             >Ajouter au panier
             <span class="" *ngIf="totalPrice > 0">
-              {{ formatPrice(totalPrice) }}
+              {{ totalPrice | vendorCurrency }}
             </span></span
           >
         </div>

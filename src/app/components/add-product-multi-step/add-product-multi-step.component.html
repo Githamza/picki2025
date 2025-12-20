@@ -16,7 +16,7 @@
             ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
           "
         >
-          Total: {{ formatPrice((totalPrice$ | async) || 0) }}
+          Total: {{ (totalPrice$ | async) || 0 | vendorCurrency }}
         </span>
       </div>
     </div>
@@ -159,7 +159,7 @@
                     >
                       <ng-container *ngIf="option.priceAdjustment !== 0">
                         {{ option.priceAdjustment > 0 ? "+" : ""
-                        }}{{ formatPrice(option.priceAdjustment) }}
+                        }}{{ option.priceAdjustment | vendorCurrency }}
                       </ng-container>
                     </span>
                   </div>
@@ -177,7 +177,7 @@
                     [style.visibility]="
                       ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
                     "
-                    >{{ formatPrice((totalPrice$ | async) || 0) }}</span
+                    >{{ (totalPrice$ | async) || 0 | vendorCurrency }}</span
                   >
                 </div>
               </mat-card-content>
@@ -278,7 +278,7 @@
           *ngIf="totalPrice$ | async as totalPrice"
           [style.visibility]="totalPrice * quantity > 0 ? 'visible' : 'hidden'"
         >
-          {{ formatPrice(totalPrice * quantity) }}
+          {{ totalPrice * quantity | vendorCurrency }}
         </span>
       </div>
     </button>

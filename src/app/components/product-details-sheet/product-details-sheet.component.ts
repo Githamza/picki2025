@@ -21,6 +21,7 @@ import {
   ComplementSelection,
 } from '../../models/complement.model';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-product-details-sheet',
@@ -35,6 +36,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder'
     MatCheckboxModule,
     MatDividerModule,
     FormsModule,
+    VendorCurrencyPipe,
   ],
   templateUrl: './product-details-sheet.component.html',
   styleUrls: ['./product-details-sheet.component.scss'],

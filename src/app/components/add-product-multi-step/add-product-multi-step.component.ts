@@ -65,6 +65,7 @@ import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dial
 import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData, CustomisationSelectionResult } from './customisation-selection-dialog/customisation-selection-dialog.component';
 import { ProductService, Product } from '../../services/product.service';
 import { Customisation } from '../../models/customisation.interface';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 // Interface for summary data
 interface StepSummary {
@@ -101,6 +102,7 @@ interface OptionCustomisationSelection {
     MatFormFieldModule,
     LayoutModule,
     ProductOptionCardComponent,
+    VendorCurrencyPipe,
   ],
   templateUrl: './add-product-multi-step.component.html',
   styleUrls: ['./add-product-multi-step.component.scss'],
@@ -406,22 +408,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   // Helper methods for template
   getStepForm(stepId: number): FormGroup | null {
     return this.stepForms[stepId] || null;
-  }
-
-  formatPrice(price: number): string {
-    return `${(price || 0).toFixed(2)} €`;
-  }
-
-  getOptionDisplayText(option: ProductStepOption): string {
-    if (!option) return '';
-    const adjustment = option.priceAdjustment;
-    if (adjustment > 0) {
-      return `${option.name} (+${this.formatPrice(adjustment)})`;
-    } else if (adjustment < 0) {
-      return `${option.name} (${this.formatPrice(adjustment)})`;
-    } else {
-      return option.name;
-    }
   }
 
   // Card selection methods

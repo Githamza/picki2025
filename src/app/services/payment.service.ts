@@ -11,12 +11,13 @@ import { HttpClient } from '@angular/common/http';
 import { PaygreenBackendService } from './paygreen-backend.service';
 import { map } from 'rxjs/operators';
 import { StripeService } from './stripe.service';
+import { VendorService } from './vendor.service';
 
 export type PaymentProvider = 'paygreen' | 'stripe';
 
 export interface PaymentDetails {
   id: string;
-  amount: number; // Amount in the main currency unit (euros, not cents)
+  amount: number; // Amount in the main currency unit (not cents)
   originalAmount?: number; // Original amount before any modifications
   currency: string;
   status: string;
@@ -96,6 +97,7 @@ export class PaymentService {
   private readonly http = inject(HttpClient);
   private readonly paygreenBackend = inject(PaygreenBackendService);
   private readonly stripeService = inject(StripeService);
+  private readonly vendorService = inject(VendorService);
 
   // Default payment provider - can be changed manually
   private currentProvider: PaymentProvider = 'paygreen';
@@ -188,7 +190,7 @@ export class PaymentService {
 
   /**
    * Convert amount using current strategy
-   * @param amount Amount in euros
+   * @param amount Amount in the vendor currency main unit
    * @returns Converted amount
    */
   convertAmount(amount: number): number {
@@ -233,10 +235,11 @@ export class PaymentService {
     //   .pipe(map(response => this.mapStripeResponse(response)));
 
     // Mock response for development
+    const currency = this.vendorService.getCurrentCurrency();
     return of({
       id: sessionId,
       amount: 25.5,
-      currency: 'EUR',
+      currency,
       status: 'succeeded',
       customerEmail: 'customer@example.com',
       metadata: {

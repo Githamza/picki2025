@@ -30,6 +30,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { VendorService } from '../../services/vendor.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 import { clearCart } from '../../store/actions/cart.actions';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-cart-details-sheet',
@@ -41,6 +42,7 @@ import { clearCart } from '../../store/actions/cart.actions';
     MatIconModule,
     MatButtonModule,
     MatDividerModule,
+    VendorCurrencyPipe,
   ],
   template: `
     <button
@@ -88,7 +90,7 @@ import { clearCart } from '../../store/actions/cart.actions';
           matListItemLine
           [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
         >
-          Prix: {{ getItemPrice(item) | number : '1.2-2' }} €
+          Prix: {{ getItemPrice(item) | vendorCurrency }}
         </div>
         <!-- Multi-step product details -->
         <div matListItemLine *ngIf="item.metadata" class="multi-step-details">
@@ -111,16 +113,12 @@ import { clearCart } from '../../store/actions/cart.actions';
         *ngIf="deliverySelection.bestOption() as best"
       >
         <mat-icon>local_shipping</mat-icon>
-        <span
-          >Livraison: {{ best.totalAmount / 100 | number : '1.2-2' }} €</span
-        >
+        <span>Livraison: {{ (best.totalAmount / 100) | vendorCurrency }}</span>
         <span *ngIf="best.etaMinutes"> • {{ best.etaMinutes }} min</span>
       </div>
       <div class="total-row">
         <span>Total:</span>
-        <span class="total-price"
-          >{{ getTotal(items) | number : '1.2-2' }} €</span
-        >
+        <span class="total-price">{{ getTotal(items) | vendorCurrency }}</span>
       </div>
     </mat-list>
     <ng-template #empty>
@@ -547,7 +545,7 @@ export class CartDetailsSheetComponent {
       // Create unified payment request with order reference
       const paymentRequest: PaymentRequest = {
         amount: totalAmount,
-        currency: 'EUR',
+        currency: this.vendorService.getCurrentCurrency(),
         vendorId: currentVendor.id, // Add vendor ID for secure payment processing
         buyer: {
           email: userInfo.email,

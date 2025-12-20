@@ -13,6 +13,7 @@ import {
   ProductStep,
   ProductStepOption,
 } from '../../../models/multi-step-product.model';
+import { VendorCurrencyPipe } from '../../pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-shared-product-option-card',
@@ -24,6 +25,7 @@ import {
     MatRippleModule,
     MatButtonModule,
     MatBadgeModule,
+    VendorCurrencyPipe,
   ],
   templateUrl: './product-option-card.component.html',
   styleUrls: ['./product-option-card.component.scss'],
@@ -82,9 +84,5 @@ export class ProductOptionCardComponent {
   // Check if this is a component option
   isComponentOption(): boolean {
     return this.option.optionType === 'component';
-  }
-
-  formatPrice(price: number): string {
-    return `${(price || 0).toFixed(2)} €`;
   }
 }

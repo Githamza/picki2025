@@ -44,6 +44,7 @@ import {
   CustomisationOption,
 } from '../../../models/customisation.interface';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placeholder';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-regular-product-view',
@@ -61,6 +62,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
     MatCheckboxModule,
     MatRadioModule,
     FormsModule,
+    VendorCurrencyPipe,
   ],
   templateUrl: './regular-product-view.component.html',
   styleUrl: './regular-product-view.component.scss',
@@ -264,10 +266,6 @@ export class RegularProductViewComponent
 
   isOptionSelected(optionId: number): boolean {
     return this.selectedOptionIds.includes(optionId);
-  }
-
-  formatPrice(price: number): string {
-    return `${(price || 0).toFixed(2)} €`;
   }
 
   getSelectionHint(): string {

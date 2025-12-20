@@ -29,9 +29,9 @@
     <div class="header-right">
       <!-- Total Amount Display -->
       <div class="total-amount-display">
-        <span class="total-value"
-          >{{ periodTotalAmount() | number : "1.2-2" }} €</span
-        >
+        <span class="total-value">{{
+          periodTotalAmount() | vendorCurrency
+        }}</span>
       </div>
 
       <div class="action-buttons">

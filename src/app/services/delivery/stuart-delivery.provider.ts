@@ -15,6 +15,7 @@ import {
   deriveEtaMinutesFromRaw,
 } from './delivery.util';
 import { environment } from '../../../environments/environment';
+import { VendorService } from '../vendor.service';
 
 @Injectable()
 export class StuartDeliveryProvider implements DeliveryProvider {
@@ -22,6 +23,7 @@ export class StuartDeliveryProvider implements DeliveryProvider {
   readonly name = 'Stuart';
 
   private readonly http = inject(HttpClient);
+  private readonly vendorService = inject(VendorService);
 
   async getQuote(request: DeliveryRequest): Promise<DeliveryQuote | null> {
     try {
@@ -54,7 +56,7 @@ export class StuartDeliveryProvider implements DeliveryProvider {
           data?.currency_type ??
           data?.raw?.currency_type ??
           data?.raw?.currency ??
-          'EUR'
+          this.vendorService.getCurrentCurrency()
       );
       const etaSource =
         typeof data?.etaMinutes === 'number' && data.etaMinutes > 0
@@ -164,7 +166,7 @@ export class StuartDeliveryProvider implements DeliveryProvider {
       deliveryId,
       cancelled: true,
       refundAmountMinor: 0,
-      currency: 'EUR',
+      currency: normalizeCurrencyCode(this.vendorService.getCurrentCurrency()),
       raw: { reason },
     };
   }

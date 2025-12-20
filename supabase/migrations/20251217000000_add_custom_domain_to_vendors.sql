@@ -9,3 +9,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS vendors_custom_domain_unique
   ON public.vendors (lower("customDomain"))
   WHERE "customDomain" IS NOT NULL;
 
+

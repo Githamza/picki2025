@@ -29,11 +29,18 @@ import {
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-cart-details-page',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatSnackBarModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatSnackBarModule,
+    VendorCurrencyPipe,
+  ],
   template: `
     <button
       mat-icon-button
@@ -87,7 +94,7 @@ import { DeliverySelectionService } from '../../services/delivery/delivery-selec
             <span
               class="cart-item-price"
               [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
-              >{{ getItemPrice(item) | number : '1.2-2' }} €</span
+              >{{ getItemPrice(item) | vendorCurrency }}</span
             >
           </div>
           <div class="cart-item-controls">
@@ -117,9 +124,7 @@ import { DeliverySelectionService } from '../../services/delivery/delivery-selec
         </div>
         <div class="cart-total-row">
           <span>Total:</span>
-          <span class="cart-total"
-            >{{ getTotal(items) | number : '1.2-2' }} €</span
-          >
+          <span class="cart-total">{{ getTotal(items) | vendorCurrency }}</span>
         </div>
 
         <!-- Checkout Button -->
@@ -633,7 +638,7 @@ export class CartDetailsPageComponent {
       // Create unified payment request with order reference
       const paymentRequest: PaymentRequest = {
         amount: totalAmount,
-        currency: 'EUR',
+        currency: this.vendorService.getCurrentCurrency(),
         vendorId: currentVendor.id, // Add vendor ID for secure payment processing
         buyer: {
           email: userInfo.email,

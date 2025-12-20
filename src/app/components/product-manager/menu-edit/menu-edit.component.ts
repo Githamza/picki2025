@@ -38,6 +38,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { ImageUploadComponent } from '../../../shared/components';
 import { ProductAdminService } from '../../../services/product-admin.service';
 import { VendorService } from '../../../services/vendor.service';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
+import { VendorCurrencySymbolPipe } from '../../../shared/pipes/vendor-currency-symbol.pipe';
 import {
   MenuAdmin,
   Category,
@@ -71,6 +73,8 @@ import {
     MatExpansionModule,
     DragDropModule,
     ImageUploadComponent,
+    VendorCurrencyPipe,
+    VendorCurrencySymbolPipe,
   ],
   template: `
     <div class="menu-edit-container">
@@ -135,7 +139,7 @@ import {
                     step="0.50"
                     min="0"
                   />
-                  <span matTextPrefix>€&nbsp;</span>
+                  <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
                   @if (menuForm.get('price')?.hasError('required')) {
                   <mat-error>Le prix est requis</mat-error>
                   }
@@ -385,7 +389,7 @@ import {
                               }}</span>
                               <span class="product-price">{{
                                 product.price
-                                  | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
+                                  | vendorCurrency : 'symbol' : '1.2-2'
                               }}</span>
                             </div>
                           </mat-option>
@@ -416,7 +420,7 @@ import {
                               }}</span>
                               <span class="product-base-price">{{
                                 product.price
-                                  | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr'
+                                  | vendorCurrency : 'symbol' : '1.2-2'
                               }}</span>
                             </div>
                             <div class="product-controls">
@@ -444,7 +448,7 @@ import {
                                   "
                                   placeholder="0.00"
                                 />
-                                <span matTextPrefix>€&nbsp;</span>
+                                <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
                               </mat-form-field>
                               <button
                                 mat-icon-button

@@ -16,6 +16,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-product-option-card',
@@ -27,6 +28,7 @@ import { Subscription } from 'rxjs';
     MatRippleModule,
     MatButtonModule,
     MatBadgeModule,
+    VendorCurrencyPipe,
   ],
   templateUrl: './product-option-card.component.html',
   styleUrls: ['./product-option-card.component.scss'],
@@ -94,10 +96,6 @@ export class ProductOptionCardComponent implements OnInit, OnDestroy {
   // Check if this is a component option
   isComponentOption(): boolean {
     return this.option.optionType === 'component';
-  }
-
-  formatPrice(price: number): string {
-    return `${(price || 0).toFixed(2)} €`;
   }
 
   ngOnInit(): void {

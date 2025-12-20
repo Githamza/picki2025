@@ -162,7 +162,7 @@
         <div class="delivery-quote">
           <span>
             Prix et délai de livraison approximatif:
-            {{ best.totalAmount / 100 | number : "1.2-2" }} €
+            {{ best.totalAmount / 100 | vendorCurrency }}
           </span>
           @if (best.etaMinutes) {
           <span>{{ best.etaMinutes }} min</span>

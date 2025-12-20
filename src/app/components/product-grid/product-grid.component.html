@@ -54,7 +54,7 @@
           class="price"
           [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
         >
-          €{{ product.price.toFixed(2) }}
+          {{ product.price | vendorCurrency }}
         </p>
         <p class="short-description" *ngIf="product.shortDescription">
           {{ product.shortDescription }}
@@ -115,7 +115,7 @@
           class="product-price"
           [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
         >
-          €{{ product.price.toFixed(2) }}
+          {{ product.price | vendorCurrency }}
         </p>
         <p class="product-description" *ngIf="product.shortDescription">
           {{ product.shortDescription }}

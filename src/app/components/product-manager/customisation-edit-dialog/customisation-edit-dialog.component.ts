@@ -30,6 +30,8 @@ import {
   CustomisationOptionFormData,
 } from '../../../models/customisation.interface';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
+import { VendorCurrencySymbolPipe } from '../../../shared/pipes/vendor-currency-symbol.pipe';
 
 export interface DialogData {
   customisation?: Customisation;
@@ -52,6 +54,8 @@ export interface DialogData {
     MatCardModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
+    VendorCurrencyPipe,
+    VendorCurrencySymbolPipe,
   ],
   template: `
     <div class="dialog-header">
@@ -205,7 +209,7 @@ export interface DialogData {
                       placeholder="0.00"
                       step="0.01"
                     />
-                    <span matTextPrefix>€&nbsp;</span>
+                    <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
                     <mat-hint>0 si gratuit</mat-hint>
                   </mat-form-field>
 
@@ -270,7 +274,7 @@ export interface DialogData {
                   }
                   <div class="product-details">
                     <span class="product-name">{{ product.name }}</span>
-                    <span class="product-price">{{ product.price | currency: 'EUR' }}</span>
+                    <span class="product-price">{{ product.price | vendorCurrency }}</span>
                   </div>
                 </div>
               </mat-checkbox>

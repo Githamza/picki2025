@@ -43,6 +43,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import '@angular/common/locales/global/fr';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
 
@@ -62,6 +63,7 @@ export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
     MatMenuModule,
     MatDialogModule,
     OrderCardComponent,
+    VendorCurrencyPipe,
   ],
   templateUrl: './orders-manager.component.html',
   styleUrl: './orders-manager.component.scss',

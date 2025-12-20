@@ -7,6 +7,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentRequest } from '../../services/payment-strategy.interface';
+import { VendorService } from '../../services/vendor.service';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import {
   UserInfoDialogComponent,
   UserInfo,
@@ -15,7 +17,13 @@ import {
 @Component({
   selector: 'app-payment-test',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatCardModule, MatIconModule],
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    VendorCurrencyPipe,
+  ],
   template: `
     <div class="payment-test">
       <mat-card>
@@ -35,14 +43,14 @@ import {
             <div class="order-items">
               <div class="item">
                 <span>Pizza Margherita</span>
-                <span>2x 12.50€ = 25.00€</span>
+                <span>2x {{ 12.5 | vendorCurrency }} = {{ 25 | vendorCurrency }}</span>
               </div>
               <div class="item">
                 <span>Coca Cola</span>
-                <span>1x 2.50€ = 2.50€</span>
+                <span>1x {{ 2.5 | vendorCurrency }} = {{ 2.5 | vendorCurrency }}</span>
               </div>
               <div class="total">
-                <strong>Total: 27.50€</strong>
+                <strong>Total: {{ 27.5 | vendorCurrency }}</strong>
               </div>
             </div>
           </div>
@@ -155,6 +163,7 @@ import {
 })
 export class PaymentTestComponent {
   private paymentService = inject(PaymentService);
+  private vendorService = inject(VendorService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
@@ -202,7 +211,7 @@ export class PaymentTestComponent {
 
     const testPaymentRequest: PaymentRequest = {
       amount: 27.5,
-      currency: 'EUR',
+      currency: this.vendorService.getCurrentCurrency(),
       buyer: {
         email: userInfo.email,
         firstName: userInfo.prenom,

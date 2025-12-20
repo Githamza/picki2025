@@ -16,7 +16,7 @@
       class="price"
       [style.visibility]="data.product.price > 0 ? 'visible' : 'hidden'"
     >
-      €{{ data.product.price.toFixed(2) }}
+      {{ data.product.price | vendorCurrency }}
     </p>
 
     <div class="description-container">
@@ -54,7 +54,7 @@
               <span class="complement-price">
                 @if (complement.is_free) {
                 <span class="free-label">Free</span>
-                } @else { €{{ getComplementPrice(complement).toFixed(2) }}
+                } @else { {{ getComplementPrice(complement) | vendorCurrency }}
                 }
               </span>
             </div>
@@ -129,7 +129,7 @@
 
     <div class="actions">
       <div class="total-price">
-        <strong>Total: €{{ getTotalPrice().toFixed(2) }}</strong>
+        <strong>Total: {{ getTotalPrice() | vendorCurrency }}</strong>
       </div>
       <button
         mat-raised-button

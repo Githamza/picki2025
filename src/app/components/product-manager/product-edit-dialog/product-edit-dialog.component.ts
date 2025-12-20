@@ -28,6 +28,7 @@ import {
 } from '../../../models/product-admin.interface';
 import { Customisation } from '../../../models/customisation.interface';
 import { ImageUploadComponent } from '../../../shared/components';
+import { VendorCurrencySymbolPipe } from '../../../shared/pipes/vendor-currency-symbol.pipe';
 
 export interface DialogData {
   product?: ProductAdmin;
@@ -48,6 +49,7 @@ export interface DialogData {
     MatIconModule,
     MatSlideToggleModule,
     ImageUploadComponent,
+    VendorCurrencySymbolPipe,
   ],
   template: `
     <div class="dialog-header">
@@ -86,7 +88,7 @@ export interface DialogData {
             step="0.50"
             min="0"
           />
-          <span matTextPrefix>€&nbsp;</span>
+          <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
           @if (productForm.get('price')?.hasError('required')) {
           <mat-error>Le prix est requis</mat-error>
           } @if (productForm.get('price')?.hasError('min')) {

@@ -17,6 +17,7 @@ import {
   CustomisationOption,
 } from '../../../models/customisation.interface';
 import { ProductStepOption } from '../../../models/multi-step-product.model';
+import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 export interface CustomisationSelectionDialogData {
   product: ProductStepOption;
@@ -41,6 +42,7 @@ export interface CustomisationSelectionResult {
     MatCheckboxModule,
     MatDividerModule,
     FormsModule,
+    VendorCurrencyPipe,
   ],
   template: `
     <div class="dialog-header">
@@ -101,7 +103,7 @@ export interface CustomisationSelectionResult {
                             </div>
                             @if (option.price_adjustment && option.price_adjustment !== 0) {
                               <div class="option-price">
-                                {{ option.price_adjustment > 0 ? '+' : '' }}{{ formatPrice(option.price_adjustment) }}
+                                {{ option.price_adjustment > 0 ? '+' : '' }}{{ option.price_adjustment | vendorCurrency }}
                               </div>
                             }
                           </div>
@@ -145,7 +147,7 @@ export interface CustomisationSelectionResult {
                             </div>
                             @if (option.price_adjustment && option.price_adjustment !== 0) {
                               <div class="option-price">
-                                {{ option.price_adjustment > 0 ? '+' : '' }}{{ formatPrice(option.price_adjustment) }}
+                                {{ option.price_adjustment > 0 ? '+' : '' }}{{ option.price_adjustment | vendorCurrency }}
                               </div>
                             }
                           </div>
@@ -473,10 +475,6 @@ export class CustomisationSelectionDialogComponent implements OnInit {
     if (!allSingleSelect) return false;
 
     return this.canValidate();
-  }
-
-  formatPrice(price: number): string {
-    return `${(price || 0).toFixed(2)} €`;
   }
 
   onValidate(): void {

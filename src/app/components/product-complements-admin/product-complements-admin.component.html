@@ -14,7 +14,7 @@
           (selectionChange)="selectProduct($event.value)"
         >
           <mat-option *ngFor="let product of products()" [value]="product">
-            {{ product.name }} (€{{ product.price.toFixed(2) }})
+            {{ product.name }} ({{ product.price | vendorCurrency }})
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -70,9 +70,8 @@
                   <strong>{{ complement.complement_product?.name }}</strong>
                   <br />
                   <small class="price-info">
-                    Original: €{{
-                      complement.complement_product?.price?.toFixed(2)
-                    }}
+                    Original:
+                    {{ complement.complement_product?.price | vendorCurrency }}
                   </small>
                 </div>
               </td>
@@ -124,7 +123,9 @@
                     !complement.is_free && complement.custom_price !== null
                   "
                 >
-                  <strong>€{{ complement.custom_price?.toFixed(2) }}</strong>
+                  <strong>{{
+                    complement.custom_price | vendorCurrency
+                  }}</strong>
                 </div>
                 <div
                   *ngIf="
@@ -213,7 +214,7 @@
                   *ngFor="let product of getAvailableProducts()"
                   [value]="product.id"
                 >
-                  {{ product.name }} (€{{ product.price.toFixed(2) }})
+                  {{ product.name }} ({{ product.price | vendorCurrency }})
                 </mat-option>
               </mat-select>
               <mat-error

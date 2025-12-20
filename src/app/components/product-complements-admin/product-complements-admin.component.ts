@@ -18,6 +18,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatChipsModule } from '@angular/material/chips';
 import { ProductService } from '../../services/product.service';
 import {
   ProductComplement,
@@ -25,6 +26,7 @@ import {
 } from '../../models/complement.model';
 import { Product } from '../../services/product.service';
 import { VendorService } from '../../services/vendor.service';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-product-complements-admin',
@@ -41,8 +43,10 @@ import { VendorService } from '../../services/vendor.service';
     MatSelectModule,
     MatCheckboxModule,
     MatIconModule,
+    MatChipsModule,
     MatTableModule,
     MatProgressSpinnerModule,
+    VendorCurrencyPipe,
   ],
   templateUrl: './product-complements-admin.component.html',
   styleUrls: ['./product-complements-admin.component.scss'],

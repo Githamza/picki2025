@@ -20,6 +20,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { VendorService } from '../../services/vendor.service';
 import { EmailService } from '../../services/email.service';
 import { MapLocationViewerComponent } from '../../shared/components/map-location-viewer/map-location-viewer.component';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-payment-success',
@@ -31,6 +32,7 @@ import { MapLocationViewerComponent } from '../../shared/components/map-location
     MatIconModule,
     MatProgressSpinnerModule,
     MapLocationViewerComponent,
+    VendorCurrencyPipe,
   ],
   template: `
     <div class="payment-container">
@@ -186,8 +188,7 @@ import { MapLocationViewerComponent } from '../../shared/components/map-location
                       </div>
                       <div class="item-price">
                         {{
-                          item.price * item.quantity
-                            | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
+                          item.price * item.quantity | vendorCurrency
                         }}
                       </div>
                     </div>
@@ -197,8 +198,7 @@ import { MapLocationViewerComponent } from '../../shared/components/map-location
                     <strong
                       >Total:
                       {{
-                        orderDetails.totalAmount
-                          | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
+                        orderDetails.totalAmount | vendorCurrency
                       }}</strong
                     >
                   </div>
@@ -219,7 +219,7 @@ import { MapLocationViewerComponent } from '../../shared/components/map-location
                     <strong>Montant:</strong>
                     {{
                       paymentDetails.amount
-                        | currency : 'EUR' : 'symbol' : '1.2-2' : 'fr-FR'
+                        | vendorCurrency : 'symbol' : '1.2-2' : paymentDetails.currency
                     }}
                   </p>
                   <p><strong>Statut:</strong> {{ paymentDetails.status }}</p>
@@ -1195,7 +1195,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
             provider: paymentProvider as 'paygreen' | 'stripe',
             provider_payment_id: paymentId,
             amount: totalAmount,
-            currency: 'EUR',
+                    currency: this.vendorService.getCurrentCurrency(),
             status: 'completed',
             order_id: createdOrder.id,
             metadata: {

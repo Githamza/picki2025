@@ -50,7 +50,7 @@
             >
               <ng-container *ngIf="option.priceAdjustment !== 0">
                 {{ option.priceAdjustment > 0 ? "+" : ""
-                }}{{ formatPrice(option.priceAdjustment || 0) }}
+                }}{{ option.priceAdjustment | vendorCurrency }}
               </ng-container>
             </span>
           </div>

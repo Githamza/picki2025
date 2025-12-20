@@ -30,6 +30,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-product-grid',
@@ -44,6 +45,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder'
     MatTooltipModule,
     MatBottomSheetModule,
     HorizontalCategoryMenuComponent,
+    VendorCurrencyPipe,
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.scss'],

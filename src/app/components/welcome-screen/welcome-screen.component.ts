@@ -29,6 +29,7 @@ import {
 } from '../../services/vendor.service';
 import { Coordinates, DeliveryQuote } from '../../services/delivery/delivery.types';
 import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
+import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-welcome-screen',
@@ -38,7 +39,8 @@ import { PromotionalBannerComponent } from '../promotional-banner/promotional-ba
     ...materialComponents,
     AddressAutocompleteComponent,
     MapLocationPickerComponent,
-    PromotionalBannerComponent
+    PromotionalBannerComponent,
+    VendorCurrencyPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './welcome-screen.component.html',

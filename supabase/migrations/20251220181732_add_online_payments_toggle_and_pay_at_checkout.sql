@@ -10,3 +10,4 @@ ALTER TABLE public.vendors
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS pay_at_checkout boolean NOT NULL DEFAULT false;
 
+

@@ -248,6 +248,11 @@ export class VendorService {
     return this.currentVendorSubject.value;
   }
 
+  getCurrentCurrency(): string {
+    const currency = this.currentVendorSubject.value?.currency;
+    return (currency || 'EUR').toString().trim().toUpperCase() || 'EUR';
+  }
+
   // Set current vendor directly (used after authentication)
   setCurrentVendor(vendor: Vendor): void {
     this.currentVendorSubject.next(vendor);

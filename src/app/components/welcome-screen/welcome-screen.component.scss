@@ -103,6 +103,32 @@
   justify-content: center;
 }
 
+.delivery-geo-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 12px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--mat-sys-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
+  width: 100%;
+  justify-content: center;
+}
+
+.delivery-geo-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 12px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mat-sys-error) 12%, transparent);
+  color: var(--mat-sys-on-surface);
+  width: 100%;
+}
+
 .welcome-footer {
   margin-top: 2rem;
   padding-top: 1.5rem;

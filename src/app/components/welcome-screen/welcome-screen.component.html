@@ -143,6 +143,24 @@
           l'épingle.
         </p>
 
+        @if (deliveryGeoLoading()) {
+        <div class="delivery-geo-status" aria-live="polite">
+          <mat-progress-spinner
+            mode="indeterminate"
+            [diameter]="20"
+            aria-label="Récupération de votre position"
+          ></mat-progress-spinner>
+          <span>Récupération de votre position…</span>
+        </div>
+        } @if (deliveryGeoError()) {
+        <div class="delivery-geo-error" role="alert">
+          <span>{{ deliveryGeoError() }}</span>
+          <button mat-button type="button" (click)="retryDeliveryGeolocation()">
+            Réessayer
+          </button>
+        </div>
+        }
+
         <app-map-location-picker
           [center]="deliveryMapCenter()"
           (centerChange)="onDeliveryCenterChange($event)"
@@ -153,7 +171,11 @@
             mat-raised-button
             type="button"
             color="primary"
-            [disabled]="!deliveryMapCenter() || deliverySelection.loading()"
+            [disabled]="
+              !deliveryMapCenter() ||
+              deliverySelection.loading() ||
+              deliveryGeoLoading()
+            "
             (click)="confirmDeliveryPosition()"
           >
             Confirmer cette position

@@ -127,6 +127,9 @@ export class WelcomeScreenComponent implements OnInit {
   // Delivery geolocation picker state
   readonly deliveryMapCenter = signal<Coordinates | null>(null);
   readonly deliveryMapConfirmed = signal<boolean>(false);
+  readonly deliveryGeoLoading = signal<boolean>(false);
+  readonly deliveryGeoError = signal<string | null>(null);
+  private readonly deliveryGeoAttempted = signal<boolean>(false);
 
   // Business hours data
   businessHours = signal<BusinessHours[]>([]);
@@ -261,6 +264,8 @@ export class WelcomeScreenComponent implements OnInit {
       this.selectedTiming = 'asap';
     }
 
+    // If delivery is already selected and uses geolocation, attempt to center the map automatically.
+    this.maybeAutofillDeliveryGeolocation();
   }
 
   selectPreference(preference: OrderType) {
@@ -277,7 +282,14 @@ export class WelcomeScreenComponent implements OnInit {
       this.deliverySelection.clear();
       this.deliveryMapConfirmed.set(false);
       this.deliveryMapCenter.set(null);
+      this.deliveryGeoLoading.set(false);
+      this.deliveryGeoError.set(null);
+      this.deliveryGeoAttempted.set(false);
+      return;
     }
+
+    // Delivery selected: if vendor uses geolocation, try to fetch browser position automatically.
+    this.maybeAutofillDeliveryGeolocation();
   }
 
   selectTiming(timing: 'asap' | 'later') {
@@ -336,6 +348,7 @@ export class WelcomeScreenComponent implements OnInit {
   onDeliveryCenterChange(coords: Coordinates): void {
     this.deliveryMapCenter.set(coords);
     this.deliveryMapConfirmed.set(false);
+    this.deliveryGeoError.set(null);
   }
 
   async confirmDeliveryPosition(): Promise<void> {
@@ -348,6 +361,81 @@ export class WelcomeScreenComponent implements OnInit {
     }
     await this.deliverySelection.setAddressFromCoordinates(center);
     this.deliveryMapConfirmed.set(true);
+  }
+
+  retryDeliveryGeolocation(): void {
+    this.deliveryGeoAttempted.set(false);
+    this.maybeAutofillDeliveryGeolocation();
+  }
+
+  private maybeAutofillDeliveryGeolocation(): void {
+    if (this.selectedPreference !== 'delivery') return;
+    if (this.deliveryDropoffInputMode() !== 'geolocation') return;
+
+    // If we already have a stored delivery address with coordinates, center the map on it.
+    const existingAddress = this.deliverySelection.selectedAddress();
+    const existingCoords = existingAddress?.coordinates ?? null;
+    if (!this.deliveryMapCenter() && existingCoords) {
+      this.deliveryMapCenter.set(existingCoords);
+      return;
+    }
+
+    // Don't override an already chosen map center or an already selected address.
+    if (this.deliveryMapCenter()) return;
+    if (this.deliverySelection.hasSelection()) return;
+
+    // Avoid repeatedly prompting the user.
+    if (this.deliveryGeoAttempted()) return;
+    this.deliveryGeoAttempted.set(true);
+
+    this.deliveryGeoError.set(null);
+    this.deliveryGeoLoading.set(true);
+
+    if (!navigator.geolocation) {
+      this.deliveryGeoLoading.set(false);
+      this.deliveryGeoError.set(
+        "La géolocalisation n'est pas disponible sur ce navigateur."
+      );
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.deliveryGeoLoading.set(false);
+        const coords: Coordinates = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        this.deliveryMapCenter.set(coords);
+      },
+      (err) => {
+        this.deliveryGeoLoading.set(false);
+
+        if (err.code === err.PERMISSION_DENIED) {
+          this.deliveryGeoError.set(
+            'Autorisation refusée. Activez la localisation pour partager votre position.'
+          );
+          return;
+        }
+        if (err.code === err.POSITION_UNAVAILABLE) {
+          this.deliveryGeoError.set(
+            'Position indisponible. Vérifiez votre connexion ou vos services de localisation.'
+          );
+          return;
+        }
+        if (err.code === err.TIMEOUT) {
+          this.deliveryGeoError.set(
+            "Délai dépassé lors de la récupération de votre position. Réessayez."
+          );
+          return;
+        }
+
+        this.deliveryGeoError.set(
+          "Impossible d'obtenir votre position. Réessayez ou utilisez l'adresse."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 10_000 }
+    );
   }
 
   onValidate(): void {

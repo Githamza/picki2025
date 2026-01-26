@@ -24,7 +24,7 @@
     "@ngrx/effects": "^20.1.0",
     "@ngrx/entity": "^20.1.0",
     "@ngrx/store": "^20.1.0",
-    "@ngrx/store-devtools": "^19.2.1",
+    "@ngrx/store-devtools": "^20.0.1",
     "@stagewise/toolbar": "^0.2.1",
     "@supabase/supabase-js": "^2.57.4",
     "@tailwindcss/cli": "^4.1.6",

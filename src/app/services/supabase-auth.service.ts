@@ -689,14 +689,6 @@ export class SupabaseAuthService implements OnDestroy {
 
     if (error) throw error;
 
-    const { error: stepOptionsError } = await this.supabaseAuth
-      .from('product_step_options')
-      .update({
-        is_available: isAvailable,
-      })
-      .eq('product_id', productId);
-
-    if (stepOptionsError) throw stepOptionsError;
     return data;
   }
 
@@ -977,7 +969,6 @@ export class SupabaseAuthService implements OnDestroy {
       name: product.name,
       price_adjustment: product.price_adjustment || 0,
       display_order: index + 1,
-      is_available: true,
       option_type: 'product' as const,
       description: product.description || null,
       image_url: product.image_url || null,

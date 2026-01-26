@@ -81,7 +81,6 @@ export interface MenuStepOption {
   name: string;
   price_adjustment: number; // Numeric type in DB
   display_order: number;
-  is_available: boolean;
   option_type: 'component' | 'product';
   description: string | null;
   image_url: string | null;

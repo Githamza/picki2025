@@ -824,7 +824,6 @@ export class ProductAdminService {
       name: product.name,
       price_adjustment: 0,
       display_order: 999,
-      is_available: true,
       option_type: 'product' as const,
       description: null,
       image_url: product.image_url || null,

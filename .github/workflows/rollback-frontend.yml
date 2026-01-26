@@ -12,209 +12,79 @@ on:
           - server-1
           - server-2
       version:
-        description: 'Target version (e.g. 2026.01.26-ec4e199). Leave empty for previous release.'
-        required: false
-        type: string
-      action:
-        description: 'Rollback method'
+        description: 'Deploy version to roll back to (e.g. 2026.01.26-ec4e199)'
         required: true
-        type: choice
-        options:
-          - switch-symlink
-          - rebuild-deploy
+        type: string
 
 jobs:
-  # ─── Resolve target version ────────────────────────────────────────────
-  resolve-version:
-    name: Resolve Version
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.resolve.outputs.version }}
-    steps:
-      - name: Resolve version
-        id: resolve
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::Version is required. SSH into the server and run: ls releases/ to find available versions."
-            exit 1
-          fi
-
   # ─── Rollback Server 1 ─────────────────────────────────────────────────
   rollback-server-1:
     name: Rollback Server 1
     runs-on: ubuntu-latest
-    needs: resolve-version
     if: inputs.server == 'server-1' || inputs.server == 'both'
     steps:
-      - name: Checkout code (for rebuild only)
-        if: inputs.action == 'rebuild-deploy'
+      - name: Checkout code at deploy tag
         uses: actions/checkout@v4
         with:
-          ref: deploy/${{ needs.resolve-version.outputs.version }}
+          ref: deploy/${{ inputs.version }}
 
-      - name: Setup Node.js (for rebuild only)
-        if: inputs.action == 'rebuild-deploy'
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Build (for rebuild only)
-        if: inputs.action == 'rebuild-deploy'
+      - name: Build
         run: npm ci && npm run build
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_1 }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT_1 }} -H ${{ secrets.SSH_HOST_1 }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Upload rebuilt release
-        if: inputs.action == 'rebuild-deploy'
+      - name: Deploy via FTP
         env:
-          SSH_USER: ${{ secrets.SSH_USER_1 }}
-          SSH_HOST: ${{ secrets.SSH_HOST_1 }}
-          SSH_PORT: ${{ secrets.SSH_PORT_1 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_1 }}
-          VERSION: ${{ needs.resolve-version.outputs.version }}
+          FTP_HOST: ${{ secrets.FTP_HOST_1 }}
+          FTP_USER: ${{ secrets.FTP_USER_1 }}
+          FTP_PASS: ${{ secrets.FTP_PASS_1 }}
+          FTP_PATH: ${{ secrets.FTP_PATH_1 }}
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $SSH_PORT"
-          REMOTE="$SSH_USER@$SSH_HOST"
-          RELEASE_DIR="$DEPLOY_PATH/releases/$VERSION"
-
-          $SSH_CMD "$REMOTE" "mkdir -p $RELEASE_DIR"
-
-          rsync -azq --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
-            dist/my-angular-app/browser/ \
-            "$REMOTE:$RELEASE_DIR/"
-
-      - name: Switch symlink on Server 1
-        env:
-          SSH_USER: ${{ secrets.SSH_USER_1 }}
-          SSH_HOST: ${{ secrets.SSH_HOST_1 }}
-          SSH_PORT: ${{ secrets.SSH_PORT_1 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_1 }}
-          VERSION: ${{ needs.resolve-version.outputs.version }}
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $SSH_PORT"
-          REMOTE="$SSH_USER@$SSH_HOST"
-
-          ROLLBACK_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          MANIFEST="{\"version\":\"$VERSION\",\"rolled_back_at\":\"$ROLLBACK_TS\",\"action\":\"rollback\"}"
-
-          $SSH_CMD "$REMOTE" bash -s <<ROLLBACK
-            set -e
-            cd "$DEPLOY_PATH"
-
-            if [ ! -d "releases/$VERSION" ]; then
-              echo "ERROR: Release $VERSION not found in releases/"
-              ls -1 releases/
-              exit 1
-            fi
-
-            ln -sfn "releases/$VERSION" current_new
-            if mv -T current_new current 2>/dev/null; then
-              true
-            else
-              rm -f current
-              mv current_new current
-            fi
-
-            echo '$MANIFEST' > deploy-manifest.json
-            echo "Rolled back to $VERSION"
-          ROLLBACK
-
-          echo "### Server 1 rolled back to \`$VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "
+            set ftp:ssl-allow yes;
+            set ssl:verify-certificate no;
+            mirror --reverse --delete --verbose --parallel=10 \
+              dist/my-angular-app/browser/ $FTP_PATH/;
+            quit
+          "
+          echo "### Server 1 rolled back to \`${{ inputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ─── Rollback Server 2 ─────────────────────────────────────────────────
   rollback-server-2:
     name: Rollback Server 2
     runs-on: ubuntu-latest
-    needs: resolve-version
     if: inputs.server == 'server-2' || inputs.server == 'both'
     steps:
-      - name: Checkout code (for rebuild only)
-        if: inputs.action == 'rebuild-deploy'
+      - name: Checkout code at deploy tag
         uses: actions/checkout@v4
         with:
-          ref: deploy/${{ needs.resolve-version.outputs.version }}
+          ref: deploy/${{ inputs.version }}
 
-      - name: Setup Node.js (for rebuild only)
-        if: inputs.action == 'rebuild-deploy'
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Build (for rebuild only)
-        if: inputs.action == 'rebuild-deploy'
+      - name: Build
         run: npm ci && npm run build
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_2 }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT_2 }} -H ${{ secrets.SSH_HOST_2 }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Upload rebuilt release
-        if: inputs.action == 'rebuild-deploy'
+      - name: Deploy via FTP
         env:
-          SSH_USER: ${{ secrets.SSH_USER_2 }}
-          SSH_HOST: ${{ secrets.SSH_HOST_2 }}
-          SSH_PORT: ${{ secrets.SSH_PORT_2 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_2 }}
-          VERSION: ${{ needs.resolve-version.outputs.version }}
+          FTP_HOST: ${{ secrets.FTP_HOST_2 }}
+          FTP_USER: ${{ secrets.FTP_USER_2 }}
+          FTP_PASS: ${{ secrets.FTP_PASS_2 }}
+          FTP_PATH: ${{ secrets.FTP_PATH_2 }}
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $SSH_PORT"
-          REMOTE="$SSH_USER@$SSH_HOST"
-          RELEASE_DIR="$DEPLOY_PATH/releases/$VERSION"
-
-          $SSH_CMD "$REMOTE" "mkdir -p $RELEASE_DIR"
-
-          rsync -azq --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
-            dist/my-angular-app/browser/ \
-            "$REMOTE:$RELEASE_DIR/"
-
-      - name: Switch symlink on Server 2
-        env:
-          SSH_USER: ${{ secrets.SSH_USER_2 }}
-          SSH_HOST: ${{ secrets.SSH_HOST_2 }}
-          SSH_PORT: ${{ secrets.SSH_PORT_2 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_2 }}
-          VERSION: ${{ needs.resolve-version.outputs.version }}
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $SSH_PORT"
-          REMOTE="$SSH_USER@$SSH_HOST"
-
-          ROLLBACK_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          MANIFEST="{\"version\":\"$VERSION\",\"rolled_back_at\":\"$ROLLBACK_TS\",\"action\":\"rollback\"}"
-
-          $SSH_CMD "$REMOTE" bash -s <<ROLLBACK
-            set -e
-            cd "$DEPLOY_PATH"
-
-            if [ ! -d "releases/$VERSION" ]; then
-              echo "ERROR: Release $VERSION not found in releases/"
-              ls -1 releases/
-              exit 1
-            fi
-
-            ln -sfn "releases/$VERSION" current_new
-            if mv -T current_new current 2>/dev/null; then
-              true
-            else
-              rm -f current
-              mv current_new current
-            fi
-
-            echo '$MANIFEST' > deploy-manifest.json
-            echo "Rolled back to $VERSION"
-          ROLLBACK
-
-          echo "### Server 2 rolled back to \`$VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "
+            set ftp:ssl-allow yes;
+            set ssl:verify-certificate no;
+            mirror --reverse --delete --verbose --parallel=10 \
+              dist/my-angular-app/browser/ $FTP_PATH/;
+            quit
+          "
+          echo "### Server 2 rolled back to \`${{ inputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"

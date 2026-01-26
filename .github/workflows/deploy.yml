@@ -9,9 +9,6 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
-env:
-  KEEP_RELEASES: 5
-
 jobs:
   # ─── Generate version string ───────────────────────────────────────────
   version:
@@ -58,7 +55,7 @@ jobs:
           path: dist/my-angular-app/browser/
           retention-days: 30
 
-  # ─── Deploy to Server 1 ───────────────────────────────────────────────
+  # ─── Deploy to Server 1 via FTP ────────────────────────────────────────
   deploy-server-1:
     name: Deploy to Server 1
     runs-on: ubuntu-latest
@@ -71,68 +68,23 @@ jobs:
           name: angular-build-${{ needs.version.outputs.version }}
           path: build-output/
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_1 }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT_1 }} -H ${{ secrets.SSH_HOST_1 }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Deploy release
+      - name: Deploy via FTP
         env:
-          SSH_USER: ${{ secrets.SSH_USER_1 }}
-          SSH_HOST: ${{ secrets.SSH_HOST_1 }}
-          SSH_PORT: ${{ secrets.SSH_PORT_1 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_1 }}
-          VERSION: ${{ needs.version.outputs.version }}
+          FTP_HOST: ${{ secrets.FTP_HOST_1 }}
+          FTP_USER: ${{ secrets.FTP_USER_1 }}
+          FTP_PASS: ${{ secrets.FTP_PASS_1 }}
+          FTP_PATH: ${{ secrets.FTP_PATH_1 }}
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $SSH_PORT"
-          REMOTE="$SSH_USER@$SSH_HOST"
-          RELEASE_DIR="$DEPLOY_PATH/releases/$VERSION"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "
+            set ftp:ssl-allow yes;
+            set ssl:verify-certificate no;
+            mirror --reverse --delete --verbose --parallel=10 \
+              build-output/ $FTP_PATH/;
+            quit
+          "
+          echo "### Server 1 deployed: \`${{ needs.version.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-          # Create release directory
-          $SSH_CMD "$REMOTE" "mkdir -p $RELEASE_DIR"
-
-          # Upload build files
-          rsync -azq --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
-            build-output/ \
-            "$REMOTE:$RELEASE_DIR/"
-
-          # Build manifest JSON on runner side
-          DEPLOY_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          MANIFEST="{\"version\":\"$VERSION\",\"deployed_at\":\"$DEPLOY_TS\",\"sha\":\"$GITHUB_SHA\"}"
-
-          # Switch symlink and finalize on remote
-          $SSH_CMD "$REMOTE" bash -s <<SWITCH
-            set -e
-            cd "$DEPLOY_PATH"
-
-            # Ensure .htaccess exists at deploy root
-            if [ -f "releases/$VERSION/.htaccess" ]; then
-              cp "releases/$VERSION/.htaccess" .htaccess
-            fi
-
-            # Atomic symlink switch
-            ln -sfn "releases/$VERSION" current_new
-            if mv -T current_new current 2>/dev/null; then
-              true
-            else
-              rm -f current
-              mv current_new current
-            fi
-
-            # Write deploy manifest
-            echo '$MANIFEST' > deploy-manifest.json
-
-            # Prune old releases (keep ${{ env.KEEP_RELEASES }} most recent)
-            cd releases
-            ls -1dt */ | tail -n +$(( ${{ env.KEEP_RELEASES }} + 1 )) | xargs -I{} rm -rf "{}" 2>/dev/null || true
-          SWITCH
-
-          echo "### Server 1 deployed: \`$VERSION\`" >> "$GITHUB_STEP_SUMMARY"
-
-  # ─── Deploy to Server 2 ───────────────────────────────────────────────
+  # ─── Deploy to Server 2 via FTP ────────────────────────────────────────
   deploy-server-2:
     name: Deploy to Server 2
     runs-on: ubuntu-latest
@@ -145,66 +97,21 @@ jobs:
           name: angular-build-${{ needs.version.outputs.version }}
           path: build-output/
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY_2 }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT_2 }} -H ${{ secrets.SSH_HOST_2 }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Deploy release
+      - name: Deploy via FTP
         env:
-          SSH_USER: ${{ secrets.SSH_USER_2 }}
-          SSH_HOST: ${{ secrets.SSH_HOST_2 }}
-          SSH_PORT: ${{ secrets.SSH_PORT_2 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_2 }}
-          VERSION: ${{ needs.version.outputs.version }}
+          FTP_HOST: ${{ secrets.FTP_HOST_2 }}
+          FTP_USER: ${{ secrets.FTP_USER_2 }}
+          FTP_PASS: ${{ secrets.FTP_PASS_2 }}
+          FTP_PATH: ${{ secrets.FTP_PATH_2 }}
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $SSH_PORT"
-          REMOTE="$SSH_USER@$SSH_HOST"
-          RELEASE_DIR="$DEPLOY_PATH/releases/$VERSION"
-
-          # Create release directory
-          $SSH_CMD "$REMOTE" "mkdir -p $RELEASE_DIR"
-
-          # Upload build files
-          rsync -azq --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
-            build-output/ \
-            "$REMOTE:$RELEASE_DIR/"
-
-          # Build manifest JSON on runner side
-          DEPLOY_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          MANIFEST="{\"version\":\"$VERSION\",\"deployed_at\":\"$DEPLOY_TS\",\"sha\":\"$GITHUB_SHA\"}"
-
-          # Switch symlink and finalize on remote
-          $SSH_CMD "$REMOTE" bash -s <<SWITCH
-            set -e
-            cd "$DEPLOY_PATH"
-
-            # Ensure .htaccess exists at deploy root
-            if [ -f "releases/$VERSION/.htaccess" ]; then
-              cp "releases/$VERSION/.htaccess" .htaccess
-            fi
-
-            # Atomic symlink switch
-            ln -sfn "releases/$VERSION" current_new
-            if mv -T current_new current 2>/dev/null; then
-              true
-            else
-              rm -f current
-              mv current_new current
-            fi
-
-            # Write deploy manifest
-            echo '$MANIFEST' > deploy-manifest.json
-
-            # Prune old releases (keep ${{ env.KEEP_RELEASES }} most recent)
-            cd releases
-            ls -1dt */ | tail -n +$(( ${{ env.KEEP_RELEASES }} + 1 )) | xargs -I{} rm -rf "{}" 2>/dev/null || true
-          SWITCH
-
-          echo "### Server 2 deployed: \`$VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+          lftp -u "$FTP_USER","$FTP_PASS" "$FTP_HOST" -e "
+            set ftp:ssl-allow yes;
+            set ssl:verify-certificate no;
+            mirror --reverse --delete --verbose --parallel=10 \
+              build-output/ $FTP_PATH/;
+            quit
+          "
+          echo "### Server 2 deployed: \`${{ needs.version.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ─── Run database migrations ───────────────────────────────────────────
   migrate-database:

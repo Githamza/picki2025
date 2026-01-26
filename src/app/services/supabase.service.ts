@@ -767,7 +767,6 @@ export class SupabaseService implements OnDestroy {
         name,
         price_adjustment,
         display_order,
-        is_available,
         product_id,
         image_url,
         option_type,
@@ -780,6 +779,7 @@ export class SupabaseService implements OnDestroy {
           image_url,
           price,
           no_catalogable,
+          is_available,
           stock_quantity
         )
       `

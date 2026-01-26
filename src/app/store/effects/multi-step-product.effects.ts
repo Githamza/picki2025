@@ -253,7 +253,9 @@ export class MultiStepProductEffects {
           name: option.name,
           priceAdjustment: Number(option.price_adjustment) || 0,
           displayOrder: option.display_order,
-          isAvailable: option.is_available,
+          isAvailable: option.option_type === 'product' && option.option_product
+            ? (option.option_product.is_available ?? true)
+            : true,
           optionType: (option.option_type || 'component') as
             | 'component'
             | 'product',

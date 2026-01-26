@@ -1002,7 +1002,6 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
                         description: option.description,
                         image_url: option.image_url,
                         display_order: index + 1,
-                        is_available: option.is_available,
                       }))
                       .filter((product) => product.id !== null), // Filter out component-type options without product_id
                   }));

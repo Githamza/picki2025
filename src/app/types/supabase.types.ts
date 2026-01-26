@@ -870,7 +870,6 @@ export type Database = {
           display_order: number | null
           id: number
           image_url: string | null
-          is_available: boolean | null
           name: string
           option_type: string | null
           price_adjustment: number | null
@@ -885,7 +884,6 @@ export type Database = {
           display_order?: number | null
           id?: number
           image_url?: string | null
-          is_available?: boolean | null
           name?: string
           option_type?: string | null
           price_adjustment?: number | null
@@ -900,7 +898,6 @@ export type Database = {
           display_order?: number | null
           id?: number
           image_url?: string | null
-          is_available?: boolean | null
           name?: string
           option_type?: string | null
           price_adjustment?: number | null

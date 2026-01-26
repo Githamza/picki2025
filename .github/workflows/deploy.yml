@@ -191,4 +191,4 @@ jobs:
           git push origin "deploy/$VERSION"
 
       - name: Summary
-        run: echo "### Tagged: \`deploy/${{ needs.version.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+        run: 'echo "### Tagged: `deploy/${{ needs.version.outputs.version }}`" >> "$GITHUB_STEP_SUMMARY"'

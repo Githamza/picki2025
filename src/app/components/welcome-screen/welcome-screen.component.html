@@ -53,6 +53,9 @@
           <mat-select
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
+            [disabled]="
+              isLoadingBusinessHours() || availableTimeSlots().length === 0
+            "
           >
             @for (time of availableTimeSlots(); track time) {
             <mat-option [value]="time">
@@ -61,7 +64,9 @@
             }
           </mat-select>
           <mat-icon matSuffix>schedule</mat-icon>
-          @if (orderForm.get('scheduledTime')?.hasError('required')) {
+          @if (!isLoadingBusinessHours() && availableTimeSlots().length === 0) {
+          <mat-hint>Aucun créneau disponible aujourd'hui.</mat-hint>
+          } @if (orderForm.get('scheduledTime')?.hasError('required')) {
           <mat-error>L'heure est requise</mat-error>
           }
         </mat-form-field>
@@ -81,7 +86,7 @@
     <!-- Timing Options for Delivery -->
     @if (selectedPreference === 'delivery') {
     <div class="timing-section">
-      <h3>When would you like your delivery?</h3>
+      <h3>Quand souhaitez-vous recevoir votre livraison ?</h3>
 
       <mat-button-toggle-group
         [value]="selectedTiming"
@@ -100,6 +105,9 @@
           <mat-select
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
+            [disabled]="
+              isLoadingBusinessHours() || availableTimeSlots().length === 0
+            "
           >
             @for (time of availableTimeSlots(); track time) {
             <mat-option [value]="time">
@@ -108,7 +116,9 @@
             }
           </mat-select>
           <mat-icon matSuffix>schedule</mat-icon>
-          @if (orderForm.get('scheduledTime')?.hasError('required')) {
+          @if (!isLoadingBusinessHours() && availableTimeSlots().length === 0) {
+          <mat-hint>Aucun créneau disponible aujourd'hui.</mat-hint>
+          } @if (orderForm.get('scheduledTime')?.hasError('required')) {
           <mat-error>L'heure est requise</mat-error>
           }
         </mat-form-field>
@@ -128,8 +138,11 @@
         @if (deliverySystem() === 'own') {
         <div class="delivery-quote">
           <span>
-            Frais de livraison:
-            {{ ownDeliveryPrice() | vendorCurrency }}
+            <b
+              >Frais de livraison:
+              {{ ownDeliveryPrice() | vendorCurrency }}
+            </b>
+            <br />
           </span>
         </div>
         } @if (deliveryDropoffInputMode() === 'address') {
@@ -209,11 +222,10 @@
       <button
         mat-flat-button
         color="primary"
-        [disabled]="!canValidate"
         (click)="onValidate()"
         class="validate-button"
       >
-        Continuer
+        Aller à la boutique
       </button>
     </div>
     }

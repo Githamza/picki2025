@@ -5,6 +5,7 @@ import {
   ViewChild,
   OnDestroy,
   AfterViewInit,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -15,6 +16,8 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, takeUntil } from 'rxjs';
@@ -39,6 +42,8 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
     MatInputModule,
     MatFormFieldModule,
     MatChipsModule,
+    MatCheckboxModule,
+    MatBadgeModule,
   ],
   template: `
     <div class="product-list">
@@ -54,7 +59,15 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
-        <button mat-raised-button color="primary" (click)="openProductDialog()">
+        <mat-checkbox
+          [checked]="showUnavailable()"
+          (change)="onToggleShowUnavailable($event.checked)"
+          class="unavailable-checkbox"
+        >
+          Afficher les produits indisponibles
+        </mat-checkbox>
+
+        <button matButton="filled" color="primary" (click)="openProductDialog()">
           <mat-icon>add</mat-icon>
           Ajouter un produit
         </button>
@@ -111,9 +124,9 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
             </td>
           </ng-container>
 
-          <!-- Status Column -->
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <!-- Availability Column -->
+          <ng-container matColumnDef="availability">
+            <th mat-header-cell *matHeaderCellDef>Disponibilité</th>
             <td mat-cell *matCellDef="let product">
               <div class="status-chips">
                 @if (product.is_available) {
@@ -121,6 +134,10 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
                   class="status-chip available clickable"
                   (click)="toggleProductAvailability(product); $event.stopPropagation()"
                   [disabled]="isProductLoading(product.id)"
+                  [matBadge]="product.stock_quantity"
+                  [matBadgeHidden]="product.stock_quantity == null"
+                  matBadgePosition="after"
+                  [matBadgeColor]="product.stock_quantity === 0 ? 'warn' : 'primary'"
                 >
                   Disponible
                   <mat-icon
@@ -134,6 +151,10 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
                   class="status-chip unavailable clickable"
                   (click)="toggleProductAvailability(product); $event.stopPropagation()"
                   [disabled]="isProductLoading(product.id)"
+                  [matBadge]="product.stock_quantity"
+                  [matBadgeHidden]="product.stock_quantity == null"
+                  matBadgePosition="after"
+                  matBadgeColor="warn"
                 >
                   Indisponible
                   <mat-icon
@@ -226,6 +247,10 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
         max-width: 400px;
       }
 
+      .unavailable-checkbox {
+        margin-right: auto;
+      }
+
       .table-container {
         flex: 1;
         overflow: auto;
@@ -278,11 +303,17 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
       .status-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
+        gap: 12px;
+        overflow: visible;
       }
 
       .status-chip {
         font-size: 0.75rem;
+        overflow: visible !important;
+      }
+
+      :host ::ng-deep .status-chip .mat-badge-content {
+        z-index: 1;
       }
 
       .status-chip.available {
@@ -418,12 +449,14 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   displayedColumns: string[] = [
     'image',
     'name',
+    'availability',
     'category',
     'price',
-    'status',
     'actions',
   ];
   currentVendorId: string | null = null;
+  showUnavailable = signal(true);
+  private allProducts: ProductAdmin[] = [];
 
   // Track loading states for individual products
   private loadingProducts = new Set<number>();
@@ -465,10 +498,10 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
         next: (products) => {
           console.log('Products loaded successfully:', products.length);
           // Filter to show only regular products (not multi-step products/menus)
-          const regularProducts = products.filter(
+          this.allProducts = products.filter(
             (product) => !product.is_multi_step
           );
-          this.dataSource.data = regularProducts;
+          this.updateVisibleProducts();
         },
         error: (error) => {
           console.error('Error loading products:', error);
@@ -504,6 +537,25 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.loadingProducts.has(productId);
   }
 
+  onToggleShowUnavailable(checked: boolean) {
+    this.showUnavailable.set(checked);
+    this.updateVisibleProducts();
+  }
+
+  private updateVisibleProducts() {
+    const visible = this.showUnavailable()
+      ? this.allProducts
+      : this.allProducts.filter((p) => p.is_available);
+
+    this.dataSource.data = [...visible].sort((a, b) =>
+      (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' })
+    );
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+  }
+
   async toggleProductAvailability(product: ProductAdmin) {
     // Prevent multiple simultaneous updates for the same product
     if (this.isProductLoading(product.id)) {
@@ -517,11 +569,10 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
       const newAvailability = !product.is_available;
 
       // Optimistic update - temporarily update the product in the UI
-      const currentData = this.dataSource.data;
-      const updatedData = currentData.map((p) =>
+      this.allProducts = this.allProducts.map((p) =>
         p.id === product.id ? { ...p, is_available: newAvailability } : p
       );
-      this.dataSource.data = updatedData;
+      this.updateVisibleProducts();
 
       // Perform the actual database update
       await this.supabaseAuthService.updateProductAvailability(

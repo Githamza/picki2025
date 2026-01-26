@@ -8,3 +8,8 @@ add column if not exists delivery_system text not null default 'picki'
 alter table public.vendors
 add column if not exists own_delivery_price numeric not null default 0;
 
+
+
+
+
+

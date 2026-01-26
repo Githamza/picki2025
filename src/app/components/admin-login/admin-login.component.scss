@@ -156,6 +156,8 @@
 
   .form-actions {
     margin-top: 16px;
+    display: flex;
+    justify-content: center;
 
     .login-button {
       width: 100%;

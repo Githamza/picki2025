@@ -5,7 +5,7 @@ import {
   PaymentRequest,
   PaymentResponse,
 } from '../payment-strategy.interface';
-import { StripeService, StripeCheckoutRequest } from '../stripe.service';
+import { StripeService, StripeCheckoutCreateRequest } from '../stripe.service';
 import { VendorNavigationService } from '../vendor-navigation.service';
 
 @Injectable({
@@ -21,52 +21,57 @@ export class StripePaymentStrategy implements PaymentStrategy {
   ) {}
 
   createPayment(request: PaymentRequest): Observable<PaymentResponse> {
+    if (!request.vendorId) {
+      throw new Error('vendorId is required for Stripe payments');
+    }
+
     const baseUrl = window.location.origin;
 
     // Use provided URLs or fall back to defaults
-    const defaultSuccessPath = this.vendorNavigation.getVendorUrl('successPayment');
+    const defaultSuccessPath =
+      this.vendorNavigation.getVendorUrl('successPayment');
     const defaultCancelPath = this.vendorNavigation.getVendorUrl('failedPayment');
     const successUrl =
       request.returnUrl ||
       `${baseUrl}${defaultSuccessPath}?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = request.cancelUrl || `${baseUrl}${defaultCancelPath}`;
 
-    const checkoutRequest: StripeCheckoutRequest = {
-      line_items: request.items.map((item) => ({
-        price_data: {
-          currency: request.currency.toLowerCase(),
-          product_data: {
-            name: item.name,
-          },
-          unit_amount: this.convertAmount(item.price),
-        },
+    const stripeMetadata: Record<string, string> = {
+      buyer_first_name: request.buyer.firstName,
+      buyer_last_name: request.buyer.lastName,
+      buyer_phone: request.buyer.phone || '',
+      ...(request.reference ? { orderId: request.reference } : {}),
+    };
+
+    // Only include string-ish primitive metadata; Stripe metadata must be flat strings.
+    const raw = request.metadata as unknown;
+    if (raw && typeof raw === 'object') {
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        if (!k) continue;
+        if (v === null || v === undefined) continue;
+        const value =
+          typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+            ? String(v)
+            : undefined;
+        if (value !== undefined) stripeMetadata[k] = value;
+      }
+    }
+
+    const checkoutRequest: StripeCheckoutCreateRequest = {
+      vendorId: request.vendorId,
+      currency: request.currency,
+      items: request.items.map((item) => ({
+        name: item.name,
         quantity: item.quantity,
+        price: item.price,
       })),
-      mode: 'payment',
       success_url: successUrl.includes('{CHECKOUT_SESSION_ID}')
         ? successUrl
         : `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       customer_email: request.buyer.email,
-      metadata: {
-        buyer_first_name: request.buyer.firstName,
-        buyer_last_name: request.buyer.lastName,
-        buyer_phone: request.buyer.phone || '',
-        vendor_id: request.vendorId || '',
-        ...request.metadata,
-      },
+      metadata: stripeMetadata,
     };
-
-    // Add marketplace-specific configuration if vendorId is provided
-    if (request.vendorId) {
-      checkoutRequest.payment_intent_data = {
-        transfer_data: {
-          destination: request.vendorId, // Connected account ID
-        },
-        // No application fee as per your requirements
-        application_fee_amount: 0,
-      };
-    }
 
     return this.stripeService.createCheckoutSession(checkoutRequest).pipe(
       map((session) => ({

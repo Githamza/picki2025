@@ -1,0 +1,148 @@
+.register-container {
+  min-height: 100vh;
+  background: var(--mat-sys-background);
+}
+
+.register-header {
+  box-shadow: var(--mat-sys-elevation-level1);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-title {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+.register-content {
+  padding: 60px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+}
+
+.registration-intro {
+  text-align: center;
+  margin-bottom: 40px;
+  max-width: 720px;
+}
+
+.main-title {
+  font-size: clamp(28px, 6vw, 42px);
+  font-weight: 800;
+  color: var(--mat-sys-on-background);
+  margin-bottom: 16px;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.main-description {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.register-card {
+  width: min(720px, 100%);
+  margin-bottom: 24px;
+}
+
+.register-icon {
+  margin-right: 12px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.two-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .two-cols {
+    flex-direction: row;
+    & > * {
+      flex: 1;
+    }
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primary {
+  padding: 8px 24px;
+}
+
+.hint {
+  width: min(720px, 100%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: var(--mat-sys-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
+  border-radius: 12px;
+  font-size: 14px;
+  opacity: 1;
+}
+
+.hint mat-icon {
+  color: var(--mat-sys-primary);
+}

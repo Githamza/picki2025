@@ -23,6 +23,7 @@ export interface ProductStepOption {
   optionType: 'component' | 'product'; // New: Distinguish between components and products
   description?: string; // New: Additional description for options
   vendorId: string; // Added vendor isolation
+  stockQuantity?: number | null; // Stock quantity from linked product (null = unlimited)
 }
 
 export interface StepSelection {

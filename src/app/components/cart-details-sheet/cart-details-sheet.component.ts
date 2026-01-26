@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
+import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
 import { selectCartItems } from '../../store/selectors/cart.selectors';
 import { CartItem, AppState } from '../../store/models/app.state';
 import { Router } from '@angular/router';
@@ -34,106 +35,177 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
   selector: 'app-cart-details-sheet',
-  standalone: true,
   imports: [
     CommonModule,
     MatBottomSheetModule,
-    MatListModule,
     MatIconModule,
     MatButtonModule,
     MatDividerModule,
+    CartItemStepsTreeComponent,
     VendorCurrencyPipe,
   ],
   template: `
-    <button
-      *ngIf="!isOnCartDetailsPage()"
-      mat-icon-button
-      class="close-btn"
-      aria-label="Fermer"
-      (click)="close()"
-    >
-      <mat-icon>close</mat-icon>
-    </button>
-    <h2 class="sheet-title">Mon panier</h2>
-
-    <!-- Dining Preference Display -->
-    <div
-      class="dining-preference-info"
-      *ngIf="diningPreferenceService.hasSelectedPreference()"
-    >
-      <button
-        mat-button
-        class="dining-preference-button"
-        (click)="changeDiningPreference()"
-        aria-label="Changer la préférence de restauration"
-      >
-        <mat-icon class="preference-icon">
-          {{
-            diningPreferenceService.diningPreference() === 'eat-in'
-              ? 'restaurant'
-              : 'takeout_dining'
-          }}
-        </mat-icon>
-        <span class="preference-text">{{
-          diningPreferenceService.getDiningPreferenceText()
-        }}</span>
-        <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
-      </button>
-    </div>
-
-    <mat-list *ngIf="cartItems$ | async as items; else empty">
-      <mat-list-item *ngFor="let item of items">
-        <mat-icon matListItemIcon>shopping_bag</mat-icon>
-        <div matListItemTitle>{{ item.product.name }}</div>
-        <div matListItemLine>Quantité: {{ item.quantity }}</div>
-        <div
-          matListItemLine
-          [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+    <div class="sheet">
+      @if (!isOnCartDetailsPage()) {
+        <button
+          mat-icon-button
+          class="close-btn"
+          aria-label="Fermer"
+          (click)="close()"
         >
-          Prix: {{ getItemPrice(item) | vendorCurrency }}
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+
+      <h2 class="sheet-title">Mon panier</h2>
+
+      <!-- Dining Preference Display -->
+      @if (diningPreferenceService.hasSelectedPreference()) {
+        <div class="dining-preference-info">
+          <button
+            mat-button
+            class="dining-preference-button"
+            (click)="changeDiningPreference()"
+            aria-label="Changer la préférence de restauration"
+          >
+            <mat-icon class="preference-icon">
+              {{
+                diningPreferenceService.diningPreference() === 'eat-in'
+                  ? 'restaurant'
+                  : 'takeout_dining'
+              }}
+            </mat-icon>
+            <span class="preference-text">{{
+              diningPreferenceService.getDiningPreferenceText()
+            }}</span>
+            <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
+          </button>
         </div>
-        <!-- Multi-step product details -->
-        <div matListItemLine *ngIf="item.metadata?.stepSelections?.length" class="multi-step-details">
-          <div *ngFor="let step of item.metadata.stepSelections" class="step-detail">
-            <span class="step-name">{{ step.stepName }}:</span>
-            <span *ngFor="let option of step.selectedOptions; let last = last" class="option-name">
-              {{ option.optionName }}<span *ngIf="!last">, </span>
-            </span>
+      }
+
+      <div class="sheet-scroll">
+        @if (cartItems$ | async; as items) {
+          <div class="cart-list">
+            @for (item of items; track item.product.id) {
+              <div class="cart-item">
+                <mat-icon class="item-icon">shopping_bag</mat-icon>
+                <div class="item-content">
+                  @if (item.metadata?.stepSelections?.length) {
+                    <app-cart-item-steps-tree
+                      [steps]="item.metadata?.stepSelections"
+                    >
+                      <div stepsHeader class="item-title-row">
+                        <span class="item-title">{{ item.product.name }}</span>
+                        <span
+                          class="item-price price-value"
+                          [style.visibility]="
+                            getItemPrice(item) > 0 ? 'visible' : 'hidden'
+                          "
+                        >
+                          {{ getItemPrice(item) | vendorCurrency }}
+                        </span>
+                      </div>
+                    </app-cart-item-steps-tree>
+                  } @else {
+                    <div class="item-title-row">
+                      <span class="item-title">{{ item.product.name }}</span>
+                      <span
+                        class="item-price price-value"
+                        [style.visibility]="
+                          getItemPrice(item) > 0 ? 'visible' : 'hidden'
+                        "
+                      >
+                        {{ getItemPrice(item) | vendorCurrency }}
+                      </span>
+                    </div>
+                  }
+                  <div class="item-line">Quantité: {{ item.quantity }}</div>
+                  @if (item.comment) {
+                    <div class="item-comment">
+                      <mat-icon>comment</mat-icon>
+                      {{ item.comment }}
+                    </div>
+                  }
+                  @if (insufficientStockItems().has(item.product.id)) {
+                    <div class="stock-error-message">
+                      Stock insuffisant, ajustez votre quantité ({{ insufficientStockItems().get(item.product.id)?.available }} disponible(s))
+                    </div>
+                  }
+                </div>
+              </div>
+            }
           </div>
-        </div>
-        <div matListItemLine *ngIf="item.comment" class="item-comment">
-          <mat-icon>comment</mat-icon>
-          {{ item.comment }}
-        </div>
-      </mat-list-item>
-      <mat-divider></mat-divider>
-      <div class="total-row">
-        <span>Total:</span>
-        <span class="total-price">{{ getTotal(items) | vendorCurrency }}</span>
+        } @else {
+          <div class="empty-cart">Votre panier est vide.</div>
+        }
       </div>
-    </mat-list>
-    <ng-template #empty>
-      <div class="empty-cart">Votre panier est vide.</div>
-    </ng-template>
-    <button
-      mat-stroked-button
-      color="primary"
-      class="checkout-btn"
-      (click)="goToCartDetails()"
-    >
-      Modifier mon panier
-    </button>
-    <button
-      mat-flat-button
-      color="accent"
-      class="checkout-btn checkout-btn-validate"
-      (click)="checkout()"
-    >
-      Valider ma commande
-    </button>
+
+      <div class="sheet-actions">
+        @if (cartItems$ | async; as items) {
+          @if (getServiceFee(items ?? []); as serviceFee) {
+            <div class="fee-row">
+              <div class="fee-row-content">
+                <mat-icon class="fee-icon">payments</mat-icon>
+                <span>Frais de service:</span>
+              </div>
+              <span class="fee-price price-value">{{
+                serviceFee | vendorCurrency
+              }}</span>
+            </div>
+          }
+          <div class="total-row">
+            <div class="total-row-content">
+              <mat-icon class="total-icon">receipt</mat-icon>
+              <span>Total:</span>
+            </div>
+            <span class="total-price price-value">{{
+              getTotal(items ?? []) | vendorCurrency
+            }}</span>
+          </div>
+        }
+        <button
+          mat-stroked-button
+          color="primary"
+          class="checkout-btn"
+          (click)="goToCartDetails()"
+        >
+          Modifier mon panier
+        </button>
+        <button
+          mat-flat-button
+          color="accent"
+          class="checkout-btn checkout-btn-validate"
+          [disabled]="ordersSuspended$ | async"
+          (click)="checkout()"
+        >
+          Valider ma commande
+        </button>
+      </div>
+    </div>
   `,
   styles: [
     `
+      .sheet {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        max-height: 78vh;
+        min-height: 0;
+      }
+      .sheet-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+      .sheet-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 0 0 0;
+      }
       .close-btn {
         position: absolute;
         top: 12px;
@@ -174,12 +246,102 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .dining-preference-button:hover .change-icon {
         opacity: 1;
       }
+      .cart-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cart-item {
+        align-items: center;
+
+        display: flex;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+      }
+      .cart-item:last-child {
+        border-bottom: none;
+      }
+      .item-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 24px;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .item-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .item-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        gap: 16px;
+      }
+      .item-title-row > span:first-child {
+        flex: 1;
+        min-width: 0;
+      }
+      .item-title {
+        font-weight: 500;
+      }
+      .item-price {
+        font-weight: 500;
+        color: var(--mat-sys-on-surface);
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .item-line {
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 0.95em;
+      }
+      .price-value {
+        min-width: 96px;
+        text-align: right;
+      }
       .total-row {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         font-weight: bold;
         margin: 16px 0 0 0;
         font-size: 1.1em;
+      }
+      .total-row-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .total-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: var(--mat-sys-primary);
+      }
+      .fee-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 8px 0 0 0;
+        font-size: 0.95em;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .fee-row-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .fee-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .fee-price {
+        color: var(--mat-sys-on-surface);
       }
       .total-price {
         color: var(--mat-primary);
@@ -191,11 +353,11 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       }
       .checkout-btn {
         width: 100%;
-        margin-top: 16px;
+        margin-top: 0;
       }
       .checkout-btn-validate {
         font-weight: bold;
-        margin-top: 8px;
+        margin-top: 0;
       }
       .item-comment {
         display: flex;
@@ -227,6 +389,11 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .option-name {
         color: var(--mat-sys-on-surface);
       }
+      .stock-error-message {
+        color: var(--mat-sys-error);
+        font-size: 0.85em;
+        padding: 4px 0 0 0;
+      }
       /* delivery-summary removed: delivery fee is shown as a cart item */
     `,
   ],
@@ -244,17 +411,38 @@ export class CartDetailsSheetComponent {
   private restaurantStatusService = inject(RestaurantStatusService);
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
+  readonly ordersSuspended$ = this.vendorService.ordersSuspended$;
+
+  // Track products with insufficient stock by product ID
+  insufficientStockItems = signal<Map<number, { available: number; required: number }>>(new Map());
 
   constructor(private store: Store<AppState>) {
     this.cartItems$ = this.store.select(selectCartItems);
   }
 
-  getTotal(items: CartItem[]): number {
+  getSubtotal(items: CartItem[]): number {
     return items.reduce((sum, item) => {
       // Use stored totalPrice for multi-step products, otherwise calculate normally
       const itemTotal = item.totalPrice || item.product.price * item.quantity;
       return sum + itemTotal;
     }, 0);
+  }
+
+  getServiceFee(items: CartItem[]): number {
+    const subtotal = this.getSubtotal(items);
+    if (subtotal <= 0) {
+      return 0;
+    }
+    const currentVendor = this.vendorService.getCurrentVendor();
+    const ratePercent = currentVendor?.service_fee_rate_percent ?? 0;
+    const fixedFee = currentVendor?.service_fee_fixed ?? 0;
+    const fee = subtotal * (ratePercent / 100) + fixedFee;
+    return fee > 0 ? fee : 0;
+  }
+
+  getTotal(items: CartItem[]): number {
+    const subtotal = this.getSubtotal(items);
+    return subtotal + this.getServiceFee(items);
   }
 
   getItemPrice(item: CartItem): number {
@@ -280,6 +468,9 @@ export class CartDetailsSheetComponent {
   }
 
   async checkout() {
+    if (this.vendorService.getCurrentOrdersSuspendedStatus()) {
+      return;
+    }
     // First check if restaurant is open
     const isOpen = await this.restaurantStatusService.validateRestaurantOpen();
 
@@ -330,16 +521,61 @@ export class CartDetailsSheetComponent {
 
   private async processPayment(items: CartItem[], userInfo: UserInfo) {
     const totalAmount = this.getTotal(items);
-    const currentProvider = this.paymentService.getCurrentProvider();
-
-    // Close the sheet before processing payment
-    this.close();
+    let currentProvider = this.paymentService.getCurrentProvider();
 
     try {
       const currentVendor = this.vendorService.getCurrentVendor();
       const onlinePaymentsEnabled =
         currentVendor?.online_payments_enabled ?? true;
       const payAtCheckout = !onlinePaymentsEnabled;
+
+      // Choose payment provider based on vendor preference + Stripe configuration
+      if (!payAtCheckout) {
+        const preferredProvider = String(
+          currentVendor?.paymentprovider ?? 'PAYGREEN'
+        )
+          .trim()
+          .toUpperCase();
+        const wantsStripe = preferredProvider === 'STRIPE';
+        const stripeAccountId = (currentVendor?.stripe_account_id ?? '')
+          .toString()
+          .trim();
+        const hasValidStripeConnectAccountId = /^(acct|cus)_[a-zA-Z0-9]+$/.test(
+          stripeAccountId
+        );
+
+        let desiredProvider: 'stripe' | 'paygreen' = wantsStripe
+          ? 'stripe'
+          : 'paygreen';
+        if (wantsStripe && !hasValidStripeConnectAccountId) {
+          if (stripeAccountId) {
+            console.warn(
+              'Invalid vendor stripe_account_id detected (expected acct_... or cus_...):',
+              stripeAccountId
+            );
+          }
+          this.snackBar.open(
+            'Stripe non configuré pour ce restaurant. Utilisation de PayGreen.',
+            'OK',
+            { duration: 6000 }
+          );
+          desiredProvider = 'paygreen';
+        }
+        try {
+          this.paymentService.setPaymentProvider(desiredProvider);
+        } catch (e) {
+          console.warn(
+            `Failed to switch payment provider to ${desiredProvider}, falling back to PayGreen:`,
+            e
+          );
+          try {
+            this.paymentService.setPaymentProvider('paygreen');
+          } catch {
+            // ignore - PayGreen is the default
+          }
+        }
+        currentProvider = this.paymentService.getCurrentProvider();
+      }
 
       // 1. First create the order with "initiated" status
       const diningPrefData =
@@ -465,6 +701,7 @@ export class CartDetailsSheetComponent {
 
       // Offline payment flow: order is created and paid at checkout/pickup.
       if (payAtCheckout) {
+        this.close();
         this.store.dispatch(clearCart());
         this.diningPreferenceService.resetPreference();
 
@@ -482,13 +719,12 @@ export class CartDetailsSheetComponent {
       // 3. Now create payment with order reference
       // Build return URLs with vendor context
       const baseUrl = window.location.origin;
-      const vendorSlug = this.vendorNavigation.getVendorSlug();
-      const returnUrl = vendorSlug
-        ? `${baseUrl}/${vendorSlug}/successPayment`
-        : `${baseUrl}/successPayment`;
-      const cancelUrl = vendorSlug
-        ? `${baseUrl}/${vendorSlug}/failedPayment`
-        : `${baseUrl}/failedPayment`;
+      const returnUrl = `${baseUrl}${this.vendorNavigation.getVendorUrl(
+        'successPayment'
+      )}`;
+      const cancelUrl = `${baseUrl}${this.vendorNavigation.getVendorUrl(
+        'failedPayment'
+      )}`;
 
       // Get current vendor for payment
       if (!currentVendor) {
@@ -499,8 +735,16 @@ export class CartDetailsSheetComponent {
       const paymentItems = items.map((item) => ({
         name: item.product.name,
         quantity: item.quantity,
-        price: item.product.price,
+        price: item.totalPrice || item.product.price,
       }));
+      const serviceFee = this.getServiceFee(items);
+      if (serviceFee > 0) {
+        paymentItems.push({
+          name: 'Frais de service',
+          quantity: 1,
+          price: serviceFee,
+        });
+      }
 
       const bestOption = this.deliverySelection.bestOption();
 
@@ -524,21 +768,7 @@ export class CartDetailsSheetComponent {
           orderNumber: createdOrder.orderNumber,
           diningPreference: diningPref,
           orderSource: 'cart-sheet',
-          delivery: bestOption
-            ? {
-                providerId: bestOption.providerId,
-                providerName: bestOption.providerName,
-                amountMinor: bestOption.totalAmount,
-                currency: bestOption.currency,
-                etaMinutes: bestOption.etaMinutes ?? null,
-              }
-            : null,
-          userInfo: {
-            nom: userInfo.nom,
-            prenom: userInfo.prenom,
-            email: userInfo.email,
-            phone: userInfo.phone,
-          },
+          // Note: Stripe metadata must be flat strings, so we intentionally avoid nested objects here.
         },
       };
 
@@ -550,6 +780,8 @@ export class CartDetailsSheetComponent {
           console.log('Payment created:', response);
 
           if (response.url) {
+            // Close the sheet before redirecting to payment provider
+            this.close();
             // Redirect to payment page (Stripe Checkout or PayGreen hosted)
             window.location.href = response.url;
           } else {
@@ -570,14 +802,50 @@ export class CartDetailsSheetComponent {
           );
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error);
-      this.snackBar.open(
-        'Erreur lors de la création de la commande. Veuillez réessayer.',
-        'Fermer',
-        { duration: 5000 }
-      );
+
+      if (error?.message === 'INSUFFICIENT_STOCK' && error?.insufficientItems?.length > 0) {
+        this.showInsufficientStockError(error.insufficientItems);
+      } else if (error?.message?.includes('Stock reservation failed')) {
+        this.snackBar.open(
+          'Erreur lors de la vérification du stock. Veuillez réessayer.',
+          'Fermer',
+          { duration: 5000 }
+        );
+      } else {
+        this.snackBar.open(
+          'Erreur lors de la création de la commande. Veuillez réessayer.',
+          'Fermer',
+          { duration: 5000 }
+        );
+      }
     }
+  }
+
+  private showInsufficientStockError(
+    items: { productId?: number; product_id?: number; productName: string; available: number; required: number }[]
+  ): void {
+    const stockErrorMap = new Map<number, { available: number; required: number }>();
+
+    for (const item of items) {
+      const productId = item.productId ?? item.product_id;
+      if (productId) {
+        stockErrorMap.set(productId, {
+          available: item.available,
+          required: item.required,
+        });
+      }
+    }
+
+    this.insufficientStockItems.set(stockErrorMap);
+
+    const productNames = items.map((i) => i.productName).join(', ');
+    this.snackBar.open(
+      `Stock insuffisant pour : ${productNames}`,
+      'Fermer',
+      { duration: 6000 }
+    );
   }
 
   private generateOrderNumber(): string {

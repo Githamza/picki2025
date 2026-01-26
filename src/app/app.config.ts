@@ -21,6 +21,7 @@ import localeFr from '@angular/common/locales/fr';
 import { routes } from './app.routes';
 import { reducers, metaReducers } from './store/reducers';
 import { BannerEffects } from './store/effects/banner.effects';
+import { PromotionalBannersEffects } from './store/effects/promotional-banners.effects';
 import { CategoryEffects } from './store/effects/category.effects';
 import { ProductEffects } from './store/effects/product.effects';
 import { MultiStepProductEffects } from './store/effects/multi-step-product.effects';
@@ -28,6 +29,7 @@ import { CartEffects } from './store/effects/cart.effects';
 import { productReducer } from './store/reducers/product.reducer';
 import { categoryReducer } from './store/reducers/category.reducer';
 import { bannerReducer } from './store/reducers/banner.reducer';
+import { promotionalBannersReducer } from './store/reducers/promotional-banners.reducer';
 import { cartReducer } from './store/reducers/cart.reducer';
 import { multiStepProductReducer } from './store/reducers/multi-step-product.reducer';
 import { DELIVERY_PROVIDERS } from './services/delivery/delivery.tokens';
@@ -49,6 +51,7 @@ export const appConfig: ApplicationConfig = {
     provideStore(reducers, { metaReducers }),
     provideEffects([
       BannerEffects,
+      PromotionalBannersEffects,
       CategoryEffects,
       ProductEffects,
       MultiStepProductEffects,
@@ -58,6 +61,7 @@ export const appConfig: ApplicationConfig = {
       product: productReducer,
       category: categoryReducer,
       banner: bannerReducer,
+      promotionalBanners: promotionalBannersReducer,
       cart: cartReducer,
       multiStepProduct: multiStepProductReducer,
     }),

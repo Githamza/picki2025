@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { SupabaseAuthService } from './supabase-auth.service';
+import { AuthStateService } from '../store/auth.state';
 import { Database } from '../types/supabase.types';
 
 export type Vendor = Database['public']['Tables']['vendors']['Row'];
@@ -40,6 +41,7 @@ export interface RestaurantInfo {
 export class VendorService {
   private supabaseService = inject(SupabaseService);
   private supabaseAuthService = inject(SupabaseAuthService);
+  private authStateService = inject(AuthStateService);
 
   // Track current vendor context
   private currentVendorSubject = new BehaviorSubject<Vendor | null>(null);
@@ -83,7 +85,11 @@ export class VendorService {
       
       // Set current vendor if not already set
       if (!this.currentVendorSubject.value && this.vendorsCache!.length > 0) {
-        this.currentVendorSubject.next(this.vendorsCache![0]);
+        const authVendorId = this.authStateService.vendorId();
+        const preferredVendor = authVendorId
+          ? this.vendorsCache!.find(v => v.id === authVendorId)
+          : null;
+        this.currentVendorSubject.next(preferredVendor || this.vendorsCache![0]);
       }
       return;
     }
@@ -116,9 +122,13 @@ export class VendorService {
       this.vendorsSubject.next(vendorsData);
       this.updateOrdersSuspendedStatus(vendorsData);
 
-      // If no current vendor is set and we have vendors, set the first one as current
+      // If no current vendor is set and we have vendors, prefer the authenticated user's vendor
       if (!this.currentVendorSubject.value && vendorsData.length > 0) {
-        this.currentVendorSubject.next(vendorsData[0]);
+        const authVendorId = this.authStateService.vendorId();
+        const preferredVendor = authVendorId
+          ? vendorsData.find(v => v.id === authVendorId)
+          : null;
+        this.currentVendorSubject.next(preferredVendor || vendorsData[0]);
       }
       
       console.log(`✅ Vendors loaded successfully: ${vendorsData.length} vendors (API Call #${this.apiCallCount})`);
@@ -256,6 +266,7 @@ export class VendorService {
   // Set current vendor directly (used after authentication)
   setCurrentVendor(vendor: Vendor): void {
     this.currentVendorSubject.next(vendor);
+    this.updateOrdersSuspendedStatus([vendor]);
   }
 
   // Get vendor slug from vendor object
@@ -271,9 +282,24 @@ export class VendorService {
   }
 
   private updateOrdersSuspendedStatus(vendors: Vendor[]): void {
-    // Orders are suspended if ALL vendors are inactive
-    const allInactive = vendors.every((vendor) => !vendor.is_active);
-    this.ordersSuspendedSubject.next(allInactive);
+    const nowMs = Date.now();
+    const currentVendorId = this.currentVendorSubject.value?.id;
+    if (currentVendorId) {
+      const currentVendor =
+        vendors.find((vendor) => vendor.id === currentVendorId) ??
+        this.currentVendorSubject.value;
+      const isSuspended = currentVendor
+        ? this.isVendorOrdersSuspended(currentVendor, nowMs)
+        : true;
+      this.ordersSuspendedSubject.next(isSuspended);
+      return;
+    }
+
+    // Fallback: if no current vendor, consider all vendors
+    const allSuspended = vendors.every((vendor) =>
+      this.isVendorOrdersSuspended(vendor, nowMs)
+    );
+    this.ordersSuspendedSubject.next(allSuspended);
   }
 
   async toggleOrdersSuspension(): Promise<boolean> {
@@ -347,12 +373,36 @@ export class VendorService {
   }
 
   getActiveVendorsCount(): number {
-    return this.vendorsSubject.value.filter((vendor) => vendor.is_active)
-      .length;
+    const nowMs = Date.now();
+    return this.vendorsSubject.value.filter(
+      (vendor) => !this.isVendorOrdersSuspended(vendor, nowMs)
+    ).length;
   }
 
   getTotalVendorsCount(): number {
     return this.vendorsSubject.value.length;
+  }
+
+  isVendorOrdersOpen(vendor: Vendor): boolean {
+    return !this.isVendorOrdersSuspended(vendor, Date.now());
+  }
+
+  private isVendorOrdersSuspended(vendor: Vendor, nowMs: number): boolean {
+    if (!vendor.is_active) {
+      return true;
+    }
+
+    const suspendAt = vendor.orders_suspended_at;
+    if (!suspendAt) {
+      return false;
+    }
+
+    const suspendAtMs = Date.parse(suspendAt);
+    if (Number.isNaN(suspendAtMs)) {
+      return false;
+    }
+
+    return suspendAtMs <= nowMs;
   }
 
   // Clear vendor cache (use after updates)

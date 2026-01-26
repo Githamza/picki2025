@@ -32,6 +32,7 @@ import * as MultiStepProductActions from '../../store/actions/multi-step-product
 import { Product } from '../../services/product.service';
 import { UtilsService } from '../../shared/utils.service';
 import { addToCart } from '../../store/actions/cart.actions';
+import { selectCartQuantityByProductId } from '../../store/selectors/cart.selectors';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { AddProductMultiStepComponent } from '../add-product-multi-step/add-product-multi-step.component';
 import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility.service';
@@ -55,6 +56,7 @@ export class ProductAddComponent implements OnInit, OnDestroy {
   product$!: Observable<Product | undefined>;
   product: Product | undefined;
   quantity: number = 1;
+  cartQuantityForProduct: number = 0;
 
   private destroy$ = new Subject<void>();
   private lastInitializedProductId: number | null = null;
@@ -81,7 +83,7 @@ export class ProductAddComponent implements OnInit, OnDestroy {
         this.store.select(ProductSelectors.selectAllProducts).pipe(
           map((products) => {
             const product = products.find(
-              (p) => p.name.toLowerCase() === productName
+              (p) => p.name.toLowerCase().replace(/-/g, ' ') === productName
             );
             return product;
           }),
@@ -91,6 +93,13 @@ export class ProductAddComponent implements OnInit, OnDestroy {
       distinctUntilChanged((prev, curr) => prev?.id === curr?.id),
       tap((product) => {
         this.product = product;
+        // Track how much of this product is already in the cart
+        if (product) {
+          this.store
+            .select(selectCartQuantityByProductId(product.id))
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((qty) => (this.cartQuantityForProduct = qty));
+        }
         // Initialize multi-step product if it's a multi-step product and haven't initialized this product yet
         if (
           product?.isMultiStep &&
@@ -124,6 +133,8 @@ export class ProductAddComponent implements OnInit, OnDestroy {
   }
 
   incrementQuantity(): void {
+    const stock = this.product?.stockQuantity;
+    if (stock != null && (this.quantity + this.cartQuantityForProduct) >= stock) return;
     this.quantity++;
   }
 

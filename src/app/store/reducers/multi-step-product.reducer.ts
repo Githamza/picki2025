@@ -23,14 +23,21 @@ function isStepSelectionValid(
   step: ProductStep,
   selectedOptionIds: number[]
 ): boolean {
-  if (!step.isRequired && selectedOptionIds.length === 0) {
-    return true; // Optional steps can be empty
+  const selectionCount = selectedOptionIds.length;
+
+  // Optional steps can be empty (no selection).
+  if (!step.isRequired && selectionCount === 0) {
+    return true;
   }
 
-  const selectionCount = selectedOptionIds.length;
-  return (
-    selectionCount >= step.minSelections && selectionCount <= step.maxSelections
-  );
+  // Required steps must have at least one selection, even if backend sends minSelections=0.
+  if (step.isRequired && selectionCount === 0) {
+    return false;
+  }
+
+  const minSelections = step.isRequired ? Math.max(step.minSelections, 1) : step.minSelections;
+
+  return selectionCount >= minSelections && selectionCount <= step.maxSelections;
 }
 
 // Helper function to calculate total price
@@ -81,7 +88,7 @@ export const multiStepProductReducer = createReducer(
         selections[step.id] = {
           stepId: step.id,
           selectedOptionIds: [],
-          isValid: !step.isRequired || step.minSelections === 0,
+          isValid: isStepSelectionValid(step, []),
         };
       });
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
   ReactiveFormsModule,
+  FormsModule,
   FormBuilder,
   FormGroup,
   Validators,
@@ -18,6 +19,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductAdminService } from '../../../services/product-admin.service';
 import { CustomisationService } from '../../../services/customisation.service';
@@ -41,6 +43,7 @@ export interface DialogData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -48,6 +51,7 @@ export interface DialogData {
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
+    MatCheckboxModule,
     ImageUploadComponent,
     VendorCurrencySymbolPipe,
   ],
@@ -210,13 +214,28 @@ export interface DialogData {
           >
         </div>
         }
+
+        @if (showAutoAssociateCheckbox) {
+        <div class="auto-associate-notice">
+          <mat-checkbox
+            [(ngModel)]="autoAssociateToFormules"
+            [ngModelOptions]="{standalone: true}"
+          >
+            Associer automatiquement aux formules
+          </mat-checkbox>
+          <div class="auto-associate-hint">
+            <mat-icon>info</mat-icon>
+            <span>Ce produit sera ajouté aux formules contenant des produits de la même catégorie.</span>
+          </div>
+        </div>
+        }
       </form>
     </div>
 
     <div mat-dialog-actions class="dialog-actions">
       <button mat-button mat-dialog-close>Annuler</button>
       <button
-        mat-raised-button
+        matButton="filled"
         color="primary"
         (click)="saveProduct()"
         [disabled]="productForm.invalid || saving"
@@ -308,6 +327,30 @@ export interface DialogData {
         margin-right: 8px;
       }
 
+      .auto-associate-notice {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        background: var(--mat-sys-tertiary-container);
+        color: var(--mat-sys-on-tertiary-container);
+        border-radius: 8px;
+      }
+
+      .auto-associate-hint {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        opacity: 0.85;
+      }
+
+      .auto-associate-hint mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+
       .dialog-actions {
         margin-top: 24px;
         gap: 8px;
@@ -334,6 +377,17 @@ export class ProductEditDialogComponent implements OnInit {
   categories: Category[] = [];
   availableCustomisations: Customisation[] = [];
   saving = false;
+  autoAssociateToFormules = true;
+
+  get isCreateMode(): boolean {
+    return !this.data.product;
+  }
+
+  get showAutoAssociateCheckbox(): boolean {
+    return this.isCreateMode
+      && !!this.productForm?.get('category_id')?.value
+      && !this.productForm?.get('is_multi_step')?.value;
+  }
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {
     this.productForm = this.createForm();
@@ -415,7 +469,7 @@ export class ProductEditDialogComponent implements OnInit {
 
       // Close this dialog and navigate to customisations tab
       this.dialogRef.close(null);
-      this.router.navigate(['/product-manager'], {
+      this.router.navigate(['admin', 'product-manager'], {
         queryParams: { tab: 'customisations' },
       });
       this.snackBar.open(
@@ -476,13 +530,43 @@ export class ProductEditDialogComponent implements OnInit {
 
     operation.subscribe({
       next: (product) => {
+        const afterSave = () => {
+          if (this.isCreateMode && this.autoAssociateToFormules && formData.category_id) {
+            this.productAdminService
+              .autoAssociateProductToMenuSteps(product, this.data.vendorId)
+              .subscribe({
+                next: (result) => {
+                  if (result.associatedStepCount > 0) {
+                    this.snackBar.open(
+                      `Produit ajouté à ${result.associatedStepCount} étape(s) de formule`,
+                      'OK',
+                      { duration: 4000 }
+                    );
+                  }
+                  this.dialogRef.close(product);
+                },
+                error: (error) => {
+                  console.error('Error auto-associating to menus:', error);
+                  this.snackBar.open(
+                    'Produit créé mais erreur lors de l\'association aux formules',
+                    'Fermer',
+                    { duration: 5000 }
+                  );
+                  this.dialogRef.close(product);
+                },
+              });
+          } else {
+            this.dialogRef.close(product);
+          }
+        };
+
         // Attach customisations if any selected
         if (customisationIds.length > 0 || this.data.product?.has_customisations) {
           this.customisationService
             .attachToProduct(product.id, customisationIds)
             .subscribe({
               next: () => {
-                this.dialogRef.close(product);
+                afterSave();
               },
               error: (error) => {
                 console.error('Error attaching customisations:', error);
@@ -494,11 +578,11 @@ export class ProductEditDialogComponent implements OnInit {
                     panelClass: ['error-snackbar'],
                   }
                 );
-                this.dialogRef.close(product);
+                afterSave();
               },
             });
         } else {
-          this.dialogRef.close(product);
+          afterSave();
         }
       },
       error: (error) => {

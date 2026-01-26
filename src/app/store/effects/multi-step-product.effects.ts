@@ -50,6 +50,7 @@ export class MultiStepProductEffects {
               vendorId: productData.vendor_id || undefined,
               isMultiStep: productData.is_multi_step || false,
               displayOrder: productData.display_order || 0,
+              stockQuantity: productData.stock_quantity ?? null,
             };
 
             // Fetch product steps with options from database
@@ -234,33 +235,37 @@ export class MultiStepProductEffects {
 
   // Transform database step data to our ProductStep model
   private transformStepData(stepData: any[]): ProductStep[] {
-    return stepData.map((step) => ({
-      id: step.id,
-      productId: step.product_id,
-      name: step.name,
-      displayOrder: step.display_order,
-      stepType: this.mapStepType(step.step_type),
-      description: step.description || '',
-      isRequired: step.is_required,
-      minSelections: step.min_selections,
-      maxSelections: step.max_selections,
-      options: (step.product_step_options || []).map((option: any) => ({
-        id: option.id,
-        stepIds: option.step_ids, // Changed from stepId: step.id to use array
-        productId: option.product_id, // Can be null for component options
-        name: option.name,
-        priceAdjustment: Number(option.price_adjustment) || 0,
-        displayOrder: option.display_order,
-        isAvailable: option.is_available,
-        optionType: (option.option_type || 'component') as
-          | 'component'
-          | 'product',
-        description: option.description || '',
-        vendorId: option.vendor_id, // Added vendor_id
-        // Image logic: use option's own image for components, or product's image for products
-        imageUrl: this.getOptionImageUrl(option),
-      })),
-    }));
+    return stepData
+      .map((step) => ({
+        id: step.id,
+        productId: step.product_id,
+        name: step.name,
+        displayOrder: step.display_order,
+        stepType: this.mapStepType(step.step_type),
+        description: step.description || '',
+        isRequired: step.is_required,
+        minSelections: step.min_selections,
+        maxSelections: step.max_selections,
+        options: (step.product_step_options || []).map((option: any) => ({
+          id: option.id,
+          stepIds: option.step_ids, // Changed from stepId: step.id to use array
+          productId: option.product_id, // Can be null for component options
+          name: option.name,
+          priceAdjustment: Number(option.price_adjustment) || 0,
+          displayOrder: option.display_order,
+          isAvailable: option.is_available,
+          optionType: (option.option_type || 'component') as
+            | 'component'
+            | 'product',
+          description: option.description || '',
+          vendorId: option.vendor_id, // Added vendor_id
+          // Image logic: use option's own image for components, or product's image for products
+          imageUrl: this.getOptionImageUrl(option),
+          stockQuantity: option.option_product?.stock_quantity ?? null,
+        })),
+      }))
+      // Filter out steps that have no visible options
+      .filter((step) => step.options.length > 0);
   }
 
   // Helper method to determine the correct image URL based on option type

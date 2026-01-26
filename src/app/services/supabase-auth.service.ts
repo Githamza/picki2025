@@ -132,6 +132,7 @@ export class SupabaseAuthService implements OnDestroy {
   // Auth state change listener
   onAuthStateChange(callback: (event: string, session: any) => void) {
     console.log('onAuthStateChange called');
+    //add timeout
     return this.supabaseAuth.auth.onAuthStateChange(callback);
   }
 
@@ -687,6 +688,15 @@ export class SupabaseAuthService implements OnDestroy {
       .single();
 
     if (error) throw error;
+
+    const { error: stepOptionsError } = await this.supabaseAuth
+      .from('product_step_options')
+      .update({
+        is_available: isAvailable,
+      })
+      .eq('product_id', productId);
+
+    if (stepOptionsError) throw stepOptionsError;
     return data;
   }
 

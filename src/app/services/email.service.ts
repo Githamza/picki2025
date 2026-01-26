@@ -242,7 +242,8 @@ export class EmailService {
         // Supported shapes:
         // - /vendor/<slug>/...
         // - /<slug>/... (legacy)
-        const matchVendorPrefixed = currentPath.match(/^\/vendor\/([^\/]+)(\/|$)/);
+        const matchVendorPrefixed =
+          currentPath.match(/^\/vendor\/([^\/]+)(\/|$)/);
         if (matchVendorPrefixed?.[1]) return matchVendorPrefixed[1];
 
         const matchLegacy = currentPath.match(/^\/([^\/]+)(\/|$)/);
@@ -255,8 +256,8 @@ export class EmailService {
       return `${baseUrl}/vendor/${resolvedSlug}/successPayment?orderId=${orderId}`;
     }
 
-    // Fallback (should rarely happen)
-    return `${baseUrl}/successPayment?orderId=${orderId}`;
+    // Fallback (should rarely happen): avoid /successPayment redirect on pikiapp domains.
+    return `${baseUrl}/?orderId=${orderId}`;
   }
 
   /**

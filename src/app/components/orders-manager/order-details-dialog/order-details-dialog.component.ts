@@ -12,6 +12,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatListModule } from '@angular/material/list';
 import { Order, OrderStatus } from '../../../models/order.model';
 import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reason-dialog.component';
 import { SupabaseAuthService } from '../../../services/supabase-auth.service';
@@ -29,6 +30,7 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
     MatIconModule,
     MatDividerModule,
     MatProgressSpinnerModule,
+    MatListModule,
     MapLocationViewerComponent,
     VendorCurrencyPipe,
   ],
@@ -79,23 +81,25 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
                     <span class="item-name">{{ item.productName }}</span>
                     @if (item.metadata) {
                     <div class="multi-step-details">
-                      @for (
-                        step of item.metadata.stepSelections;
-                        track step.stepName
-                      ) {
-                      <div class="step-detail">
-                        <span class="step-name">{{ step.stepName }}:</span>
+                      <mat-list dense>
                         @for (
-                          option of step.selectedOptions;
-                          track option.optionName;
-                          let last = $last
+                          step of item.metadata.stepSelections;
+                          track step.stepName
                         ) {
-                        <span class="option-name">
-                          {{ option.optionName }}@if (!last) {, }
-                        </span>
+                          @for (
+                            option of step.selectedOptions;
+                            track option.optionName 
+                          ) {
+                          @if ($index > 0) {
+                            <mat-divider></mat-divider>
+                          }
+                          <mat-list-item>
+                            <mat-icon matListItemIcon class="tick-icon">check</mat-icon>
+                            <span matListItemTitle>{{ option.optionName }}</span>
+                          </mat-list-item>
+                          }
                         }
-                      </div>
-                      }
+                      </mat-list>
                     </div>
                     }
                     @if (item.customisationSelections && item.customisationSelections.length > 0) {
@@ -348,7 +352,6 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
         display: flex;
         flex-direction: column;
         max-height: 90vh;
-        overflow: hidden;
       }
 
       .dialog-header {
@@ -623,29 +626,47 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
           .multi-step-details {
             margin-top: 2px;
-            padding: 6px;
+            padding: 0;
             border-left: 2px solid var(--mat-sys-primary);
             background-color: var(--mat-sys-primary-container);
             border-radius: 4px;
-          }
+            overflow: hidden;
+            min-width: 0;
+            max-width: 100%;
 
-          .step-detail {
-            margin-bottom: 2px;
-            font-size: 16px;
-            color: var(--mat-sys-on-surface-variant);
-            line-height: 1.3;
-
-            &:last-child {
-              margin-bottom: 0;
+            mat-list {
+              padding: 0;
             }
 
-            .step-name {
-              font-weight: 500;
-              color: var(--mat-sys-primary);
-            }
-
-            .option-name {
+            mat-list-item {
+              height: auto !important;
+              min-height: 28px;
+              font-size: 13px;
               color: var(--mat-sys-on-primary-container);
+              word-break: break-word;
+              overflow-wrap: break-word;
+              white-space: normal;
+            }
+
+            ::ng-deep .mdc-list-item__content {
+              overflow: visible !important;
+              white-space: normal !important;
+            }
+
+            ::ng-deep .mdc-list-item__primary-text {
+              white-space: normal !important;
+              overflow: visible !important;
+              text-overflow: unset !important;
+              word-break: break-word;
+              line-height: 1.3;
+            }
+
+            .tick-icon {
+              font-size: 16px;
+              width: 16px;
+              height: 16px;
+              flex-shrink: 0;
+              color: var(--mat-sys-primary);
             }
           }
 
@@ -960,6 +981,7 @@ export class OrderDetailsDialogComponent {
     initiated: 'En attente de validation',
     paid: 'Payée',
     refused: 'Refusée',
+    cancelled: 'Annulée',
     todo: 'À traiter',
     ongoing: 'En cours',
     done: 'Prête',
@@ -970,6 +992,7 @@ export class OrderDetailsDialogComponent {
     initiated: 'warn',
     paid: 'accent',
     refused: '',
+    cancelled: '',
     todo: 'accent',
     ongoing: 'accent',
     done: 'primary',
@@ -980,6 +1003,7 @@ export class OrderDetailsDialogComponent {
     initiated: '',
     paid: 'accent',
     refused: '',
+    cancelled: '',
     todo: 'accent',
     ongoing: 'primary',
     done: '',
@@ -990,6 +1014,7 @@ export class OrderDetailsDialogComponent {
     initiated: '',
     paid: 'play_arrow',
     refused: '',
+    cancelled: '',
     todo: 'play_arrow',
     ongoing: 'check_circle',
     done: 'done_all',
@@ -1010,6 +1035,7 @@ export class OrderDetailsDialogComponent {
       initiated: null,
       paid: 'todo',
       refused: null,
+      cancelled: null,
       todo: 'ongoing',
       ongoing: 'done',
       done: 'picked',

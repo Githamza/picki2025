@@ -807,14 +807,6 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         status
       );
 
-      // Check if payment was successful
-      if (status !== 'authorized' && status !== 'succeeded') {
-        console.error('Payment was not successful:', status);
-        this.paymentDetailsError = true;
-        this.isProcessing = false;
-        return;
-      }
-
       let paymentDetails: any = null;
       let paymentProvider = '';
       let paymentId = '';
@@ -823,6 +815,14 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       // Retrieve payment details from the payment provider
       try {
         if (poId) {
+          // PayGreen relies on ?status=authorized
+          if (status !== 'authorized' && status !== 'succeeded') {
+            console.error('PayGreen payment was not successful:', status);
+            this.paymentDetailsError = true;
+            this.isProcessing = false;
+            return;
+          }
+
           paymentProvider = 'paygreen';
           paymentId = poId;
 
@@ -871,6 +871,16 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
           // Get order ID from payment metadata
           orderId = paymentDetails.metadata?.orderId;
+
+          // Stripe Checkout should only land here on success_url, but we still verify the session.
+          const stripeStatus = String(paymentDetails.status || '').toLowerCase();
+          if (stripeStatus && stripeStatus !== 'paid' && stripeStatus !== 'succeeded') {
+            console.error('Stripe session not paid:', stripeStatus);
+            this.paymentDetailsError = true;
+            this.isProcessing = false;
+            return;
+          }
+
           // Update delivery row status after payment succeeded (Stripe) - only if not already progressed
           try {
             if (orderId) {

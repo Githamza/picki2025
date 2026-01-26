@@ -94,11 +94,11 @@
           </mat-form-field>
 
           <!-- Remember Me Checkbox -->
-          <div class="form-options">
+          <!--   <div class="form-options">
             <mat-checkbox formControlName="rememberMe" color="primary">
               Remember me for 30 days
             </mat-checkbox>
-          </div>
+          </div> -->
 
           <!-- Submit Button -->
           <div class="form-actions">
@@ -120,6 +120,12 @@
                 <span>Sign In</span>
               </div>
               }
+            </button>
+          </div>
+
+          <div class="form-actions">
+            <button matButton="outlined" (click)="goToRegister()">
+              Créer ma boutique en ligne
             </button>
           </div>
         </form>

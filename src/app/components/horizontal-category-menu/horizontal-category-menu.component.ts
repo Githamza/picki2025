@@ -37,6 +37,15 @@ import { VendorService } from '../../services/vendor.service';
 
       <div class="chips-container" *ngIf="categories$ | async as categories">
         <mat-chip-option
+          (click)="selectAllProducts()"
+          [selected]="(selectedCategoryId$ | async) === null"
+          aria-label="Tout afficher"
+        >
+          <mat-icon matChipAvatar>apps</mat-icon>
+          Tout
+        </mat-chip-option>
+
+        <mat-chip-option
           *ngFor="let category of categories"
           (click)="selectCategory(category)"
           [selected]="(selectedCategoryId$ | async) === category.id"
@@ -157,5 +166,10 @@ export class HorizontalCategoryMenuComponent implements OnInit {
 
     // Use vendor-aware navigation
     this.vendorNavigation.navigateWithVendor(['promotional-banner', kebab, 'products']);
+  }
+
+  selectAllProducts(): void {
+    this.store.dispatch(CategoryActions.clearSelectedCategory());
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 }

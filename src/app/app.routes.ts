@@ -47,6 +47,8 @@ const vendorAppChildren: Routes = [
     canActivate: [diningPreferenceGuard],
     children: [
       { path: '', redirectTo: 'promotional-banner', pathMatch: 'full' },
+      // Convenience alias: allow /products to show all products (no category)
+      { path: 'products', redirectTo: 'promotional-banner/products', pathMatch: 'full' },
       {
         path: 'promotional-banner',
         component: PromotionalBannerComponent,
@@ -58,6 +60,9 @@ const vendorAppChildren: Routes = [
         ],
       },
       { path: ':category/product/:productName', component: ProductAddComponent },
+      // Product page without category in URL (e.g. /product/:productName)
+      // Must be declared before the ':category/...' route to avoid conflicts.
+      { path: 'product/:productName', component: ProductAddComponent },
       { path: 'cartdetails', component: CartDetailsPageComponent },
     ],
   },
@@ -70,6 +75,15 @@ export const routes: Routes = [
   {
     path: 'admin/login',
     component: AdminLoginComponent,
+  },
+
+  // Vendor self-registration (no auth required)
+  {
+    path: 'admin/register',
+    loadComponent: () =>
+      import('./components/admin-register/admin-register.component').then(
+        (m) => m.AdminRegisterComponent
+      ),
   },
 
   // Top-level Admin Routes
@@ -140,8 +154,6 @@ export const routes: Routes = [
   // Legacy redirects
   { path: 'orders-manager', redirectTo: '/', pathMatch: 'full' },
   { path: 'dining-preference', redirectTo: '/', pathMatch: 'full' },
-  { path: 'successPayment', redirectTo: '/', pathMatch: 'full' },
-  { path: 'failedPayment', redirectTo: '/', pathMatch: 'full' },
 
   { path: '**', redirectTo: '/' },
 ];

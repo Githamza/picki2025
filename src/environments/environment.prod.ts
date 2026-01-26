@@ -5,7 +5,7 @@ export const environment = {
   // we treat it as a vendor custom domain and resolve the vendor by domain.
   //
   // Start with localhost for consistency (some prod-like previews use it).
-  pikiappDomains: ['localhost', 'pikiapp.z6.web.core.windows.net'],
+  pikiappDomains: ['localhost', 'pikiapp.z6.web.core.windows.net','piki-app.com','hkuysvx.cluster121.hosting.ovh.net'],
   // Temporary toggle to force a specific delivery provider in production if needed
   // Use cautiously. Recommended values: 'auto' | 'all'.
   // Can be set to 'uber' or 'stuart' for targeted testing deployments.
@@ -30,12 +30,17 @@ export const environment = {
       providerSecretKey: 'Kw6gRkrfU8hz7bUfQ3gwGmzVUEFgkoQLh3vaPr2fj9o',
     },
   ],
-  // PayGreen API Configuration
-  paygreen: {
-    // Choose between 'production' or 'sandbox' API
-    // 'production' uses https://api.paygreen.fr
-    // 'sandbox' uses https://sb-api.paygreen.fr
-    environment: 'production', // Use production for live payments
-    apiUrl: 'https://api.paygreen.fr', // Will be set automatically based on environment
-  },
+  // PayGreen Sandbox Mode
+  // When true:
+  //   - Uses sandbox API URL: https://sb-api.paygreen.fr
+  //   - Uses sandbox credentials (sandbox_shop_id, sandbox_public_key, sandbox_secret_key)
+  //     from vendor_paygreen_credentials table
+  // When false:
+  //   - Uses production API URL: https://api.paygreen.fr
+  //   - Uses production credentials (shop_id, public_key, secret_key)
+  paygreenSandboxEnv: false,
+
+  // Pexels API configuration (NOTE: using this key in a frontend app will expose it to users).
+  // Consider proxying requests via your backend for production.
+  pexelsApiKey: '1YNGfjtV9g5hvT0fKBwgox5YhsMwgjfN8rkRzgYWbPcIX1pBupeEDQsW',
 };

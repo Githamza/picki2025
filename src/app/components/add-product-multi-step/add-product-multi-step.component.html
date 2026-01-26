@@ -67,11 +67,12 @@
         >
           <mat-list class="option-cards-list">
             <app-product-option-card
-              *ngFor="let option of step.options"
+              *ngFor="let option of getAvailableOptions(step)"
               [option]="option"
               [step]="step"
               [isSelected]="isOptionSelected(step, option.id)"
-              [isDisabled]="!option.isAvailable"
+              [isDisabled]="!option.isAvailable || isOptionEffectivelyOutOfStock(option)"
+              [isOutOfStock]="isOptionEffectivelyOutOfStock(option)"
               (optionClicked)="onOptionClicked($event)"
               (imageClicked)="onImageClicked($event)"
             ></app-product-option-card>
@@ -91,11 +92,12 @@
         >
           <mat-list class="option-cards-list">
             <app-product-option-card
-              *ngFor="let option of step.options"
+              *ngFor="let option of getAvailableOptions(step)"
               [option]="option"
               [step]="step"
               [isSelected]="isOptionSelected(step, option.id)"
-              [isDisabled]="!option.isAvailable"
+              [isDisabled]="!option.isAvailable || isOptionEffectivelyOutOfStock(option)"
+              [isOutOfStock]="isOptionEffectivelyOutOfStock(option)"
               (optionClicked)="onOptionClicked($event)"
               (imageClicked)="onImageClicked($event)"
             ></app-product-option-card>
@@ -104,7 +106,7 @@
           <!-- Hidden form controls for validation -->
           <div formGroupName="options" class="hidden-form-controls">
             <input
-              *ngFor="let option of step.options"
+              *ngFor="let option of getAvailableOptions(step)"
               type="hidden"
               [formControlName]="option.id.toString()"
             />
@@ -231,7 +233,7 @@
       *ngIf="!(isLastStep$ | async)"
       class="next-btn"
     >
-      Suivant
+      Étape suivante
       <mat-icon>arrow_forward</mat-icon>
     </button>
   </div>
@@ -257,9 +259,13 @@
           aria-label="Increase quantity"
           (click)="incrementQuantity()"
           class="quantity-button"
+          [disabled]="isStockLimitReached()"
         >
           <mat-icon>add</mat-icon>
         </button>
+      </div>
+      <div class="stock-limit-hint" *ngIf="isStockLimitReached()">
+        {{ baseProductStockQuantity }} disponible(s){{ cartQuantityForBaseProduct > 0 ? ' (dont ' + cartQuantityForBaseProduct + ' dans le panier)' : '' }}
       </div>
     </div>
 

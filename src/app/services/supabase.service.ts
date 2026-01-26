@@ -671,7 +671,6 @@ export class SupabaseService implements OnDestroy {
         .from('vendors')
         .select('*')
         .ilike('customDomain', normalized)
-        .eq('is_active', true)
         .maybeSingle();
 
       if (error) {
@@ -779,7 +778,9 @@ export class SupabaseService implements OnDestroy {
           id,
           name,
           image_url,
-          price
+          price,
+          no_catalogable,
+          stock_quantity
         )
       `
       )
@@ -788,11 +789,19 @@ export class SupabaseService implements OnDestroy {
 
     if (optionsError) throw optionsError;
 
+    // Filter out options where the linked product has no_catalogable = true
+    const visibleOptions = options?.filter((option: any) => {
+      // Keep component-type options (no linked product)
+      if (option.option_type !== 'product' || !option.product_id) return true;
+      // For product-type options, exclude if no_catalogable
+      return !option.option_product?.no_catalogable;
+    }) || [];
+
     // Group options by step and attach to steps
     const stepsWithOptions = steps?.map((step) => ({
       ...step,
       product_step_options:
-        options?.filter((option) => option.step_ids.includes(step.id)) || [],
+        visibleOptions.filter((option) => option.step_ids.includes(step.id)),
     }));
 
     return stepsWithOptions;

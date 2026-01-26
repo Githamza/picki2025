@@ -8,6 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { PaymentService } from '../../services/payment.service';
 import { PaymentRequest } from '../../services/payment-strategy.interface';
 import { VendorService } from '../../services/vendor.service';
+import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import {
   UserInfoDialogComponent,
@@ -164,6 +165,7 @@ import {
 export class PaymentTestComponent {
   private paymentService = inject(PaymentService);
   private vendorService = inject(VendorService);
+  private vendorNavigation = inject(VendorNavigationService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
@@ -204,10 +206,14 @@ export class PaymentTestComponent {
   private processTestPayment(userInfo: UserInfo): void {
     this.isProcessing = true;
 
-    // Build return URLs
+    // Build return URLs with vendor context
     const baseUrl = window.location.origin;
-    const returnUrl = `${baseUrl}/successPayment`;
-    const cancelUrl = `${baseUrl}/failedPayment`;
+    const returnUrl = `${baseUrl}${this.vendorNavigation.getVendorUrl(
+      'successPayment'
+    )}`;
+    const cancelUrl = `${baseUrl}${this.vendorNavigation.getVendorUrl(
+      'failedPayment'
+    )}`;
 
     const testPaymentRequest: PaymentRequest = {
       amount: 27.5,

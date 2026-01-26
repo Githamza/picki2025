@@ -297,7 +297,7 @@ export interface DialogData {
     <div mat-dialog-actions class="dialog-actions">
       <button mat-button mat-dialog-close>Annuler</button>
       <button
-        mat-raised-button
+        matButton="filled"
         color="primary"
         (click)="saveCustomisation()"
         [disabled]="customisationForm.invalid || saving"

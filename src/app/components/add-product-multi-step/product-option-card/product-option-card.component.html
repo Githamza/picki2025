@@ -6,12 +6,12 @@
   <mat-card
     class="option-card"
     [class.selected]="isSelected"
-    [class.disabled]="!option.isAvailable"
+    [class.disabled]="isDisabled || !option.isAvailable"
     [class.component-option]="isComponentOption()"
     [class.product-option]="canBeSoldSeparately()"
     (click)="onCardClick()"
     matRipple
-    [matRippleDisabled]="!option.isAvailable"
+    [matRippleDisabled]="isDisabled || !option.isAvailable"
   >
     <mat-card-content>
       <div class="option-card-content">
@@ -35,8 +35,12 @@
           <div class="option-name">{{ option.name }}</div>
 
           <!-- Description for better UX -->
-          <div class="option-description" *ngIf="option.description">
+          <div class="option-description" *ngIf="option.description && !isOutOfStock">
             {{ option.description }}
+          </div>
+
+          <div class="out-of-stock-label" *ngIf="isOutOfStock">
+            Victime de son succès
           </div>
         </div>
 

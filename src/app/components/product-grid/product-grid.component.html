@@ -1,43 +1,51 @@
 <!-- Horizontal category menu for mobile only -->
-<div *ngIf="isHandset$ | async" class="mobile-category-menu">
+@if (isHandset$ | async) {
+<div class="mobile-category-menu">
   <app-horizontal-category-menu></app-horizontal-category-menu>
 </div>
+}
 
 <div class="product-grid-container">
   <div style="view-transition-name: product-grid-page">
-    <div class="category-header" *ngIf="selectedCategory$ | async as category">
+    @if (selectedCategory$ | async; as category) {
+    <div class="category-header">
       <div class="category-header-content">
-        <div class="category-image-container" *ngIf="category.imageUrl">
+        @if (category.imageUrl) {
+        <div class="category-image-container">
           <img
-            ngSrc="{{ category.imageUrl }}"
-            alt="{{ category.name }} category"
+            [ngSrc]="category.imageUrl"
+            [alt]="category.name + ' category'"
             class="category-image"
             width="80"
             height="80"
             priority
           />
         </div>
+        }
         <div class="category-info">
           <h2>{{ category.name }}</h2>
-          <p *ngIf="category.description">{{ category.description }}</p>
+          @if (category.description) {
+          <p>{{ category.description }}</p>
+          }
         </div>
       </div>
     </div>
+    }
   </div>
 
   <!-- Desktop Card Layout -->
+  @if (!(isHandset$ | async)) {
   <div
     class="product-grid desktop-layout"
     style="view-transition-name: product-grid"
-    *ngIf="!(isHandset$ | async)"
   >
+    @for (product of filteredProducts(); track product.id) {
     <mat-card
-      *ngFor="let product of filteredProducts"
       class="product-card"
-      [class.out-of-stock]="product.stockQuantity === 0"
+      [class.out-of-stock]="isEffectivelyOutOfStock(product)"
       appearance="outlined"
       (click)="
-        product.stockQuantity !== 0 && addToCart(product);
+        !isEffectivelyOutOfStock(product) && addToCart(product);
         $event.stopPropagation()
       "
     >
@@ -46,7 +54,7 @@
         [src]="product.imageUrl || placeholderImage"
         [alt]="product.name"
         title="Product image"
-        [class.grayscale]="product.stockQuantity === 0"
+        [class.grayscale]="isEffectivelyOutOfStock(product)"
       />
       <mat-card-content>
         <h3>{{ product.name }}</h3>
@@ -56,48 +64,51 @@
         >
           {{ product.price | vendorCurrency }}
         </p>
-        <p class="short-description" *ngIf="product.shortDescription">
+        @if (product.shortDescription) {
+        <p class="short-description">
           {{ product.shortDescription }}
         </p>
-        <p
-          class="description"
-          *ngIf="!product.shortDescription && product.description"
-        >
+        } @else if (product.description) {
+        <p class="description">
           {{ product.description | slice : 0 : 60
           }}{{ product.description.length > 60 ? "..." : "" }}
         </p>
-        <p class="out-of-stock-label" *ngIf="product.stockQuantity === 0">
-          Victime de son succès
-        </p>
+        } @if (isEffectivelyOutOfStock(product)) {
+        <p class="out-of-stock-label">Victime de son succès</p>
+        }
       </mat-card-content>
       <mat-card-actions>
         <button
           mat-fab
           color="primary"
           class="add-to-order-fab"
-          [disabled]="product.stockQuantity === 0"
+          [disabled]="isEffectivelyOutOfStock(product)"
           (click)="addToCart(product)"
           [matTooltip]="
-            product.stockQuantity === 0 ? 'Out of stock' : 'Add to order'
+            isEffectivelyOutOfStock(product)
+              ? 'Victime de son succès'
+              : 'Ajouter au panier'
           "
         >
           <mat-icon>add</mat-icon>
         </button>
       </mat-card-actions>
     </mat-card>
+    }
   </div>
+  }
 
   <!-- Mobile List Layout -->
+  @if (isHandset$ | async) {
   <div
     class="product-list mobile-layout"
     style="view-transition-name: product-grid"
-    *ngIf="isHandset$ | async"
   >
+    @for (product of filteredProducts(); track product.id) {
     <div
-      *ngFor="let product of filteredProducts"
       class="product-list-item"
-      [class.out-of-stock]="product.stockQuantity === 0"
-      (click)="product.stockQuantity !== 0 && addToCart(product)"
+      [class.out-of-stock]="isEffectivelyOutOfStock(product)"
+      (click)="!isEffectivelyOutOfStock(product) && addToCart(product)"
     >
       <div class="product-image-container">
         <img
@@ -105,7 +116,7 @@
           [alt]="product.name"
           title="Product image"
           class="product-image"
-          [class.grayscale]="product.stockQuantity === 0"
+          [class.grayscale]="isEffectivelyOutOfStock(product)"
         />
       </div>
 
@@ -117,19 +128,18 @@
         >
           {{ product.price | vendorCurrency }}
         </p>
-        <p class="product-description" *ngIf="product.shortDescription">
+        @if (product.shortDescription) {
+        <p class="product-description">
           {{ product.shortDescription }}
         </p>
-        <p
-          class="product-description"
-          *ngIf="!product.shortDescription && product.description"
-        >
+        } @else if (product.description) {
+        <p class="product-description">
           {{ product.description | slice : 0 : 80
           }}{{ product.description.length > 80 ? "..." : "" }}
         </p>
-        <p class="out-of-stock-label" *ngIf="product.stockQuantity === 0">
-          Out of Stock
-        </p>
+        } @if (isEffectivelyOutOfStock(product)) {
+        <p class="out-of-stock-label">Victime de son succès</p>
+        }
       </div>
 
       <div class="product-action">
@@ -137,10 +147,10 @@
           mat-mini-fab
           color="primary"
           class="add-button"
-          [disabled]="product.stockQuantity === 0"
+          [disabled]="isEffectivelyOutOfStock(product)"
           (click)="addToCart(product); $event.stopPropagation()"
           [matTooltip]="
-            product.stockQuantity === 0
+            isEffectivelyOutOfStock(product)
               ? 'Victime de son succès'
               : 'Add to order'
           "
@@ -149,9 +159,11 @@
         </button>
       </div>
     </div>
+    }
   </div>
-
-  <div class="no-products" *ngIf="filteredProducts.length === 0">
+  } @if (filteredProducts().length === 0) {
+  <div class="no-products">
     <p>No products found in this category.</p>
   </div>
+  }
 </div>

@@ -41,48 +41,57 @@ export class AuthService {
    */
   private initializeAuth(): void {
     console.log('🔐 Initializing authentication service...');
-    this.setLoading(true);
+    // Don't set global loading here to avoid blocking the login page
+    // if no session is present. handleSignIn will set loading if needed.
 
     // Listen for auth state changes
     this.supabaseAuthService
       .getClient()
       .auth.onAuthStateChange(async (event, session) => {
+        // Use a small delay to ensure Supabase state is stable
         setTimeout(async () => {
           console.log('🔐 Auth state changed:', event, session?.user?.email);
 
-          if (event === 'SIGNED_IN' && session?.user) {
-            await this.handleSignIn(session.user);
+          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+            // Only handle sign in if we don't already have a user or if it's a new session
+            const currentUser = this.currentUser();
+            if (!currentUser || currentUser.id !== session.user.id) {
+              await this.handleSignIn(session.user);
+            } else {
+              // User was restored from localStorage but VendorService
+              // BehaviorSubject resets on page reload — restore vendor context.
+              if (!this.vendorService.getCurrentVendor() && currentUser.vendorId) {
+                try {
+                  const vendor = await this.getVendorData(currentUser.vendorId);
+                  if (vendor) {
+                    this.vendorService.setCurrentVendor(vendor);
+                  }
+                } catch (error) {
+                  console.error('Error restoring vendor context:', error);
+                }
+              }
+              this.setLoading(false);
+            }
           } else if (event === 'SIGNED_OUT') {
             this.handleSignOut();
-          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            // Don't call handleSignIn again, just log the refresh
-            console.log('🔐 Token refreshed for user:', session.user.email);
-            // The session is already valid, no need to re-fetch user data
-          } else if (event === 'INITIAL_SESSION' && session?.user) {
-            // Handle initial session restoration
-            console.log(
-              '🔐 Restoring initial session for user:',
-              session.user.email
-            );
-            await this.handleSignIn(session.user);
+            this.setLoading(false);
+          } else {
+            // For other events like TOKEN_REFRESHED, ensure loading is off
+            this.setLoading(false);
           }
         }, 0);
       });
 
-    // Check for existing session (this will trigger INITIAL_SESSION event if found)
+    // Check for existing session
     this.supabaseAuthService
       .getClient()
       .auth.getSession()
       .then(({ data: { session } }) => {
-        console.log(
-          '🔐 Checking existing session:',
-          session ? 'Found' : 'None'
-        );
+        console.log('🔐 Session check completed:', session ? 'Session found' : 'No session');
         if (!session) {
-          console.log('🔐 No existing session found');
           this.setLoading(false);
         }
-        // If session exists, it will be handled by the INITIAL_SESSION event above
+        // If session exists, it will be handled by onAuthStateChange
       })
       .catch((error) => {
         console.error('🔐 Error checking session:', error);
@@ -94,26 +103,31 @@ export class AuthService {
    * Handle user sign in
    */
   private async handleSignIn(user: User): Promise<void> {
+    console.log('🔐 Handling sign in for:', user.email);
+    this.setLoading(true);
     try {
       // Get admin user data from database
       const adminUser = await this.getAdminUserData(user.id);
 
       if (!adminUser) {
-        console.error('No admin user data found for user:', user.id);
+        console.warn('⚠️ No admin user data found for user:', user.id);
         this.handleSignOut();
         return;
       }
 
       if (!adminUser.is_active) {
+        console.warn('⚠️ User account is inactive:', user.email);
         throw new Error(AuthError.ACCOUNT_DISABLED);
       }
 
       // Get vendor data
       const vendor = await this.getVendorData(adminUser.vendor_id);
       if (!vendor) {
+        console.warn('⚠️ Vendor not found for id:', adminUser.vendor_id);
         throw new Error(AuthError.VENDOR_NOT_FOUND);
       }
-      // Note: We allow admin access even to inactive vendors
+      
+      console.log('✅ Admin user and vendor data loaded:', vendor.business_name);
 
       // Create auth user object
       const authUser: AuthUser = {
@@ -142,8 +156,10 @@ export class AuthService {
       // Set current vendor in VendorService for proper navigation context
       this.vendorService.setCurrentVendor(vendor);
     } catch (error) {
-      console.error('Error handling sign in:', error);
+      console.error('❌ Error handling sign in:', error);
       this.handleSignOut();
+      const errorMessage = this.handleAuthError(error);
+      this.setError(errorMessage);
     } finally {
       this.setLoading(false);
     }
@@ -160,6 +176,7 @@ export class AuthService {
    * Login with email and password
    */
   async login(formData: LoginFormData): Promise<AuthUser> {
+    console.log('🔐 Login process started for:', formData.email);
     this.setLoading(true);
     this.setError(null);
 
@@ -173,19 +190,28 @@ export class AuthService {
         });
 
       if (error) throw error;
+      
+      console.log('✅ Supabase auth successful, fetching vendor data...');
 
+      // Give a tiny bit of time for onAuthStateChange to potentially handle it
+      // but we continue anyway to be safe.
+      
       // Find vendor by admin email
       const vendorData = await this.supabaseAuthService.getVendorByAdminEmail(formData.email);
       
       if (!vendorData) {
+        console.warn('⚠️ No vendor found for admin email:', formData.email);
         throw new Error(AuthError.VENDOR_NOT_FOUND);
       }
 
       const { vendor, adminUser } = vendorData;
 
       if (!adminUser.is_active) {
+        console.warn('⚠️ Admin user is inactive:', formData.email);
         throw new Error(AuthError.ACCOUNT_DISABLED);
       }
+
+      console.log('✅ Vendor data retrieved:', vendor.business_name);
 
       // Create auth user object
       const authUser: AuthUser = {
@@ -216,6 +242,7 @@ export class AuthService {
 
       return authUser;
     } catch (error) {
+      console.error('❌ Login process failed:', error);
       const errorMessage = this.handleAuthError(error);
       this.setError(errorMessage);
       throw error;
@@ -234,14 +261,8 @@ export class AuthService {
       // Sign out from Supabase Auth
       await this.supabaseAuthService.getClient().auth.signOut();
 
-      // Navigate to vendor selection or login
-      const currentVendor = this.vendorService.getCurrentVendor();
-      if (currentVendor) {
-        const vendorSlug = this.vendorService.getVendorSlug(currentVendor);
-        await this.router.navigate([`/${vendorSlug}/admin/login`]);
-      } else {
-        await this.router.navigate(['/']);
-      }
+      // Navigate to centralized admin login
+      await this.router.navigate(['/admin/login']);
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {

@@ -72,6 +72,7 @@ export class RegularProductViewComponent
 {
   @Input() product!: Product;
   @Input() quantity: number = 1;
+  @Input() cartQuantityForProduct: number = 0;
 
   @Output() quantityIncrement = new EventEmitter<void>();
   @Output() quantityDecrement = new EventEmitter<void>();
@@ -104,6 +105,11 @@ export class RegularProductViewComponent
   configuration$!: Observable<any>;
   stepSelections$!: Observable<any>;
   isConfigurationComplete$!: Observable<boolean>;
+
+  isStockLimitReached(): boolean {
+    const stock = this.product?.stockQuantity;
+    return stock != null && (this.quantity + this.cartQuantityForProduct) >= stock;
+  }
 
   onIncrementQuantity(): void {
     this.quantityIncrement.emit();

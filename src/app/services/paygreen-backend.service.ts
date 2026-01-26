@@ -52,6 +52,7 @@ export class PaygreenBackendService {
         vendorId,
         paymentOrder,
         apiUrl: this.paygreenConfig.getApiUrl(),
+        isSandbox: this.paygreenConfig.useSandboxCredentials(),
       },
       { headers: this.getHeaders() }
     );
@@ -64,7 +65,8 @@ export class PaygreenBackendService {
     const params = new URLSearchParams({ 
       vendorId, 
       paymentId,
-      apiUrl: this.paygreenConfig.getApiUrl()
+      apiUrl: this.paygreenConfig.getApiUrl(),
+      isSandbox: String(this.paygreenConfig.useSandboxCredentials()),
     }).toString();
     return this.http.get<any>(
       `${this.backendUrl}/functions/v1/get-paygreen-order?${params}`,
@@ -81,7 +83,8 @@ export class PaygreenBackendService {
       { 
         vendorId, 
         paymentId,
-        apiUrl: this.paygreenConfig.getApiUrl()
+        apiUrl: this.paygreenConfig.getApiUrl(),
+        isSandbox: this.paygreenConfig.useSandboxCredentials(),
       },
       { headers: this.getHeaders() }
     );

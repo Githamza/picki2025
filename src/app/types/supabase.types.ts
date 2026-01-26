@@ -1317,9 +1317,13 @@ export type Database = {
           enabled_order_types: Database["public"]["Enums"]["order_type"][]
           id: string
           is_active: boolean | null
+          orders_suspended_at: string | null
           logo_url: string | null
           online_payments_enabled: boolean
+          paymentprovider: Database["public"]["Enums"]["payment_provider_choice"]
           paygreen_merchant_id: string | null
+          service_fee_fixed: number
+          service_fee_rate_percent: number
           stripe_account_id: string | null
           stripe_onboarding_completed: boolean | null
           updated_at: string | null
@@ -1339,9 +1343,13 @@ export type Database = {
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
+          orders_suspended_at?: string | null
           logo_url?: string | null
           online_payments_enabled?: boolean
+          paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           paygreen_merchant_id?: string | null
+          service_fee_fixed?: number
+          service_fee_rate_percent?: number
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
           updated_at?: string | null
@@ -1361,9 +1369,13 @@ export type Database = {
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
+          orders_suspended_at?: string | null
           logo_url?: string | null
           online_payments_enabled?: boolean
+          paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           paygreen_merchant_id?: string | null
+          service_fee_fixed?: number
+          service_fee_rate_percent?: number
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
           updated_at?: string | null
@@ -1412,6 +1424,7 @@ export type Database = {
       order_timing: "asap" | "later"
       order_type: "eat-in" | "take-away" | "delivery"
       payment_provider: "paygreen" | "stripe"
+      payment_provider_choice: "PAYGREEN" | "STRIPE"
       payment_status:
         | "pending"
         | "processing"

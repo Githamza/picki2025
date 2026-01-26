@@ -2,19 +2,15 @@ import { environment } from '../../../environments/environment';
 
 /**
  * Utility functions for PayGreen environment management
+ * All settings are now controlled by the paygreenSandboxEnv flag
  */
 export class PaygreenEnvironmentUtil {
   /**
    * Get the PayGreen API URL based on the current environment configuration
    */
   static getApiUrl(): string {
-    const config = environment.paygreen;
-    if (!config) {
-      console.warn('PayGreen configuration not found in environment. Using sandbox as default.');
-      return 'https://sb-api.paygreen.fr';
-    }
-
-    return config.apiUrl || this.getApiUrlForEnvironment(config.environment);
+    const isSandbox = environment.paygreenSandboxEnv ?? false;
+    return isSandbox ? 'https://sb-api.paygreen.fr' : 'https://api.paygreen.fr';
   }
 
   /**
@@ -36,33 +32,29 @@ export class PaygreenEnvironmentUtil {
    * Check if we're using the production environment
    */
   static isProduction(): boolean {
-    const config = environment.paygreen;
-    return config?.environment === 'production';
+    return !(environment.paygreenSandboxEnv ?? false);
   }
 
   /**
    * Check if we're using the sandbox environment
    */
   static isSandbox(): boolean {
-    const config = environment.paygreen;
-    return config?.environment === 'sandbox';
+    return environment.paygreenSandboxEnv ?? false;
   }
 
   /**
    * Get the current environment name
    */
   static getCurrentEnvironment(): 'production' | 'sandbox' {
-    const config = environment.paygreen;
-    return config?.environment || 'sandbox';
+    return this.isSandbox() ? 'sandbox' : 'production';
   }
 
   /**
    * Log the current PayGreen configuration for debugging
    */
   static logConfiguration(): void {
-    const config = environment.paygreen;
     console.log('PayGreen Configuration:', {
-      environment: config?.environment || 'sandbox',
+      environment: this.getCurrentEnvironment(),
       apiUrl: this.getApiUrl(),
       isProduction: this.isProduction(),
       isSandbox: this.isSandbox(),

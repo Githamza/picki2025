@@ -1,0 +1,59 @@
+name: Rollback Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_name:
+        description: 'Migration to reverse (e.g. 20260125100000_fix_stock_concurrency)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type CONFIRM to proceed'
+        required: true
+        type: string
+
+jobs:
+  rollback-migration:
+    name: Execute Rollback SQL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        if: inputs.confirm != 'CONFIRM'
+        run: |
+          echo "::error::You must type CONFIRM to proceed with database rollback."
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify rollback file exists
+        run: |
+          ROLLBACK_FILE="supabase/migrations_rollback/${{ inputs.migration_name }}_rollback.sql"
+          if [ ! -f "$ROLLBACK_FILE" ]; then
+            echo "::error::Rollback file not found: $ROLLBACK_FILE"
+            echo "Available rollback files:"
+            ls -1 supabase/migrations_rollback/ 2>/dev/null || echo "  (none)"
+            exit 1
+          fi
+          echo "Found rollback file: $ROLLBACK_FILE"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Execute rollback SQL
+        run: |
+          ROLLBACK_FILE="supabase/migrations_rollback/${{ inputs.migration_name }}_rollback.sql"
+          echo "Executing: $ROLLBACK_FILE"
+          supabase db execute --file "$ROLLBACK_FILE"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Summary
+        run: echo "### Database rollback applied: \`${{ inputs.migration_name }}\`" >> "$GITHUB_STEP_SUMMARY"

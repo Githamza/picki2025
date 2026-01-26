@@ -6,9 +6,11 @@ import { environment } from '../../../environments/environment';
 import { productReducer } from './product.reducer';
 import { cartReducer } from './cart.reducer';
 import { multiStepProductReducer } from './multi-step-product.reducer';
+import { promotionalBannersReducer } from './promotional-banners.reducer';
 
 export const reducers: ActionReducerMap<AppState> = {
   banner: bannerReducer,
+  promotionalBanners: promotionalBannersReducer,
   category: categoryReducer,
   product: productReducer,
   multiStepProduct: multiStepProductReducer,

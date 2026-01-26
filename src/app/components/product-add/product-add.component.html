@@ -16,6 +16,7 @@
       *ngIf="!product.isMultiStep"
       [product]="product"
       [quantity]="quantity"
+      [cartQuantityForProduct]="cartQuantityForProduct"
       (quantityIncrement)="incrementQuantity()"
       (quantityDecrement)="decrementQuantity()"
       (removeItem)="removeItem()"

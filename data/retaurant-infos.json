@@ -1,0 +1,730 @@
+[
+  {
+    "logoUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/e5d082d41ea7b5b7fa38422c92ace3f1/6d2fd2bd931b912b3d43e75a06abc24c.jpeg",
+    "name": "Dreams Donuts - Tours",
+    "categories": ["$", "Desserts", "Donuts", "Thé aux perles"],
+    "currencyCode": "EUR",
+    "location": {
+      "address": "4 Avenue De Grammont, TOURS, EMEA 37000",
+      "city": "TOURS",
+      "postalCode": "37000",
+      "country": "FR",
+      "latitude": 47.38879,
+      "longitude": 0.69005,
+      "locationType": "PHYSICAL"
+    },
+    "phoneNumber": "+33986191680",
+    "uuid": "b836bde5-e114-5b87-97ec-5c876ef2949f",
+    "hours": [
+      {
+        "dayRange": "Dimanche - Lundi",
+        "sectionHours": []
+      },
+      {
+        "dayRange": "Mardi - Samedi",
+        "sectionHours": [
+          {
+            "startTime": 660,
+            "endTime": 1020,
+            "sectionTitle": "",
+            "startTimeFormatted": "11:00 AM",
+            "endTimeFormatted": "5:00 PM"
+          }
+        ]
+      }
+    ],
+    "url": "https://www.ubereats.com/fr/store/dreams-donuts-tours/uDa95eEUW4eX7FyHbvKUnw",
+    "menuItems": [
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/96c74c68d0cd256d48da3da7b08e9859/2f6c2cd9a916a6c0f0e3deb5fd2b0e7d.jpeg",
+        "title": "Box de 12 donuts",
+        "description": "",
+        "price": 36.9,
+        "priceString": "€36.90",
+        "isSoldOut": false,
+        "uuid": "a3dcf172-a281-46f8-8c2c-c1110df85ba2",
+        "optionsList": [
+          {
+            "title": "Choisir 12 donuts",
+            "maxPermitted": 12,
+            "minPermitted": 12,
+            "uuid": "028eb702-ff2c-407e-b2c8-6a45cf90574a",
+            "options": [
+              {
+                "title": "Donut Kinder Bueno  fourré crème de Bueno",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "7699ffb2-83da-43aa-8704-5b7ab9603541"
+              },
+              {
+                "title": "Donut mangue passion fourré passion",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "718ef9cf-dc4a-4904-b765-36b9f10ca853"
+              },
+              {
+                "title": "Donut Homer fraise fourré fraise",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "0f5d28a7-b225-419d-9629-824bf208ea92"
+              },
+              {
+                "title": "Donut myrtille fourré myrtille",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "f6ae960d-e9ac-4791-a98b-0fa37aa8a914"
+              },
+              {
+                "title": "Donut citron meringué fourré citron",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "1a5e1f86-e269-4647-988e-df30b4c9484b"
+              },
+              {
+                "title": "Donut caramel beurre salé fourré caramel",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "81a6661c-a529-4e63-866d-fbac13d7d5a8"
+              },
+              {
+                "title": "Donut pistache",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "a6848e00-5570-43f7-8512-aca59fe426a4"
+              },
+              {
+                "title": "Donut Spéculoos",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "e153af2c-c2ea-47e2-a6ff-dbafcf9f0aac"
+              },
+              {
+                "title": "Donut M&M'S",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "46f4a4cc-7228-41d4-bc2b-0fdb0f65ed96"
+              },
+              {
+                "title": "Donut Oréo",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "41ab7c47-75ed-4e81-b5c1-2b17dfbb4637"
+              },
+              {
+                "title": "Donut barbe à papa",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "304f39d1-de1d-4f76-8159-3d7a634fdc71"
+              },
+              {
+                "title": "Donut Schtroumpf",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "c385efcc-1654-49bc-a75d-26c380a20247"
+              },
+              {
+                "title": "Donut kinder maxi",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "5fbc30f3-a7cd-4563-9323-ce568dcc4e79"
+              },
+              {
+                "title": "Donut sucre",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 12,
+                "minPermitted": 0,
+                "uuid": "af236b0a-6905-4e4a-a8fb-5443472855ad"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/da43dc5c84cd2993bd8ef225198965a7/19ec403e7b0884c49d77e855ef9e8d03.jpeg",
+        "title": "Box de 6 donuts",
+        "description": "",
+        "price": 19.9,
+        "priceString": "€19.90",
+        "isSoldOut": false,
+        "uuid": "a7ce5bd0-566f-4540-b208-23563c143afb",
+        "optionsList": [
+          {
+            "title": "Choisir 6 donuts",
+            "maxPermitted": 6,
+            "minPermitted": 6,
+            "uuid": "16faf526-1c27-48eb-803f-00b4304c831b",
+            "options": [
+              {
+                "title": "Donut Kinder Bueno  fourré crème de Bueno",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "7699ffb2-83da-43aa-8704-5b7ab9603541"
+              },
+              {
+                "title": "Donut mangue passion fourré passion",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "718ef9cf-dc4a-4904-b765-36b9f10ca853"
+              },
+              {
+                "title": "Donut Homer fraise fourré fraise",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "0f5d28a7-b225-419d-9629-824bf208ea92"
+              },
+              {
+                "title": "Donut myrtille fourré myrtille",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "f6ae960d-e9ac-4791-a98b-0fa37aa8a914"
+              },
+              {
+                "title": "Donut citron meringué fourré citron",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "1a5e1f86-e269-4647-988e-df30b4c9484b"
+              },
+              {
+                "title": "Donut caramel beurre salé fourré caramel",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "81a6661c-a529-4e63-866d-fbac13d7d5a8"
+              },
+              {
+                "title": "Donut pistache",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "a6848e00-5570-43f7-8512-aca59fe426a4"
+              },
+              {
+                "title": "Donut Spéculoos",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "e153af2c-c2ea-47e2-a6ff-dbafcf9f0aac"
+              },
+              {
+                "title": "Donut M&M'S",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "46f4a4cc-7228-41d4-bc2b-0fdb0f65ed96"
+              },
+              {
+                "title": "Donut Oréo",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "41ab7c47-75ed-4e81-b5c1-2b17dfbb4637"
+              },
+              {
+                "title": "Donut barbe à papa",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "304f39d1-de1d-4f76-8159-3d7a634fdc71"
+              },
+              {
+                "title": "Donut Schtroumpf",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "c385efcc-1654-49bc-a75d-26c380a20247"
+              },
+              {
+                "title": "Donut kinder maxi",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "5fbc30f3-a7cd-4563-9323-ce568dcc4e79"
+              },
+              {
+                "title": "Donut sucre",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 6,
+                "minPermitted": 0,
+                "uuid": "af236b0a-6905-4e4a-a8fb-5443472855ad"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/135eaa8d57b92fef0bef7024b3bc3ef1/1657c1dcdbd0e1c0b3a0315635db8bc4.jpeg",
+        "title": "Box de 4 donuts",
+        "description": "",
+        "price": 14.9,
+        "priceString": "€14.90",
+        "isSoldOut": false,
+        "uuid": "6af048b2-fea4-4e56-8b2a-1dc4d77ab91d",
+        "optionsList": [
+          {
+            "title": "Choisir 4 donuts",
+            "maxPermitted": 4,
+            "minPermitted": 4,
+            "uuid": "d1e67e6b-c3d7-498b-9f99-4754fb238c67",
+            "options": [
+              {
+                "title": "Donut Kinder Bueno  fourré crème de Bueno",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "7699ffb2-83da-43aa-8704-5b7ab9603541"
+              },
+              {
+                "title": "Donut mangue passion fourré passion",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "718ef9cf-dc4a-4904-b765-36b9f10ca853"
+              },
+              {
+                "title": "Donut Homer fraise fourré fraise",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "0f5d28a7-b225-419d-9629-824bf208ea92"
+              },
+              {
+                "title": "Donut myrtille fourré myrtille",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "f6ae960d-e9ac-4791-a98b-0fa37aa8a914"
+              },
+              {
+                "title": "Donut citron meringué fourré citron",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "1a5e1f86-e269-4647-988e-df30b4c9484b"
+              },
+              {
+                "title": "Donut caramel beurre salé fourré caramel",
+                "price": 0.5,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "81a6661c-a529-4e63-866d-fbac13d7d5a8"
+              },
+              {
+                "title": "Donut pistache",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "a6848e00-5570-43f7-8512-aca59fe426a4"
+              },
+              {
+                "title": "Donut Spéculoos",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "e153af2c-c2ea-47e2-a6ff-dbafcf9f0aac"
+              },
+              {
+                "title": "Donut M&M'S",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "46f4a4cc-7228-41d4-bc2b-0fdb0f65ed96"
+              },
+              {
+                "title": "Donut Oréo",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "41ab7c47-75ed-4e81-b5c1-2b17dfbb4637"
+              },
+              {
+                "title": "Donut barbe à papa",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "304f39d1-de1d-4f76-8159-3d7a634fdc71"
+              },
+              {
+                "title": "Donut Schtroumpf",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "c385efcc-1654-49bc-a75d-26c380a20247"
+              },
+              {
+                "title": "Donut kinder maxi",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "5fbc30f3-a7cd-4563-9323-ce568dcc4e79"
+              },
+              {
+                "title": "Donut sucre",
+                "price": 0,
+                "isSoldOut": false,
+                "maxPermitted": 4,
+                "minPermitted": 0,
+                "uuid": "af236b0a-6905-4e4a-a8fb-5443472855ad"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/101eaa7b83a271d2e3f1bdb6c87fad2f/9f16f79b1e966daf9a2a75e2b67822da.jpeg",
+        "title": "Le chicken",
+        "description": "Pain brioché, poulet, bacon de dinde, oignon frit, sauce burger, tomate, cheddar, salade.",
+        "price": 8.5,
+        "priceString": "€8.50",
+        "isSoldOut": false,
+        "uuid": "0bd9fa3e-38bf-4d3d-9119-01a38355738a"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/b6b53258ccb8ed1ca554171bcdc71f03/6e79eb8927ef17be1e4c83600c25a52e.jpeg",
+        "title": "Le nordique",
+        "description": "saumon, fromage frais, concombre, oignon rouge, salade.",
+        "price": 8.5,
+        "priceString": "€8.50",
+        "isSoldOut": false,
+        "uuid": "815c518a-0e39-43d7-a79c-27ee091b23a0"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/311c8a0950cd3f9c8f9c1a976b45b527/10588660659d61bc907f96cda5447316.jpeg",
+        "title": "Coca-Cola zéro",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "1355057e-977e-4e21-a376-29c1529126a7"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/f845da9e0cc5dd34e41a97e1d1b8f0ff/85fa55d82faa6e109a86930575270550.jpeg",
+        "title": "Coca-Cola vanille",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "b787eb84-82ae-41f0-89e2-83b60661b89d"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/79b0be76f153f65e27744e1e72a8210e/05aae52c491a1284b8b129cdf03af4aa.jpeg",
+        "title": "Coca-Cola cherry",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "172d8311-d47e-4022-9dd6-eb208f29319b"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/567468e75e9180d77c852f8b976dc257/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Fanta orange",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "d9d7e1b4-e53b-4f0f-b307-8c680a42d48a"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/415f1cb8b52ce4532a90a9f342729093/d7541e1dacee31e18dfd4ccd69c50403.jpeg",
+        "title": "Fanta citron",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "3c4c4fed-4830-43fb-b8f1-ddbd5c538376"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/5a5585eb16ed0b88e689a8c9b7781bb9/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Orangina classic",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "9c679b5c-8c26-4e55-b7de-40fe878fe6db"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/84e7844426fb317b9ee70528061d07fd/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Red Bull",
+        "description": "",
+        "price": 3,
+        "priceString": "€3.00",
+        "isSoldOut": false,
+        "uuid": "6571b372-3dda-4d4d-8b2e-c2dbd0c4311c"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/28c0953a5ef0c954c4e62630908086e4/57f2e3dddf64dd3ab436625add1e73cd.jpeg",
+        "title": "7up mojîto",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "d1379038-cd92-48ee-aaca-ff7cf2e8c7c6"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/43a9d3342f5753a96f72a94661a0ffe5/a8a8398909170a3ba9712df773e8aabd.jpeg",
+        "title": "Dada pêche",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "0a2cb9ec-f82d-4a1e-bd86-eb54c249fe89"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98ad99dfa204e27878aefb09feb16519/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Dada fraise",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "a7fe9026-5645-4c62-8e44-9d4dfb3390e0"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/f0d8b3fc3465b61da3f3acf9467a10aa/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Dadda litchi",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "2d64c41b-03b4-4fc6-b98c-9dbcccc5d986"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/568a7edb115b70b5c4c510a335c99f5f/4d2c4f1c013fcc05363e3ccdcaab123c.jpeg",
+        "title": "Dadda melon",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "ed7492cf-0a4f-4dac-af6c-cf6ca13e8e64"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/2da93a37b3574d301aef9c6d77bcb4f2/073569e9875d6326295ed39a76fb46b0.jpeg",
+        "title": "Dadda cerise",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "4d458ade-1863-4bd9-a471-f1bba98203e5"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/478ef61a4b682d5df17c8e9c3cbc5926/8dd022da89a71a3678e893362ddcdb4a.jpeg",
+        "title": "Eau",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "ffbcab9f-2bce-4010-adbd-54ddcbf00f9f"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/ee2838fd5e9faa99d18656e25908723a/d14ecac1c23132a9a40125c5716ac692.jpeg",
+        "title": "Caraïbes mangue",
+        "description": "",
+        "price": 3,
+        "priceString": "€3.00",
+        "isSoldOut": false,
+        "uuid": "9f9a7881-fa88-4691-8c0c-4ddfc7e82ddd"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/8ebcc1b18693b650702b29ee3b59ec90/ce5e5ffab1f62b526262e60fae89007d.jpeg",
+        "title": "Caraïbos goyave",
+        "description": "",
+        "price": 3,
+        "priceString": "€3.00",
+        "isSoldOut": false,
+        "uuid": "ba0f6884-93b7-473e-99d3-f63655a01157"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/31844651d3e7da6e2aea6b188f8a94d2/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Caraîbos banane",
+        "description": "",
+        "price": 3,
+        "priceString": "€3.00",
+        "isSoldOut": false,
+        "uuid": "ae1cde89-2925-4f78-ba2e-1d80f31702f4"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/d1690b36030b064a41139d4f69265f90/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Minute maid pomme",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "4721cfc9-9036-43be-adc1-c6b149388659"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/2bb72df17c68e39a678a3c6189f75eeb/ac63e2c14b4a6e395e6fc945f99347b8.jpeg",
+        "title": "Minute maid orange",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "00daead7-297d-49ee-99c2-929c87881238"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/5dc3ce130bf06adff5e49c57a17eba2f/815db394649cd3eca8c8472f2065a489.jpeg",
+        "title": "Goûts tropical",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "59bb421f-3be8-4a7a-ab2e-316e23b3fb9a"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98628add3559d6e13f79cd3190344206/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Goût tropical acidulé",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "ae33ecd7-11d7-4950-8167-16fd2b709a3b"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98628add3559d6e13f79cd3190344206/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Goût framboise",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "c1e52458-0ed5-472d-a964-16220cfca932"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98628add3559d6e13f79cd3190344206/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Goût cerise",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "f2e7ac58-4739-49dc-8468-c74c1bd08813"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/5dc3ce130bf06adff5e49c57a17eba2f/815db394649cd3eca8c8472f2065a489.jpeg",
+        "title": "Goût cerise acidulé",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "27491149-9f13-428d-9355-c9e9b881bdc5"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/5dc3ce130bf06adff5e49c57a17eba2f/815db394649cd3eca8c8472f2065a489.jpeg",
+        "title": "Rainbow",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "a6bac9a2-6cc9-4b45-809e-c7d67835a132"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98628add3559d6e13f79cd3190344206/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Goût banane",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "4f38c2b1-1141-4056-a9b3-2d2c69c79626"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98628add3559d6e13f79cd3190344206/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Goût pomme",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "718e496e-038e-4766-9ad3-6e9309fe92e7"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/5dc3ce130bf06adff5e49c57a17eba2f/815db394649cd3eca8c8472f2065a489.jpeg",
+        "title": "Goût Bubble-gum acidulé",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "e0d1bd0a-b3bc-4e0c-beb0-ee47f2a462d2"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/5dc3ce130bf06adff5e49c57a17eba2f/815db394649cd3eca8c8472f2065a489.jpeg",
+        "title": "Goût fraise acidulé",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "dec1ed40-2aeb-40aa-b828-9f37687c27d6"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/image-proc/processed_images/98628add3559d6e13f79cd3190344206/bc9c318a9c96996e2d990faf2b0c65f6.jpeg",
+        "title": "Goût cola acidulé",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "3c0a0c8f-894f-4d16-9d3d-a848ad0a678a"
+      },
+      {
+        "imageUrl": "https://tb-static.uber.com/prod/enhanced-images/image-touchup-v1/5dc3ce130bf06adff5e49c57a17eba2f/815db394649cd3eca8c8472f2065a489.jpeg",
+        "title": "Goût  mojitos acidulé",
+        "description": "",
+        "price": 2.5,
+        "priceString": "€2.50",
+        "isSoldOut": false,
+        "uuid": "42abf75d-0685-4782-8757-4d574330bbdd"
+      }
+    ]
+  }
+]

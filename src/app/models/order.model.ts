@@ -2,6 +2,7 @@ export type OrderStatus =
   | 'initiated'
   | 'paid'
   | 'refused'
+  | 'cancelled'
   | 'todo'
   | 'ongoing'
   | 'done'

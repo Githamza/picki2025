@@ -5,6 +5,7 @@ interface CreateOrderRequest {
   vendorId: string;
   paymentOrder: any;
   apiUrl?: string;
+  isSandbox?: boolean;
 }
 
 // Helper to build JSON responses with CORS headers
@@ -44,13 +45,15 @@ serve(async (req) => {
     return json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { vendorId, paymentOrder, apiUrl: frontendApiUrl } = body;
+  const { vendorId, paymentOrder, apiUrl: frontendApiUrl, isSandbox = false } = body;
   if (!vendorId || !paymentOrder) {
     return json(
       { error: 'vendorId and paymentOrder are required' },
       { status: 400 }
     );
   }
+
+  console.log('Sandbox mode:', isSandbox);
 
   // Initialize Supabase service client
   // Use local Supabase URL and service key if LOCALLY is true
@@ -73,9 +76,10 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   // Fetch PayGreen credentials for this vendor
+  // Select both production and sandbox credentials
   const { data: creds, error: credsError } = await supabase
     .from('vendor_paygreen_credentials')
-    .select('shop_id, public_key, secret_key')
+    .select('shop_id, public_key, secret_key, sandbox_shop_id, sandbox_public_key, sandbox_secret_key')
     .eq('vendor_id', vendorId)
     .eq('active', true)
     .single();
@@ -86,12 +90,20 @@ serve(async (req) => {
     creds ? 'Found' : 'Not found'
   );
 
-  if (credsError || !creds || !creds.secret_key) {
+  if (credsError || !creds) {
     console.error('Credentials error:', credsError);
     return json({ error: 'Credentials not found for vendor' }, { status: 400 });
   }
 
-  const secretKey: string = creds.secret_key;
+  // Select the appropriate credentials based on sandbox mode
+  const shopId = isSandbox ? creds.sandbox_shop_id : creds.shop_id;
+  const secretKey = isSandbox ? creds.sandbox_secret_key : creds.secret_key;
+
+  if (!shopId || !secretKey) {
+    const mode = isSandbox ? 'sandbox' : 'production';
+    console.error(`Missing ${mode} credentials for vendor:`, vendorId);
+    return json({ error: `${mode} credentials not configured for vendor` }, { status: 400 });
+  }
   // Use API URL from frontend if provided, otherwise fall back to environment variable or default
   const apiUrl = frontendApiUrl || Deno.env.get('PG_API_URL') || 'https://api.paygreen.fr';
   
@@ -100,7 +112,7 @@ serve(async (req) => {
   try {
     // 1. Authenticate with PayGreen
     const authRes = await fetch(
-      `${apiUrl}/auth/authentication/${creds.shop_id}/secret-key`,
+      `${apiUrl}/auth/authentication/${shopId}/secret-key`,
       {
         method: 'POST',
         headers: {

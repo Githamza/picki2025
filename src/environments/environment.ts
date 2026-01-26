@@ -5,21 +5,29 @@ export const environment = {
   // we treat it as a vendor custom domain and resolve the vendor by domain.
   //
   // Start with localhost for local development.
-  pikiappDomains: ['localhost'],
+  pikiappDomains: ['localhost','piki-app.com'],
 
   // Stripe configuration
-  stripePublishableKey: 'pk_test_your_stripe_publishable_key_here', // Replace with your actual key
+  stripePublishableKey: 'pk_live_51Q0N90DfSHeivE3NHDafxiGPIWzJgRlz8CkLUua9WLayQZHpfl50Wo3trN1jtQHZ4DmTgHHNdLKabI9vFb7KggMY00WIrCcPTX', // Replace with your actual key
+  // Local Supabase (started via `npx supabase start`) runs the API gateway on 54321.
+  // This makes the frontend call local Edge Functions during development:
+  //   http://127.0.0.1:54321/functions/v1/<function-name>
+  // backendUrl: 'http://127.0.0.1:54321',
   backendUrl: 'https://ajblxmolmmvvnobpzzhr.supabase.co', // Your backend API URL
+
   supabase: {
+    // url: 'http://127.0.0.1:54321',
     url: 'https://ajblxmolmmvvnobpzzhr.supabase.co',
     anonKey:
+      // Local anon key printed by `npx supabase start`.
+      // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYmx4bW9sbW12dm5vYnB6emhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzMjA0OTgsImV4cCI6MjA2Mzg5NjQ5OH0.UFjEo9qpZEChFedWxJEw1vgYrHrd4sFfBi_ZSKiiO9E',
   },
   deliveryProvidersKeys: [
     {
       providerName: 'Uber',
-      providerClientKey: 'urtiG42j-nG4O_GNKEQd3JL2Gv0nE86J',
-      providerSecretKey: '8Q0O8R210V6rs4PUZtrA0HkgG_jRPcoBRUsEA9tB',
+      providerClientKey: 'l6RLLSMayZOAWvntl5EacgrBtn_v1gw5',
+      providerSecretKey: 'OG8eqdqDCl4-wBCZ7DOfsNoYHhsKP5sDPI6sWFf5',
     },
     {
       providerName: 'Stuart',
@@ -34,12 +42,19 @@ export const environment = {
   // - 'all' | 'auto' (default): both providers will be available and the app selects the best
   deliveryProviderOverride: 'uber',
   
-  // PayGreen API Configuration
-  paygreen: {
-    // Choose between 'production' or 'sandbox' API
-    // 'production' uses https://api.paygreen.fr
-    // 'sandbox' uses https://sb-api.paygreen.fr
-    environment: 'sandbox', // Change to 'production' for live payments
-    apiUrl: 'https://sb-api.paygreen.fr', // Will be set automatically based on environment
-  },
+  // PayGreen Sandbox Mode
+  // When true:
+  //   - Uses sandbox API URL: https://sb-api.paygreen.fr
+  //   - Uses sandbox credentials (sandbox_shop_id, sandbox_public_key, sandbox_secret_key)
+  //     from vendor_paygreen_credentials table
+  // When false:
+  //   - Uses production API URL: https://api.paygreen.fr
+  //   - Uses production credentials (shop_id, public_key, secret_key)
+  paygreenSandboxEnv: true,
+
+  // Pexels API configuration (NOTE: using this key in a frontend app will expose it to users).
+  // Consider proxying requests via your backend for production.
+  pexelsApiKey: '1YNGfjtV9g5hvT0fKBwgox5YhsMwgjfN8rkRzgYWbPcIX1pBupeEDQsW',
+  uberEatAppId: '5pSEv5fiKM2ecVWdhJUc0IWXcmfD1HNL',
+  uberEatAppSecret: 'Qes_UVTrL4srL0Fro5Toa4N2nd5Lv9pSkC2hivXv',
 };

@@ -1,0 +1,475 @@
+{
+  "categories": [
+    {
+      "key": "mains",
+      "name": "Plats",
+      "image_url": "https://www.shutterstock.com/image-photo/fried-salmon-steak-cooked-green-600nw-2489026949.jpg",
+      "description": "Nos plats"
+    },
+    {
+      "key": "starters",
+      "name": "Entrées",
+      "image_url": "https://images.pexels.com/photos/1437267/pexels-photo-1437267.jpeg?cs=srgb&dl=pexels-dana-tentis-1437267.jpg&fm=jpg",
+      "description": "À partager ou pour commencer"
+    },
+    {
+      "key": "salads",
+      "name": "Salades",
+      "image_url": "https://images.pexels.com/photos/1211887/pexels-photo-1211887.jpeg?cs=srgb&dl=pexels-julieaagaard-1211887.jpg&fm=jpg",
+      "description": "Fraîches et gourmandes"
+    },
+    {
+      "key": "pizzas",
+      "name": "Pizzas",
+      "image_url": "https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?cs=srgb&dl=pexels-pixabay-315755.jpg&fm=jpg",
+      "description": "Pâte fine, sauce maison"
+    },
+    {
+      "key": "pasta",
+      "name": "Pâtes",
+      "image_url": "https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?cs=srgb&dl=pexels-enginakyurt-1279330.jpg&fm=jpg",
+      "description": "Classiques italiens"
+    },
+    {
+      "key": "burgers",
+      "name": "Burgers",
+      "image_url": "https://images.pexels.com/photos/1639562/pexels-photo-1639562.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1639562.jpg&fm=jpg",
+      "description": "Pain brioché, viande fraîche"
+    },
+    {
+      "key": "sides",
+      "name": "Accompagnements",
+      "image_url": "https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1583884.jpg&fm=jpg",
+      "description": "Petites faims & extras"
+    },
+    {
+      "key": "drinks",
+      "name": "Boissons",
+      "image_url": "https://img.freepik.com/free-photo/soda-liqueur-sweet-cool-malibu_1339-56.jpg?semt=ais_hybrid&w=740&q=80",
+      "description": "Nos boissons"
+    },
+    {
+      "key": "hot_drinks",
+      "name": "Boissons chaudes",
+      "image_url": "https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg?cs=srgb&dl=pexels-chevanon-312418.jpg&fm=jpg",
+      "description": "Café, thé, chocolat"
+    },
+
+    {
+      "key": "kids",
+      "name": "Menu enfant",
+      "image_url": "https://images.pexels.com/photos/6163261/pexels-photo-6163261.jpeg?cs=srgb&dl=pexels-cottonbro-6163261.jpg&fm=jpg",
+      "description": "Pour les petits gourmands"
+    },
+    {
+      "key": "desserts",
+      "image_url": "https://t3.ftcdn.net/jpg/01/10/04/56/360_F_110045647_G2dIiAPxt8G7onNhaxF5nDCaL0HTxKs4.jpg",
+      "name": "Desserts",
+      "description": "Nos desserts"
+    }
+  ],
+  "products": [
+    {
+      "name": "Plat du jour",
+      "price": 12.9,
+      "short_description": "Un plat simple et délicieux",
+      "image_url": "https://images.pexels.com/photos/323682/pexels-photo-323682.jpeg?cs=srgb&dl=pexels-chevanon-323682.jpg&fm=jpg",
+      "categoryKey": "mains"
+    },
+    {
+      "name": "Soupe du moment",
+      "price": 6.5,
+      "short_description": "Velouté maison, servi chaud",
+      "image_url": "https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?cs=srgb&dl=pexels-klaus-nielsen-539451.jpg&fm=jpg",
+      "categoryKey": "starters"
+    },
+    {
+      "name": "Bruschetta tomate & basilic",
+      "price": 7.9,
+      "short_description": "Pain grillé, tomates, huile d'olive",
+      "image_url": "https://images.pexels.com/photos/5638555/pexels-photo-5638555.jpeg?cs=srgb&dl=pexels-marta-dzedyshko-5638555.jpg&fm=jpg",
+      "categoryKey": "starters"
+    },
+    {
+      "name": "Planche mixte",
+      "price": 14.9,
+      "short_description": "Charcuterie & fromages à partager",
+      "image_url": "https://images.pexels.com/photos/5638921/pexels-photo-5638921.jpeg?cs=srgb&dl=pexels-marta-dzedyshko-5638921.jpg&fm=jpg",
+      "categoryKey": "starters"
+    },
+    {
+      "name": "Salade César",
+      "price": 12.5,
+      "short_description": "Poulet, croûtons, parmesan, sauce César",
+      "image_url": "https://images.pexels.com/photos/610778/pexels-photo-610778.jpeg?cs=srgb&dl=pexels-jill-wellington-610778.jpg&fm=jpg",
+      "categoryKey": "salads"
+    },
+    {
+      "name": "Salade chèvre chaud",
+      "price": 13.5,
+      "short_description": "Toast de chèvre, noix, miel",
+      "image_url": "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?cs=srgb&dl=pexels-dana-tentis-1640774.jpg&fm=jpg",
+      "categoryKey": "salads"
+    },
+    {
+      "name": "Pizza Margherita",
+      "price": 11.9,
+      "short_description": "Tomate, mozzarella, basilic",
+      "image_url": "https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg?cs=srgb&dl=pexels-vincent-rivaud-825661.jpg&fm=jpg",
+      "categoryKey": "pizzas"
+    },
+    {
+      "name": "Pizza Reine",
+      "price": 13.9,
+      "short_description": "Jambon, champignons, mozzarella",
+      "image_url": "https://images.pexels.com/photos/4109133/pexels-photo-4109133.jpeg?cs=srgb&dl=pexels-mike-4109133.jpg&fm=jpg",
+      "categoryKey": "pizzas"
+    },
+    {
+      "name": "Pizza Pepperoni",
+      "price": 14.5,
+      "short_description": "Pepperoni, mozzarella, origan",
+      "image_url": "https://images.pexels.com/photos/2619967/pexels-photo-2619967.jpeg?cs=srgb&dl=pexels-jonathanborba-2619967.jpg&fm=jpg",
+      "categoryKey": "pizzas"
+    },
+    {
+      "name": "Pizza 4 fromages",
+      "price": 15.5,
+      "short_description": "Mozzarella, gorgonzola, chèvre, emmental",
+      "image_url": "https://images.pexels.com/photos/3915857/pexels-photo-3915857.jpeg?cs=srgb&dl=pexels-narda-yescas-3915857.jpg&fm=jpg",
+      "categoryKey": "pizzas"
+    },
+    {
+      "name": "Spaghetti bolognaise",
+      "price": 13.5,
+      "short_description": "Sauce bœuf mijotée, parmesan",
+      "image_url": "https://images.pexels.com/photos/6287530/pexels-photo-6287530.jpeg?cs=srgb&dl=pexels-roman-odintsov-6287530.jpg&fm=jpg",
+      "categoryKey": "pasta"
+    },
+    {
+      "name": "Penne all'arrabbiata",
+      "price": 12.9,
+      "short_description": "Sauce tomate relevée, ail, piment",
+      "image_url": "https://images.pexels.com/photos/1435895/pexels-photo-1435895.jpeg?cs=srgb&dl=pexels-enginakyurt-1435895.jpg&fm=jpg",
+      "categoryKey": "pasta"
+    },
+    {
+      "name": "Pâtes carbonara",
+      "price": 14.5,
+      "short_description": "Crème, lardons, œuf, parmesan",
+      "image_url": "https://images.pexels.com/photos/4518843/pexels-photo-4518843.jpeg?cs=srgb&dl=pexels-shameel-mukkath-4518843.jpg&fm=jpg",
+      "categoryKey": "pasta"
+    },
+    {
+      "name": "Burger classique",
+      "price": 14.9,
+      "short_description": "Bœuf, cheddar, salade, tomate, sauce maison",
+      "image_url": "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1639557.jpg&fm=jpg",
+      "categoryKey": "burgers"
+    },
+    {
+      "name": "Burger chicken crispy",
+      "price": 14.9,
+      "short_description": "Poulet pané, cheddar, pickles",
+      "image_url": "https://images.pexels.com/photos/1108117/pexels-photo-1108117.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1108117.jpg&fm=jpg",
+      "categoryKey": "burgers"
+    },
+    {
+      "name": "Burger veggie",
+      "price": 13.9,
+      "short_description": "Steak végétal, avocat, oignons confits",
+      "image_url": "https://images.pexels.com/photos/1199960/pexels-photo-1199960.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1199960.jpg&fm=jpg",
+      "categoryKey": "burgers"
+    },
+    {
+      "name": "Steak frites",
+      "price": 16.9,
+      "short_description": "Bœuf grillé, frites maison, sauce au choix",
+      "image_url": "https://images.pexels.com/photos/675951/pexels-photo-675951.jpeg?cs=srgb&dl=pexels-jeshoots-com-675951.jpg&fm=jpg",
+      "categoryKey": "mains"
+    },
+    {
+      "name": "Poulet rôti & pommes grenailles",
+      "price": 15.9,
+      "short_description": "Poulet fermier, herbes, jus réduit",
+      "image_url": "https://images.pexels.com/photos/10821321/pexels-photo-10821321.jpeg?cs=srgb&dl=pexels-roman-odintsov-10821321.jpg&fm=jpg",
+      "categoryKey": "mains"
+    },
+    {
+      "name": "Poisson du marché",
+      "price": 18.5,
+      "short_description": "Selon arrivage, légumes de saison",
+      "image_url": "https://images.pexels.com/photos/1283219/pexels-photo-1283219.jpeg?cs=srgb&dl=pexels-isabella-mendes-1283219.jpg&fm=jpg",
+      "categoryKey": "mains"
+    },
+    {
+      "name": "Frites maison",
+      "price": 4.5,
+      "short_description": "Croustillantes, sel de mer",
+      "image_url": "https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1893556.jpg&fm=jpg",
+      "categoryKey": "sides"
+    },
+    {
+      "name": "Patates douces rôties",
+      "price": 5.5,
+      "short_description": "Épices douces, sauce yaourt",
+      "image_url": "https://images.pexels.com/photos/552100/pexels-photo-552100.jpeg?cs=srgb&dl=pexels-dana-tentis-552100.jpg&fm=jpg",
+      "categoryKey": "sides"
+    },
+    {
+      "name": "Légumes grillés",
+      "price": 5.9,
+      "short_description": "Courgette, poivron, aubergine",
+      "image_url": "https://images.pexels.com/photos/1435895/pexels-photo-1435895.jpeg?cs=srgb&dl=pexels-enginakyurt-1435895.jpg&fm=jpg",
+      "categoryKey": "sides"
+    },
+    {
+      "name": "Menu classique",
+      "price": 16.9,
+      "image_url": "https://thumbs.dreamstime.com/b/delicious-pizza-fresh-basil-tomatoes-wooden-plate-next-to-refreshing-drink-table-italian-meal-cold-beverage-outdoor-eating-385670438.jpg",
+      "short_description": "Plat + boisson",
+      "categoryKey": "mains",
+      "multi_step": {
+        "steps": [
+          {
+            "name": "Choisir un plat",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Plat du jour" },
+              { "productName": "Pizza Margherita" },
+              { "productName": "Burger classique" },
+              { "productName": "Pâtes carbonara" }
+            ]
+          },
+          {
+            "name": "Choisir une boisson",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Eau" },
+              { "productName": "Soda" },
+              { "productName": "Limonade" },
+              { "productName": "Thé glacé maison" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Menu Pizza",
+      "price": 19.9,
+      "image_url": "https://images.pexels.com/photos/315755/pexels-photo-315755.jpeg?cs=srgb&dl=pexels-pixabay-315755.jpg&fm=jpg",
+      "short_description": "Pizza + boisson + dessert",
+      "categoryKey": "mains",
+      "multi_step": {
+        "steps": [
+          {
+            "name": "Choisir une pizza",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Pizza Margherita" },
+              { "productName": "Pizza Reine" },
+              { "productName": "Pizza Pepperoni" },
+              { "productName": "Pizza 4 fromages" }
+            ]
+          },
+          {
+            "name": "Choisir une boisson",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Eau" },
+              { "productName": "Soda" },
+              { "productName": "Limonade" },
+              { "productName": "Thé glacé maison" }
+            ]
+          },
+          {
+            "name": "Choisir un dessert",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Dessert maison" },
+              { "productName": "Tiramisu" },
+              { "productName": "Fondant chocolat" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Eau",
+      "price": 2.0,
+      "image_url": "https://thumbs.dreamstime.com/b/glass-clean-drinking-water-44066082.jpg",
+      "short_description": "50cl",
+      "categoryKey": "drinks"
+    },
+    {
+      "name": "Soda",
+      "price": 3.0,
+      "image_url": "https://img.freepik.com/photos-gratuite/verre-cola-cubes-glace_23-2152002414.jpg?semt=ais_hybrid&w=740&q=80",
+      "short_description": "33cl",
+      "categoryKey": "drinks"
+    },
+    {
+      "name": "Limonade",
+      "price": 3.2,
+      "image_url": "https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?cs=srgb&dl=pexels-janetrangdoan-96974.jpg&fm=jpg",
+      "short_description": "33cl",
+      "categoryKey": "drinks"
+    },
+    {
+      "name": "Thé glacé maison",
+      "price": 3.8,
+      "image_url": "https://images.pexels.com/photos/1283219/pexels-photo-1283219.jpeg?cs=srgb&dl=pexels-isabella-mendes-1283219.jpg&fm=jpg",
+      "short_description": "Citron & menthe",
+      "categoryKey": "drinks"
+    },
+    {
+      "name": "Jus d'orange pressé",
+      "price": 4.5,
+      "image_url": "https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?cs=srgb&dl=pexels-janetrangdoan-96974.jpg&fm=jpg",
+      "short_description": "25cl",
+      "categoryKey": "drinks"
+    },
+    {
+      "name": "Espresso",
+      "price": 2.2,
+      "image_url": "https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg?cs=srgb&dl=pexels-chevanon-312418.jpg&fm=jpg",
+      "short_description": "Court & intense",
+      "categoryKey": "hot_drinks"
+    },
+    {
+      "name": "Cappuccino",
+      "price": 3.9,
+      "image_url": "https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?cs=srgb&dl=pexels-chevanon-302899.jpg&fm=jpg",
+      "short_description": "Mousse de lait onctueuse",
+      "categoryKey": "hot_drinks"
+    },
+    {
+      "name": "Thé (sélection)",
+      "price": 3.2,
+      "image_url": "https://images.pexels.com/photos/1417945/pexels-photo-1417945.jpeg?cs=srgb&dl=pexels-chevanon-1417945.jpg&fm=jpg",
+      "short_description": "Vert, noir ou infusion",
+      "categoryKey": "hot_drinks"
+    },
+    {
+      "name": "Menu enfant",
+      "price": 9.9,
+      "image_url": "https://images.pexels.com/photos/6163261/pexels-photo-6163261.jpeg?cs=srgb&dl=pexels-cottonbro-6163261.jpg&fm=jpg",
+      "short_description": "Plat + boisson + dessert",
+      "categoryKey": "kids",
+      "multi_step": {
+        "steps": [
+          {
+            "name": "Choisir un plat",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Nuggets & frites" },
+              { "productName": "Mini burger & frites" }
+            ]
+          },
+          {
+            "name": "Choisir une boisson",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Eau" },
+              { "productName": "Soda" },
+              { "productName": "Jus de pomme" }
+            ]
+          },
+          {
+            "name": "Choisir un dessert",
+            "step_type": "single-select",
+            "is_required": true,
+            "min_selections": 1,
+            "max_selections": 1,
+            "options": [
+              { "productName": "Glace vanille" },
+              { "productName": "Dessert maison" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Nuggets & frites",
+      "price": 8.9,
+      "image_url": "https://images.pexels.com/photos/4113720/pexels-photo-4113720.jpeg?cs=srgb&dl=pexels-polina-tankilevitch-4113720.jpg&fm=jpg",
+      "short_description": "6 nuggets, frites maison",
+      "categoryKey": "kids"
+    },
+    {
+      "name": "Mini burger & frites",
+      "price": 9.5,
+      "image_url": "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?cs=srgb&dl=pexels-valeria-boltneva-1639557.jpg&fm=jpg",
+      "short_description": "Petit burger, frites maison",
+      "categoryKey": "kids"
+    },
+    {
+      "name": "Jus de pomme",
+      "price": 3.2,
+      "image_url": "https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?cs=srgb&dl=pexels-janetrangdoan-96974.jpg&fm=jpg",
+      "short_description": "25cl",
+      "categoryKey": "drinks"
+    },
+    {
+      "name": "Dessert maison",
+      "price": 4.5,
+      "image_url": "https://media.istockphoto.com/id/1447673516/photo/cream-caramel-pudding-with-caramel-sauce-in-plate.jpg?s=612x612&w=0&k=20&c=yaOaYnZAS9XqiLeugpsxDnjBtlg5gkLByAoB9C-K7ng=",
+      "short_description": "Selon disponibilité",
+      "categoryKey": "desserts"
+    },
+    {
+      "name": "Tiramisu",
+      "price": 6.9,
+      "image_url": "https://images.pexels.com/photos/3026808/pexels-photo-3026808.jpeg?cs=srgb&dl=pexels-nerfee-mirandilla-3026808.jpg&fm=jpg",
+      "short_description": "Café, mascarpone, cacao",
+      "categoryKey": "desserts"
+    },
+    {
+      "name": "Fondant chocolat",
+      "price": 7.5,
+      "image_url": "https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?cs=srgb&dl=pexels-pixabay-291528.jpg&fm=jpg",
+      "short_description": "Cœur coulant, glace vanille",
+      "categoryKey": "desserts"
+    },
+    {
+      "name": "Glace vanille",
+      "price": 3.9,
+      "image_url": "https://images.pexels.com/photos/1352270/pexels-photo-1352270.jpeg?cs=srgb&dl=pexels-jonathanborba-1352270.jpg&fm=jpg",
+      "short_description": "2 boules",
+      "categoryKey": "desserts"
+    }
+  ],
+  "banners": [
+    {
+      "image_url": "https://www.daysoftheyear.com/cdn-cgi/image/dpr=1%2Cf=auto%2Cfit=cover%2Ch=1335%2Cq=85%2Cw=2000/wp-content/uploads/national-fast-food-day.jpg",
+      "link_url": null,
+      "title": null
+    },
+    {
+      "image_url": "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg?cs=srgb&dl=pexels-elevate-1267320.jpg&fm=jpg",
+      "link_url": null,
+      "title": "Happy hour 17h–19h"
+    }
+  ]
+}

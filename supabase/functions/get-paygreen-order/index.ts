@@ -30,9 +30,12 @@ Deno.serve(async (req: Request) => {
   const vendorId = url.searchParams.get('vendorId');
   const paymentId = url.searchParams.get('paymentId');
   const frontendApiUrl = url.searchParams.get('apiUrl');
+  const isSandbox = url.searchParams.get('isSandbox') === 'true';
   if (!vendorId || !paymentId) {
     return json({ error: 'vendorId and paymentId required' }, { status: 400 });
   }
+
+  console.log('Sandbox mode:', isSandbox);
 
   // Use local Supabase URL and service key if LOCALLY is true
   const isLocal = Deno.env.get('LOCALLY') === 'true';
@@ -50,7 +53,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: creds } = await supabase
     .from('vendor_paygreen_credentials')
-    .select('shop_id, secret_key')
+    .select('shop_id, secret_key, sandbox_shop_id, sandbox_secret_key')
     .eq('vendor_id', vendorId)
     .eq('active', true)
     .single();
@@ -58,7 +61,14 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Vendor credentials not found' }, { status: 400 });
   }
 
-  const secretKey: string = creds.secret_key;
+  // Select the appropriate credentials based on sandbox mode
+  const shopId = isSandbox ? creds.sandbox_shop_id : creds.shop_id;
+  const secretKey = isSandbox ? creds.sandbox_secret_key : creds.secret_key;
+
+  if (!shopId || !secretKey) {
+    const mode = isSandbox ? 'sandbox' : 'production';
+    return json({ error: `${mode} credentials not configured for vendor` }, { status: 400 });
+  }
   // Use API URL from frontend if provided, otherwise fall back to environment variable or default
   const apiUrl = frontendApiUrl || Deno.env.get('PG_API_URL') || 'https://api.paygreen.fr';
   
@@ -66,7 +76,7 @@ Deno.serve(async (req: Request) => {
 
   // authenticate
   const authRes = await fetch(
-    `${apiUrl}/auth/authentication/${creds.shop_id}/secret-key`,
+    `${apiUrl}/auth/authentication/${shopId}/secret-key`,
     {
       method: 'POST',
       headers: {

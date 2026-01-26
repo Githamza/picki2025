@@ -159,9 +159,13 @@
             aria-label="Increase quantity"
             (click)="onIncrementQuantity()"
             class="quantity-button"
+            [disabled]="isStockLimitReached()"
           >
             <mat-icon>add</mat-icon>
           </button>
+        </div>
+        <div class="stock-limit-hint" *ngIf="isStockLimitReached()">
+          {{ product.stockQuantity }} disponible(s){{ cartQuantityForProduct > 0 ? ' (dont ' + cartQuantityForProduct + ' dans le panier)' : '' }}
         </div>
       </div>
       <button

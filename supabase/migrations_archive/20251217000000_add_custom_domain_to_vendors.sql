@@ -10,3 +10,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS vendors_custom_domain_unique
   WHERE "customDomain" IS NOT NULL;
 
 
+
+
+
+
+

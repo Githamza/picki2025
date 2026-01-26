@@ -1,7 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { Injectable, inject } from '@angular/core';
+import { Observable, from, map, mergeMap, of, throwError } from 'rxjs';
+import { SupabaseAuthService } from './supabase-auth.service';
 
 export interface StripeExpressAccount {
   id: string;
@@ -24,43 +23,65 @@ export interface StripeCheckoutSession {
   url: string;
   payment_status: string;
   status: string;
+  metadata?: Record<string, string>;
+  currency?: string;
+  amount_total?: number;
+  customer_details?: unknown;
+  line_items?: unknown;
+  created?: number;
+  expires_at?: number;
 }
 
-export interface StripeCheckoutRequest {
-  line_items: Array<{
-    price_data: {
-      currency: string;
-      product_data: {
-        name: string;
-      };
-      unit_amount: number;
-    };
+export interface StripeCheckoutCreateRequest {
+  vendorId: string; // vendor UUID (server will use vendors.stripe_account_id)
+  currency: string; // e.g. "EUR"
+  items: Array<{
+    name: string;
     quantity: number;
+    price: number; // major unit (e.g. 12.5 EUR)
   }>;
-  mode: 'payment';
   success_url: string;
   cancel_url: string;
   customer_email?: string;
-  payment_intent_data?: {
-    transfer_data?: {
-      destination: string; // Connected account ID
-    };
-    application_fee_amount?: number;
-  };
   metadata?: Record<string, string>;
+}
+
+export interface StripeCheckoutGetRequest {
+  sessionId: string;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class StripeService {
-  private apiUrl = environment.backendUrl || 'http://localhost:3000'; // Your backend URL
+  private readonly supabaseAuthService = inject(SupabaseAuthService);
 
-  constructor(private http: HttpClient) {}
+  private invokeFunction<TResponse>(
+    functionName: string,
+    body: Record<string, unknown>
+  ): Observable<TResponse> {
+    return from(
+      this.supabaseAuthService
+        .getClient()
+        .functions.invoke<TResponse>(functionName, { body })
+    ).pipe(
+      mergeMap(({ data, error }) => {
+        if (error) {
+          return throwError(() => new Error(error.message || String(error)));
+        }
+        if (!data) {
+          return throwError(
+            () => new Error(`Edge Function '${functionName}' returned no data`)
+          );
+        }
+        return of(data);
+      })
+    );
+  }
 
   /**
    * Create a Stripe Express account for a vendor
-   * Note: This requires a backend endpoint
+   * Note: Not wired yet (needs Edge Function + DB update flow)
    * @param accountData Account creation data
    * @returns Observable with account details
    */
@@ -69,9 +90,8 @@ export class StripeService {
     country: string;
     business_type?: 'individual' | 'company';
   }): Observable<StripeExpressAccount> {
-    return this.http.post<StripeExpressAccount>(
-      `${this.apiUrl}/stripe/create-express-account`,
-      accountData
+    return throwError(
+      () => new Error('Stripe Express onboarding is not implemented yet')
     );
   }
 
@@ -88,29 +108,32 @@ export class StripeService {
     refreshUrl: string,
     returnUrl: string
   ): Observable<StripeAccountLink> {
-    return this.http.post<StripeAccountLink>(
-      `${this.apiUrl}/stripe/account-link`,
-      {
-        account: accountId,
-        refresh_url: refreshUrl,
-        return_url: returnUrl,
-        type: 'account_onboarding',
-      }
+    return throwError(
+      () => new Error('Stripe Express onboarding is not implemented yet')
     );
   }
 
   /**
-   * Create a Stripe Checkout session for marketplace payment
-   * Note: This requires a backend endpoint for security
+   * Create a Stripe Checkout session (server uses Stripe secret key and vendor.stripe_account_id)
    * @param checkoutData Checkout session data
    * @returns Observable with checkout session
    */
   createCheckoutSession(
-    checkoutData: StripeCheckoutRequest
+    checkoutData: StripeCheckoutCreateRequest
   ): Observable<StripeCheckoutSession> {
-    return this.http.post<StripeCheckoutSession>(
-      `${this.apiUrl}/stripe/create-checkout-session`,
-      checkoutData
+    return this.invokeFunction<StripeCheckoutSession>(
+      'stripe-create-checkout-session',
+      checkoutData as unknown as Record<string, unknown>
+    );
+  }
+
+  /**
+   * Retrieve a Stripe Checkout session (server-side call to Stripe API)
+   */
+  getCheckoutSession(sessionId: string): Observable<StripeCheckoutSession> {
+    return this.invokeFunction<StripeCheckoutSession>(
+      'stripe-get-checkout-session',
+      { sessionId }
     );
   }
 
@@ -121,7 +144,7 @@ export class StripeService {
    * @returns Observable with account details
    */
   getAccount(accountId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/stripe/account/${accountId}`);
+    return throwError(() => new Error('Stripe account retrieval is not implemented yet'));
   }
 
   /**
@@ -138,6 +161,8 @@ export class StripeService {
    * @returns True if Stripe can be used
    */
   isConfigured(): boolean {
-    return !!(environment.stripePublishableKey && this.apiUrl);
+    // Frontend can't verify server STRIPE_SECRET_KEY; treat availability as "Edge Functions reachable"
+    // (provider selection additionally checks vendor.stripe_account_id).
+    return true;
   }
 }

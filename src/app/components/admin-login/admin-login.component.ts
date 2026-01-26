@@ -182,6 +182,10 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
+  goToRegister(): void {
+    this.router.navigate(['/admin/register']);
+  }
+
   /**
    * Get vendor logo URL or fallback
    */
@@ -205,24 +209,16 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
    */
   private redirectToAdmin(): void {
     const returnUrl = this.route.snapshot.queryParams['returnUrl'];
-    
-    // Check if we're in centralized login mode (no vendor context)
-    if (!this.currentVendor) {
-      const currentUser = this.authService.currentUser();
-      if (currentUser?.vendor?.slug) {
-        const defaultUrl = `/${currentUser.vendor.slug}/admin`;
-        this.router.navigate([returnUrl || defaultUrl]);
+    console.log('🚀 Redirecting to admin area...', { returnUrl });
+
+    // The admin area is mounted at /admin (not vendor-slug scoped).
+    this.router.navigate([returnUrl || '/admin']).then(success => {
+      if (success) {
+        console.log('✅ Navigation to admin successful');
       } else {
-        // Fallback to vendor selection
-        this.router.navigate(['/']);
+        console.error('❌ Navigation to admin failed');
       }
-    } else {
-      // Vendor-specific login mode
-      const defaultUrl = `/${this.vendorService.getVendorSlug(
-        this.currentVendor
-      )}/admin`;
-      this.router.navigate([returnUrl || defaultUrl]);
-    }
+    });
   }
 
   /**

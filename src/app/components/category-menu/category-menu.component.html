@@ -10,11 +10,20 @@
   <mat-nav-list *ngIf="categories$ | async as categories">
     <a
       mat-list-item
+      (click)="selectAllProducts()"
+      [class.active-category]="(selectedCategoryId$ | async) === null"
+      aria-label="Tout afficher"
+    >
+      <mat-icon matListItemIcon class="material-symbols-rounded">apps</mat-icon>
+      <span matListItemTitle>Tout</span>
+    </a>
+    <mat-divider class="menu-divider"></mat-divider>
+
+    <a
+      mat-list-item
       *ngFor="let category of categories"
       (click)="selectCategory(category)"
-      [ngClass]="{
-        'active-category': (selectedCategoryId$ | async) === category.id
-      }"
+      [class.active-category]="(selectedCategoryId$ | async) === category.id"
     >
       <img
         *ngIf="category.imageUrl; else iconTemplate"

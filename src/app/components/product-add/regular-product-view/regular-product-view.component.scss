@@ -148,6 +148,13 @@
     font-weight: 500;
   }
 
+  .stock-limit-hint {
+    font-size: 0.8rem;
+    color: var(--mat-sys-error);
+    text-align: center;
+    margin-top: 4px;
+  }
+
   .quantity-buttons {
     display: flex;
     align-items: center;

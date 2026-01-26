@@ -240,6 +240,9 @@
     }
   }
 }
+::ng-deep .mat-mdc-tab-header-pagination {
+  display: none !important;
+}
 .step-actions {
   background-color: var(--mat-sys-surface-container);
   position: sticky;
@@ -249,7 +252,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
   z-index: 1000;
   &.bottom-up {
     @media (max-width: 768px) {
@@ -274,10 +276,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-
-    mat-icon {
-      margin-left: 8px;
-    }
   }
 
   .add-to-cart-btn {
@@ -343,6 +341,13 @@
         min-width: 24px;
         text-align: center;
       }
+    }
+
+    .stock-limit-hint {
+      text-align: center;
+      color: #f44336;
+      font-size: 0.85rem;
+      margin-top: 4px;
     }
   }
 

@@ -6,6 +6,7 @@ export type PayGreenEnvironment = 'production' | 'sandbox';
 export interface PayGreenConfig {
   environment: PayGreenEnvironment;
   apiUrl: string;
+  isSandbox: boolean;
 }
 
 @Injectable({
@@ -19,25 +20,16 @@ export class PaygreenConfigService {
   }
 
   private initializeConfig(): PayGreenConfig {
-    const env = environment.paygreen.environment as PayGreenEnvironment;
-    const apiUrl = this.getApiUrlForEnvironment(env);
+    const isSandbox = environment.paygreenSandboxEnv ?? false;
+    // API URL is now determined by paygreenSandboxEnv flag
+    const apiUrl = isSandbox ? 'https://sb-api.paygreen.fr' : 'https://api.paygreen.fr';
+    const env: PayGreenEnvironment = isSandbox ? 'sandbox' : 'production';
     
     return {
       environment: env,
       apiUrl,
+      isSandbox,
     };
-  }
-
-  private getApiUrlForEnvironment(environment: PayGreenEnvironment): string {
-    switch (environment) {
-      case 'production':
-        return 'https://api.paygreen.fr';
-      case 'sandbox':
-        return 'https://sb-api.paygreen.fr';
-      default:
-        console.warn(`Unknown PayGreen environment: ${environment}. Defaulting to sandbox.`);
-        return 'https://sb-api.paygreen.fr';
-    }
   }
 
   /**
@@ -62,10 +54,18 @@ export class PaygreenConfigService {
   }
 
   /**
-   * Check if we're using the sandbox environment
+   * Check if we're using the sandbox environment (API URL)
    */
-  isSandbox(): boolean {
+  isSandboxEnvironment(): boolean {
     return this.config.environment === 'sandbox';
+  }
+
+  /**
+   * Check if we should use sandbox credentials from the database
+   * This is controlled by the paygreenSandboxEnv environment variable
+   */
+  useSandboxCredentials(): boolean {
+    return this.config.isSandbox;
   }
 
   /**

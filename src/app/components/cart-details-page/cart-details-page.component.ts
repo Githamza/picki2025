@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,17 +28,20 @@ import {
 } from '../../store/actions/cart.actions';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
+import { Product } from '../../services/product.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
+import { SupabaseService } from '../../services/supabase.service';
 
 @Component({
   selector: 'app-cart-details-page',
-  standalone: true,
   imports: [
     CommonModule,
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
+    CartItemStepsTreeComponent,
     VendorCurrencyPipe,
   ],
   template: `
@@ -54,79 +57,87 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       <h2>Mon panier</h2>
 
       <!-- Dining Preference Display -->
-      <div
-        class="dining-preference-info"
-        *ngIf="diningPreferenceService.hasSelectedPreference()"
-      >
-        <button
-          mat-button
-          class="dining-preference-button"
-          (click)="changeDiningPreference()"
-          aria-label="Changer la préférence de restauration"
-        >
-          <mat-icon class="preference-icon">
-            {{
-              diningPreferenceService.diningPreference() === 'eat-in'
-                ? 'restaurant'
-                : 'takeout_dining'
-            }}
-          </mat-icon>
-          <span class="preference-text">{{
-            diningPreferenceService.getDiningPreferenceText()
-          }}</span>
-          <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
-        </button>
-      </div>
+      @if (diningPreferenceService.hasSelectedPreference()) {
+        <div class="dining-preference-info">
+          <button
+            mat-button
+            class="dining-preference-button"
+            (click)="changeDiningPreference()"
+            aria-label="Changer la préférence de restauration"
+          >
+            <mat-icon class="preference-icon">
+              {{
+                diningPreferenceService.diningPreference() === 'eat-in'
+                  ? 'restaurant'
+                  : 'takeout_dining'
+              }}
+            </mat-icon>
+            <span class="preference-text">{{
+              diningPreferenceService.getDiningPreferenceText()
+            }}</span>
+            <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
+          </button>
+        </div>
+      }
 
-      <div *ngIf="cartItems$ | async as items; else empty">
-        <div *ngFor="let item of items" class="cart-item-row">
-          <div class="cart-item-info">
-            <span class="cart-item-name">{{ item.product.name }}</span>
-            <!-- Multi-step product details -->
-            <div *ngIf="item.metadata?.stepSelections?.length" class="multi-step-details">
-              <div *ngFor="let step of item.metadata.stepSelections" class="step-detail">
-                <span class="step-name">{{ step.stepName }}:</span>
-                <span *ngFor="let option of step.selectedOptions; let last = last" class="option-name">
-                  {{ option.optionName }}<span *ngIf="!last">, </span>
-                </span>
-              </div>
+      @if (cartItems$ | async; as items) {
+        @for (item of items; track item.product.id) {
+          <div class="cart-item-row">
+            <div class="cart-item-info">
+              @if (item.metadata?.stepSelections?.length) {
+                <app-cart-item-steps-tree
+                  [steps]="item.metadata?.stepSelections"
+                >
+                  <span stepsHeader class="cart-item-name">{{ item.product.name }}</span>
+                </app-cart-item-steps-tree>
+              } @else {
+                <span class="cart-item-name">{{ item.product.name }}</span>
+              }
             </div>
+            @if (item.product.id !== -9999) {
+              <div class="cart-item-controls">
+                <button
+                  mat-mini-fab
+                  [color]="item.quantity === 1 ? 'warn' : 'primary'"
+                  (click)="item.quantity === 1 ? remove(item.product.id) : decrement(item.product.id)"
+                >
+                  <mat-icon>{{ item.quantity === 1 ? 'delete' : 'remove' }}</mat-icon>
+                </button>
+                <span class="cart-item-qty">{{ item.quantity }}</span>
+                <button
+                  mat-mini-fab
+                  color="primary"
+                  (click)="increment(item.product.id)"
+                  [disabled]="isIncrementDisabled(items, item.product)"
+                >
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <div class="cart-item-controls">
+                <span class="cart-item-qty">{{ item.quantity }}</span>
+              </div>
+            }
             <span
               class="cart-item-price"
               [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
-              >{{ getItemPrice(item) | vendorCurrency }}</span
             >
+              {{ getItemPrice(item) | vendorCurrency }}
+            </span>
           </div>
-          <div class="cart-item-controls" *ngIf="item.product.id !== -9999; else fixedLine">
-            <button
-              mat-mini-fab
-              color="primary"
-              (click)="decrement(item.product.id)"
-            >
-              <mat-icon>remove</mat-icon>
-            </button>
-            <span class="cart-item-qty">{{ item.quantity }}</span>
-            <button
-              mat-mini-fab
-              color="primary"
-              (click)="increment(item.product.id)"
-            >
-              <mat-icon>add</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="remove(item.product.id)"
-            >
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-          <ng-template #fixedLine>
-            <div class="cart-item-controls">
-              <span class="cart-item-qty">{{ item.quantity }}</span>
+          <!-- Insufficient stock error message -->
+          @if (insufficientStockItems().get(item.product.id); as stockError) {
+            <div class="stock-error-message">
+              Stock insuffisant, ajustez votre quantité ({{ stockError.available }} disponible(s))
             </div>
-          </ng-template>
-        </div>
+          }
+        }
+        @if (getServiceFee(items); as serviceFee) {
+          <div class="cart-fee-row">
+            <span>Frais de service:</span>
+            <span class="cart-fee">{{ serviceFee | vendorCurrency }}</span>
+          </div>
+        }
         <div class="cart-total-row">
           <span>Total:</span>
           <span class="cart-total">{{ getTotal(items) | vendorCurrency }}</span>
@@ -138,15 +149,14 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           color="accent"
           class="checkout-button"
           (click)="checkout()"
-          [disabled]="isCheckingOut"
+          [disabled]="isCheckingOut || (ordersSuspended$ | async)"
         >
           <mat-icon>{{ getCheckoutIcon() }}</mat-icon>
           {{ getCheckoutLabel() }}
         </button>
-      </div>
-      <ng-template #empty>
+      } @else {
         <div class="empty-cart">Votre panier est vide.</div>
-      </ng-template>
+      }
     </div>
   `,
   styles: [
@@ -196,18 +206,21 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       }
       .cart-item-row {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        gap: 12px;
         padding: 12px 0;
         border-bottom: 1px solid #eee;
       }
       .cart-item-info {
         flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
       }
       .cart-item-name {
         font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .multi-step-details {
         margin-top: 4px;
@@ -227,16 +240,19 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         color: var(--mat-sys-on-surface);
       }
       .cart-item-price {
-        color: #888;
-        font-size: 0.95em;
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 64px;
+        text-align: right;
       }
       .cart-item-controls {
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-shrink: 0;
       }
       .cart-item-qty {
-        min-width: 32px;
+        min-width: 28px;
         text-align: center;
         font-weight: bold;
       }
@@ -246,6 +262,16 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         font-weight: bold;
         margin: 24px 0 0 0;
         font-size: 1.1em;
+      }
+      .cart-fee-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 12px 0 0 0;
+        font-size: 0.95em;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .cart-fee {
+        color: var(--mat-sys-on-surface);
       }
       .cart-total {
         color: var(--mat-primary);
@@ -265,6 +291,12 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .checkout-button:disabled {
         opacity: 0.6;
       }
+      .stock-error-message {
+        color: var(--mat-sys-error);
+        font-size: 0.85em;
+        padding: 4px 0 8px 0;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+      }
     `,
   ],
 })
@@ -280,8 +312,13 @@ export class CartDetailsPageComponent {
   private restaurantStatusService = inject(RestaurantStatusService);
   private vendorService = inject(VendorService);
   private deliverySelection = inject(DeliverySelectionService);
+  private supabaseService = inject(SupabaseService);
+  readonly ordersSuspended$ = this.vendorService.ordersSuspended$;
 
   isCheckingOut = false;
+
+  // Track products with insufficient stock by product ID
+  insufficientStockItems = signal<Map<number, { available: number; required: number }>>(new Map());
 
   constructor(private store: Store<AppState>, private location: Location) {
     this.cartItems$ = this.store.select(selectCartItems);
@@ -307,18 +344,30 @@ export class CartDetailsPageComponent {
   }
 
   increment(productId: number) {
+    this.clearStockErrorForProduct(productId);
     this.store.dispatch(incrementCartItem({ productId }));
   }
 
   decrement(productId: number) {
+    this.clearStockErrorForProduct(productId);
     this.store.dispatch(decrementCartItem({ productId }));
   }
 
   remove(productId: number) {
+    this.clearStockErrorForProduct(productId);
     this.store.dispatch(removeCartItem({ productId }));
   }
 
-  getTotal(items: CartItem[]): number {
+  private clearStockErrorForProduct(productId: number): void {
+    const currentErrors = this.insufficientStockItems();
+    if (currentErrors.has(productId)) {
+      const newMap = new Map(currentErrors);
+      newMap.delete(productId);
+      this.insufficientStockItems.set(newMap);
+    }
+  }
+
+  getSubtotal(items: CartItem[]): number {
     return items.reduce((total, item) => {
       // Use stored totalPrice for multi-step products, otherwise calculate normally
       const itemTotal = item.totalPrice || item.product.price * item.quantity;
@@ -326,9 +375,34 @@ export class CartDetailsPageComponent {
     }, 0);
   }
 
+  getServiceFee(items: CartItem[]): number {
+    const subtotal = this.getSubtotal(items);
+    if (subtotal <= 0) {
+      return 0;
+    }
+    const currentVendor = this.vendorService.getCurrentVendor();
+    const ratePercent = currentVendor?.service_fee_rate_percent ?? 0;
+    const fixedFee = currentVendor?.service_fee_fixed ?? 0;
+    const fee = subtotal * (ratePercent / 100) + fixedFee;
+    return fee > 0 ? fee : 0;
+  }
+
+  getTotal(items: CartItem[]): number {
+    const subtotal = this.getSubtotal(items);
+    return subtotal + this.getServiceFee(items);
+  }
+
   getItemPrice(item: CartItem): number {
     // Use stored totalPrice for multi-step products, otherwise use product price
     return item.totalPrice || item.product.price;
+  }
+
+  isIncrementDisabled(items: CartItem[], product: Product): boolean {
+    if (product.stockQuantity == null) return false;
+    const totalInCart = items
+      .filter((i) => i.product.id === product.id)
+      .reduce((sum, i) => sum + i.quantity, 0);
+    return totalInCart >= product.stockQuantity;
   }
 
   changeDiningPreference(): void {
@@ -338,6 +412,9 @@ export class CartDetailsPageComponent {
 
   async checkout() {
     if (this.isCheckingOut) return;
+    if (this.vendorService.getCurrentOrdersSuspendedStatus()) {
+      return;
+    }
 
     this.isCheckingOut = true;
 
@@ -370,6 +447,14 @@ export class CartDetailsPageComponent {
           { duration: 3000 }
         );
         this.vendorNavigation.navigateWithVendor('dining-preference');
+        this.isCheckingOut = false;
+        return;
+      }
+
+      // Validate stock availability before proceeding
+      const stockValidation = await this.validateCartStock(items);
+      if (!stockValidation.valid) {
+        this.showInsufficientStockError(stockValidation.insufficientItems);
         this.isCheckingOut = false;
         return;
       }
@@ -597,13 +682,12 @@ export class CartDetailsPageComponent {
       // 3. Now create payment with order reference
       // Build return URLs with vendor context
       const baseUrl = window.location.origin;
-      const vendorSlug = this.vendorNavigation.getVendorSlug();
-      const returnUrl = vendorSlug
-        ? `${baseUrl}/${vendorSlug}/successPayment`
-        : `${baseUrl}/successPayment`;
-      const cancelUrl = vendorSlug
-        ? `${baseUrl}/${vendorSlug}/failedPayment`
-        : `${baseUrl}/failedPayment`;
+      const returnUrl = `${baseUrl}${this.vendorNavigation.getVendorUrl(
+        'successPayment'
+      )}`;
+      const cancelUrl = `${baseUrl}${this.vendorNavigation.getVendorUrl(
+        'failedPayment'
+      )}`;
 
       // Get current vendor for payment
       if (!currentVendor) {
@@ -614,8 +698,16 @@ export class CartDetailsPageComponent {
       const paymentItems = items.map((item) => ({
         name: item.product.name,
         quantity: item.quantity,
-        price: item.product.price,
+        price: item.totalPrice || item.product.price,
       }));
+      const serviceFee = this.getServiceFee(items);
+      if (serviceFee > 0) {
+        paymentItems.push({
+          name: 'Frais de service',
+          quantity: 1,
+          price: serviceFee,
+        });
+      }
 
       const best = this.deliverySelection.bestOption();
 
@@ -686,13 +778,26 @@ export class CartDetailsPageComponent {
           this.isCheckingOut = false;
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error);
-      this.snackBar.open(
-        'Erreur lors de la création de la commande. Veuillez réessayer.',
-        'Fermer',
-        { duration: 5000 }
-      );
+
+      // Handle insufficient stock error from atomic reservation
+      if (error?.message === 'INSUFFICIENT_STOCK' && error?.insufficientItems?.length > 0) {
+        this.showInsufficientStockError(error.insufficientItems);
+      } else if (error?.message?.includes('Stock reservation failed')) {
+        // Database error during stock reservation
+        this.snackBar.open(
+          'Erreur lors de la vérification du stock. Veuillez réessayer.',
+          'Fermer',
+          { duration: 5000 }
+        );
+      } else {
+        this.snackBar.open(
+          'Erreur lors de la création de la commande. Veuillez réessayer.',
+          'Fermer',
+          { duration: 5000 }
+        );
+      }
       this.isCheckingOut = false;
     }
   }
@@ -706,5 +811,91 @@ export class CartDetailsPageComponent {
       .toString()
       .padStart(3, '0');
     return `${year}${month}${day}-${random}`;
+  }
+
+  private async validateCartStock(
+    items: CartItem[]
+  ): Promise<{ valid: boolean; insufficientItems: any[] }> {
+    try {
+      // Build items array for validation RPC
+      const validationItems = items
+        .filter((item) => item.product.id > 0) // Skip virtual items like delivery fee
+        .map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          // Include multi-step option products
+          optionProductIds:
+            item.metadata?.stepSelections?.flatMap(
+              (s: { selectedOptions: { productId: number }[] }) =>
+                s.selectedOptions
+                  .map((o: { productId: number }) => o.productId)
+                  .filter((id: number) => id && id > 0)
+            ) || [],
+          // Include complement products
+          complementProductIds:
+            item.selectedComplements?.map((c: any) => ({
+              productId: c.complement_product_id,
+              quantity: c.quantity,
+            })) || [],
+        }));
+
+      if (validationItems.length === 0) {
+        return { valid: true, insufficientItems: [] };
+      }
+
+      // Cast to any to allow calling custom RPC function not yet in generated types
+      const { data, error } = await (this.supabaseService.getClient() as any).rpc(
+        'validate_stock_for_cart',
+        { p_items: validationItems }
+      );
+
+      if (error) {
+        console.error('Stock validation error:', error);
+        // Fail open on error - allow checkout to proceed
+        return { valid: true, insufficientItems: [] };
+      }
+
+      // Ensure proper return type
+      if (data && typeof data === 'object' && 'valid' in data) {
+        return {
+          valid: Boolean(data.valid),
+          insufficientItems: data.insufficientItems || [],
+        };
+      }
+
+      return { valid: true, insufficientItems: [] };
+    } catch (error) {
+      console.error('Stock validation exception:', error);
+      // Fail open on error - allow checkout to proceed
+      return { valid: true, insufficientItems: [] };
+    }
+  }
+
+  private showInsufficientStockError(
+    items: { productId?: number; product_id?: number; productName: string; available: number; required: number }[]
+  ): void {
+    // Build a map of product IDs to stock errors for inline display
+    const stockErrorMap = new Map<number, { available: number; required: number }>();
+
+    for (const item of items) {
+      const productId = item.productId ?? item.product_id;
+      if (productId) {
+        stockErrorMap.set(productId, {
+          available: item.available,
+          required: item.required,
+        });
+      }
+    }
+
+    // Update the signal to trigger inline error display
+    this.insufficientStockItems.set(stockErrorMap);
+
+    // Show snackbar notification
+    const productNames = items.map((i) => i.productName).join(', ');
+    this.snackBar.open(
+      `Stock insuffisant pour : ${productNames}`,
+      'Fermer',
+      { duration: 6000 }
+    );
   }
 }

@@ -137,6 +137,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     initiated: 'En attente de validation',
     paid: 'Payée',
     refused: 'Refusée',
+    cancelled: 'Annulée',
     todo: 'À traiter',
     ongoing: 'En cours',
     done: 'Prête',
@@ -148,6 +149,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     initiated: 'warn', // Orange/Warning for orders needing validation
     paid: 'accent', // Blue/Tertiary for paid orders
     refused: '', // Red/Error for refused orders
+    cancelled: '', // No color for cancelled orders
     todo: 'accent', // Blue/Tertiary for confirmed orders
     ongoing: 'accent', // Will use tertiary color in Material 3
     done: 'primary', // Will use primary color in Material 3
@@ -159,6 +161,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     initiated: '', // No single button color for initiated (has accept/refuse buttons)
     paid: 'accent', // Blue/Tertiary for "À traiter" button
     refused: '', // No button for refused status
+    cancelled: '', // No button for cancelled status
     todo: 'accent', // Blue/Tertiary for "En cours" button
     ongoing: 'primary', // Primary for "Prête" button
     done: '', // Success/Default for "Récupérée" button
@@ -170,6 +173,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     initiated: '', // No single icon for initiated (has accept/refuse buttons)
     paid: 'play_arrow', // Play icon for "À traiter"
     refused: '', // No button for refused status
+    cancelled: '', // No button for cancelled status
     todo: 'play_arrow', // Play icon for "En cours"
     ongoing: 'check_circle', // Check icon for "Prête"
     done: 'done_all', // Done all icon for "Récupérée"
@@ -651,6 +655,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       initiated: null, // Initiated orders need manual validation (accept/refuse)
       paid: 'todo', // Paid orders can be accepted to todo
       refused: null, // Refused orders have no next status
+      cancelled: null, // Cancelled orders have no next status
       todo: 'ongoing',
       ongoing: 'done',
       done: 'picked',

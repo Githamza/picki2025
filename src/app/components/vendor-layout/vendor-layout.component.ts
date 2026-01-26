@@ -3,7 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, ActivatedRoute } from '@angular/router';
 import { materialComponents } from '../../material.components';
 import { VendorService, Vendor } from '../../services/vendor.service';
-import { Subscription } from 'rxjs';
+import {
+  MatSnackBar,
+  MatSnackBarRef,
+  TextOnlySnackBar,
+} from '@angular/material/snack-bar';
+import { Subscription, distinctUntilChanged } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../store/models/app.state';
 import * as ProductActions from '../../store/actions/product.actions';
@@ -20,9 +25,11 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
   private vendorService = inject(VendorService);
   private route = inject(ActivatedRoute);
   private store = inject(Store<AppState>);
+  private snackBar = inject(MatSnackBar);
 
   currentVendor: Vendor | null = null;
   private subscription = new Subscription();
+  private ordersSuspendedSnackRef?: MatSnackBarRef<TextOnlySnackBar>;
 
   ngOnInit() {
     // Subscribe to current vendor changes
@@ -36,6 +43,17 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
           this.currentVendor = vendor;
         }
       })
+    );
+
+    this.handleOrdersSuspended(
+      this.vendorService.getCurrentOrdersSuspendedStatus()
+    );
+    this.subscription.add(
+      this.vendorService.ordersSuspended$
+        .pipe(distinctUntilChanged())
+        .subscribe((isSuspended) => {
+          this.handleOrdersSuspended(isSuspended);
+        })
     );
   }
 
@@ -52,6 +70,27 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.ordersSuspendedSnackRef?.dismiss();
     this.subscription.unsubscribe();
+  }
+
+  private handleOrdersSuspended(isSuspended: boolean): void {
+    if (isSuspended) {
+      if (!this.ordersSuspendedSnackRef) {
+        this.ordersSuspendedSnackRef = this.snackBar.open(
+          'les commandes en ligne sont actuellement suspendues',
+          undefined,
+          {
+            duration: 0,
+            verticalPosition: 'top',
+            panelClass: ['orders-suspended-snackbar'],
+          }
+        );
+      }
+      return;
+    }
+
+    this.ordersSuspendedSnackRef?.dismiss();
+    this.ordersSuspendedSnackRef = undefined;
   }
 }

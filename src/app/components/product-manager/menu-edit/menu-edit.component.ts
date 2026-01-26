@@ -90,18 +90,17 @@ import {
           </div>
         </div>
         <div class="header-actions">
-          <button mat-button (click)="goBack()">
-            <mat-icon>close</mat-icon>
+          <button mat-button (click)="goBack()" class="cancel-btn">
             Annuler
           </button>
           <button
-            mat-raised-button
+            matButton="filled"
             color="primary"
             (click)="saveMenu()"
             [disabled]="menuForm.invalid || saving"
           >
             <mat-icon>{{ saving ? 'hourglass_empty' : 'save' }}</mat-icon>
-            {{ isEditMode ? 'Mettre à jour' : 'Créer le menu' }}
+            {{ saving ? 'Enregistrement...' : (isEditMode ? 'Enregistrer' : 'Créer') }}
           </button>
         </div>
       </div>
@@ -209,10 +208,10 @@ import {
           <mat-card-header>
             <mat-card-title>
               <mat-icon>list</mat-icon>
-              Étapes du menu ({{ stepsFormArray.length }})
+              Étapes du menu
             </mat-card-title>
             <div class="header-actions">
-              <button mat-raised-button color="accent" (click)="addStep()">
+              <button matButton="filled" color="primary" (click)="addStep()">
                 <mat-icon>add</mat-icon>
                 Ajouter une étape
               </button>
@@ -224,7 +223,7 @@ import {
               <mat-icon>restaurant_menu</mat-icon>
               <h3>Aucune étape définie</h3>
               <p>Ajoutez des étapes pour structurer votre menu</p>
-              <button mat-raised-button color="primary" (click)="addStep()">
+              <button matButton="filled" color="primary" (click)="addStep()">
                 <mat-icon>add</mat-icon>
                 Créer la première étape
               </button>
@@ -255,31 +254,37 @@ import {
                       <span class="step-name">{{
                         stepControl.get('name')?.value || 'Nouvelle étape'
                       }}</span>
-                      <span class="step-meta">
+                      <span class="step-badge" *ngIf="getStepProductCount(i) > 0">
+                        {{ getStepProductCount(i) }}
+                      </span>
+                    </div>
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    <span class="step-meta-tags">
+                      <span class="meta-tag">
                         {{
                           stepControl.get('is_required')?.value
                             ? 'Obligatoire'
                             : 'Optionnelle'
                         }}
-                        •
+                      </span>
+                      <span class="meta-separator">·</span>
+                      <span class="meta-tag">
                         {{
                           stepControl.get('step_type')?.value ===
                           'single-select'
-                            ? 'Sélection unique'
-                            : 'Sélection multiple'
+                            ? 'Choix unique'
+                            : 'Choix multiple'
                         }}
                       </span>
-                    </div>
-                  </mat-panel-title>
-                  <mat-panel-description>
-                    {{ getStepProductCount(i) }} produit(s) assigné(s)
+                    </span>
                   </mat-panel-description>
                 </mat-expansion-panel-header>
 
                 <div class="step-content" [formGroup]="$any(stepControl)">
                   <!-- Step Configuration -->
                   <div class="step-config">
-                    <h4>Configuration de l'étape</h4>
+                    <h4>Configuration</h4>
 
                     <div class="form-row">
                       <mat-form-field appearance="fill" class="flex-1">
@@ -350,11 +355,16 @@ import {
                   <!-- Product Assignment -->
                   <div class="product-assignment">
                     <div class="assignment-header">
-                      <h4>Produits assignés</h4>
+                      <h4>
+                        Produits assignés
+                        <span class="product-count-label" *ngIf="getStepProductCount(i) > 0">
+                          ({{ getStepProductCount(i) }})
+                        </span>
+                      </h4>
                       <div class="assignment-actions">
                         <button
-                          mat-raised-button
-                          color="accent"
+                          matButton="filled"
+                          color="primary"
                           (click)="openBulkProductSelector(i)"
                         >
                           <mat-icon>playlist_add</mat-icon>
@@ -363,108 +373,79 @@ import {
                       </div>
                     </div>
 
-                    <!-- Product Search & Add -->
-                    <div class="product-search" *ngIf="showProductSelector[i]">
-                      <mat-form-field appearance="fill" class="flex-1">
-                        <mat-label>Rechercher un produit</mat-label>
-                        <input
-                          matInput
-                          [matAutocomplete]="auto"
-                          [formControl]="productSearchControls[i]"
-                          placeholder="Tapez le nom du produit..."
-                        />
-                        <mat-autocomplete
-                          #auto="matAutocomplete"
-                          [displayWith]="displayProduct"
-                          (optionSelected)="
-                            addProductToStep(i, $event.option.value)
-                          "
-                        >
-                          @for (product of (filteredProducts[i] | async); track
-                          product.id) {
-                          <mat-option [value]="product">
-                            <div class="product-option">
-                              <span class="product-name">{{
-                                product.name
-                              }}</span>
-                              <span class="product-price">{{
-                                product.price
-                                  | vendorCurrency : 'symbol' : '1.2-2'
-                              }}</span>
-                            </div>
-                          </mat-option>
-                          }
-                        </mat-autocomplete>
-                      </mat-form-field>
-                      <button mat-icon-button (click)="closeProductSelector(i)">
-                        <mat-icon>close</mat-icon>
-                      </button>
-                    </div>
-
                     <!-- Assigned Products List -->
                     <div class="assigned-products">
                       @if (getStepProducts(i).length === 0) {
-                      <div class="no-products">
-                        <mat-icon>inventory_2</mat-icon>
-                        <p>Aucun produit assigné à cette étape</p>
+                      <div class="no-products" (click)="openBulkProductSelector(i)">
+                        <mat-icon>add_circle_outline</mat-icon>
+                        <p>Cliquez pour ajouter des produits</p>
                       </div>
                       } @else {
-                      <mat-list class="products-list">
+                      <div class="products-list">
                         @for (product of getStepProducts(i); track product.id;
                         let productIndex = $index) {
-                        <mat-list-item class="product-item">
-                          <div class="product-info">
-                            <div class="product-main">
-                              <span class="product-name">{{
-                                product.name
-                              }}</span>
-                              <span class="product-base-price">{{
-                                product.price
-                                  | vendorCurrency : 'symbol' : '1.2-2'
-                              }}</span>
-                            </div>
-                            <div class="product-controls">
-                              <mat-form-field
-                                appearance="fill"
-                                class="adjustment-field"
-                              >
-                                <mat-label>Ajustement prix</mat-label>
-                                <input
-                                  matInput
-                                  type="number"
-                                  step="0.50"
-                                  [value]="
-                                    getProductPriceAdjustmentByIndex(
-                                      i,
-                                      productIndex
-                                    )
-                                  "
-                                  (input)="
-                                    updateProductPriceAdjustmentByIndex(
-                                      i,
-                                      productIndex,
-                                      $event
-                                    )
-                                  "
-                                  placeholder="0.00"
-                                />
-                                <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
-                              </mat-form-field>
-                              <button
-                                mat-icon-button
-                                color="warn"
-                                (click)="
-                                  removeProductFromStepByIndex(i, productIndex)
-                                "
-                              >
-                                <mat-icon>delete</mat-icon>
-                              </button>
-                            </div>
+                        <div class="product-row" [class.product-row--excluded]="product.no_catalogable || !product.is_available">
+                          <div class="product-thumb" *ngIf="product.image_url">
+                            <img [src]="product.image_url" [alt]="product.name" />
                           </div>
-                        </mat-list-item>
-                        <mat-divider></mat-divider>
+                          <div class="product-thumb product-thumb-fallback" *ngIf="!product.image_url">
+                            <mat-icon>restaurant</mat-icon>
+                          </div>
+                          <div class="product-main">
+                            <div class="product-name-row">
+                              <span class="product-name">{{ product.name }}</span>
+                              @if (product.no_catalogable) {
+                                <mat-chip class="excluded-chip">non affiché</mat-chip>
+                              }
+                              @if (!product.is_available) {
+                                <mat-chip class="excluded-chip">indisponible</mat-chip>
+                              }
+                            </div>
+                            <span class="product-base-price">{{
+                              product.price | vendorCurrency : 'symbol' : '1.2-2'
+                            }}</span>
+                          </div>
+                          <div class="product-controls">
+                            <mat-form-field
+                              appearance="fill"
+                              class="adjustment-field"
+                            >
+                              <mat-label>Ajustement</mat-label>
+                              <input
+                                matInput
+                                type="number"
+                                step="0.50"
+                                [value]="
+                                  getProductPriceAdjustmentByIndex(
+                                    i,
+                                    productIndex
+                                  )
+                                "
+                                (input)="
+                                  updateProductPriceAdjustmentByIndex(
+                                    i,
+                                    productIndex,
+                                    $event
+                                  )
+                                "
+                                placeholder="0.00"
+                              />
+                              <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
+                            </mat-form-field>
+                            <button
+                              mat-icon-button
+                              color="warn"
+                              (click)="
+                                removeProductFromStepByIndex(i, productIndex)
+                              "
+                              class="delete-product-btn"
+                            >
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        </div>
                         }
-                      </mat-list>
+                      </div>
                       }
                     </div>
                   </div>
@@ -492,10 +473,11 @@ import {
         background: var(--mat-sys-surface-dim);
       }
 
+      /* ── Header ── */
       .header {
         background: var(--mat-sys-surface);
         border-bottom: 1px solid var(--mat-sys-outline-variant);
-        padding: 16px 24px;
+        padding: 12px 24px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -507,34 +489,52 @@ import {
       .header-content {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
+        min-width: 0;
       }
 
       .back-button {
         background: var(--mat-sys-surface-variant);
+        flex-shrink: 0;
+      }
+
+      .title-section {
+        min-width: 0;
       }
 
       .title-section h1 {
         margin: 0;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .title-section .subtitle {
         margin: 0;
         color: var(--mat-sys-on-surface-variant);
-        font-size: 0.875rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .header-actions {
         display: flex;
-        gap: 12px;
+        gap: 8px;
         align-items: center;
+        flex-shrink: 0;
       }
 
+      .cancel-btn {
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      /* ── Content ── */
       .content {
         padding: 24px;
-        max-width: 1200px;
+        max-width: 900px;
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -560,6 +560,7 @@ import {
         width: 100%;
       }
 
+      /* ── Form ── */
       .menu-form {
         display: flex;
         flex-direction: column;
@@ -588,174 +589,10 @@ import {
         min-width: 100px;
       }
 
-      .adjustment-field {
-        min-width: 120px;
-      }
-
       .toggle-wrapper {
         display: flex;
         align-items: center;
         padding: 8px 0;
-      }
-
-      .empty-steps {
-        text-align: center;
-        padding: 48px 24px;
-        color: var(--mat-sys-on-surface-variant);
-      }
-
-      .empty-steps mat-icon {
-        font-size: 64px;
-        width: 64px;
-        height: 64px;
-        color: var(--mat-sys-outline);
-        margin-bottom: 16px;
-      }
-
-      .step-panel {
-        margin-bottom: 16px;
-        border-radius: 8px;
-      }
-
-      .step-title {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .step-number {
-        background: var(--mat-sys-primary);
-        color: var(--mat-sys-on-primary);
-        border-radius: 50%;
-        min-width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        font-weight: 500;
-      }
-
-      .step-name {
-        font-weight: 500;
-      }
-
-      .step-meta {
-        color: var(--mat-sys-on-surface-variant);
-        font-size: 0.75rem;
-      }
-
-      .step-content {
-        padding: 24px 0;
-      }
-
-      .step-config h4 {
-        margin: 0 0 16px 0;
-        color: var(--mat-sys-on-surface);
-      }
-
-      .product-assignment {
-        margin-top: 24px;
-      }
-
-      .assignment-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-      }
-
-      .assignment-header h4 {
-        margin: 0;
-      }
-
-      .assignment-actions {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .product-search {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 16px;
-        align-items: flex-start;
-      }
-
-      .product-option {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-      }
-
-      .product-name {
-        font-weight: 500;
-      }
-
-      .product-price {
-        color: var(--mat-sys-on-surface-variant);
-        font-size: 0.875rem;
-      }
-
-      .assigned-products {
-        border: 1px solid var(--mat-sys-outline-variant);
-        border-radius: 8px;
-        min-height: 100px;
-      }
-
-      .no-products {
-        text-align: center;
-        padding: 32px;
-        color: var(--mat-sys-on-surface-variant);
-      }
-
-      .no-products mat-icon {
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-        margin-bottom: 8px;
-      }
-
-      .products-list {
-        padding: 0;
-      }
-
-      .product-item {
-        padding: 12px 16px;
-        height: auto !important;
-      }
-
-      .product-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-      }
-
-      .product-main {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      .product-base-price {
-        color: var(--mat-sys-on-surface-variant);
-        font-size: 0.875rem;
-      }
-
-      .product-controls {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .step-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 24px;
-        padding-top: 16px;
-        border-top: 1px solid var(--mat-sys-outline-variant);
       }
 
       .catalog-notice {
@@ -777,19 +614,303 @@ import {
         color: var(--mat-sys-on-surface-variant);
       }
 
-      /* Drag and Drop Styles */
+      /* ── Steps ── */
+      .step-count-badge {
+        background: var(--mat-sys-primary);
+        color: var(--mat-sys-on-primary);
+        border-radius: 10px;
+        padding: 0 8px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 20px;
+        min-width: 20px;
+        text-align: center;
+      }
+
+      .empty-steps {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      .empty-steps mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        color: var(--mat-sys-outline);
+        margin-bottom: 16px;
+      }
+
       .steps-list {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
         margin-top: 16px;
       }
 
+      .step-panel {
+        margin-bottom: 0;
+        border-radius: 8px;
+      }
+
+      .step-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .step-number {
+        background: var(--mat-sys-primary);
+        color: var(--mat-sys-on-primary);
+        border-radius: 50%;
+        min-width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+
+      .step-name {
+        font-weight: 500;
+      }
+
+      .step-badge {
+        background: var(--mat-sys-secondary-container);
+        color: var(--mat-sys-on-secondary-container);
+        border-radius: 10px;
+        padding: 0 7px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        line-height: 18px;
+        min-width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      .step-meta-tags {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 0.75rem;
+      }
+
+      .meta-separator {
+        opacity: 0.5;
+      }
+
+      .step-content {
+        padding: 20px 0;
+      }
+
+      .step-config h4 {
+        margin: 0 0 16px 0;
+        color: var(--mat-sys-on-surface);
+        font-size: 0.9rem;
+      }
+
+      .mat-expansion-panel-header {
+        height: auto !important;
+      }
+
+      /* ── Product Assignment ── */
+      .product-assignment {
+        margin-top: 24px;
+      }
+
+      .assignment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .assignment-header h4 {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      .product-count-label {
+        color: var(--mat-sys-on-surface-variant);
+        font-weight: 400;
+      }
+
+      .assignment-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .assigned-products {
+        border: 1px solid var(--mat-sys-outline-variant);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .no-products {
+        text-align: center;
+        padding: 32px;
+        color: var(--mat-sys-on-surface-variant);
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .no-products:hover {
+        background: var(--mat-sys-surface-variant);
+      }
+
+      .no-products mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 4px;
+        color: var(--mat-sys-outline);
+      }
+
+      .no-products p {
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      /* ── Product List ── */
+      .products-list {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .product-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+        transition: background 0.1s ease;
+      }
+
+      .product-row:last-child {
+        border-bottom: none;
+      }
+
+      .product-row:hover {
+        background: var(--mat-sys-surface-variant);
+      }
+
+      .product-thumb {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: var(--mat-sys-surface-container);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .product-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .product-thumb-fallback mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: var(--mat-sys-on-surface-variant);
+        opacity: 0.5;
+      }
+
+      .product-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .product-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .product-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ── Excluded from catalog ── */
+      .product-row--excluded {
+        opacity: 0.5;
+      }
+
+      .excluded-chip {
+        --mdc-chip-label-text-size: 0.65rem;
+        --mdc-chip-container-height: 20px;
+        --mdc-chip-label-text-color: var(--mat-sys-on-surface-variant);
+        flex-shrink: 0;
+      }
+
+      .product-base-price {
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 0.75rem;
+      }
+
+      .product-controls {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .adjustment-field {
+        width: 110px;
+      }
+
+      .delete-product-btn {
+        opacity: 0.5;
+        transition: opacity 0.15s ease;
+      }
+
+      .product-row:hover .delete-product-btn {
+        opacity: 1;
+      }
+
+      .product-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+
+      .product-price {
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 0.875rem;
+      }
+
+      /* ── Step Actions ── */
+      .step-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--mat-sys-outline-variant);
+      }
+
+      /* ── Drag and Drop ── */
       .drag-handle {
         color: var(--mat-sys-outline);
         cursor: grab;
-        margin-right: 8px;
         transition: color 0.2s ease;
+        flex-shrink: 0;
       }
 
       .drag-handle:hover {
@@ -818,26 +939,18 @@ import {
         transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
       }
 
-      .step-title {
-        align-items: center;
-      }
-      .mat-expansion-panel-header {
-        height: auto !important;
-      }
-
+      /* ── Mobile ── */
       @media (max-width: 768px) {
         .header {
-          flex-direction: column;
-          gap: 16px;
-          align-items: stretch;
+          padding: 10px 16px;
         }
 
-        .header-content {
-          align-self: flex-start;
+        .title-section h1 {
+          font-size: 1rem;
         }
 
-        .header-actions {
-          align-self: flex-end;
+        .title-section .subtitle {
+          display: none;
         }
 
         .content {
@@ -849,14 +962,49 @@ import {
           align-items: stretch;
         }
 
-        .product-info {
+        .step-title {
+          gap: 8px;
+        }
+
+        .step-name {
+          font-size: 0.85rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 120px;
+        }
+
+        mat-panel-description {
+          display: none;
+        }
+
+        .assignment-header {
           flex-direction: column;
-          align-items: flex-start;
+          align-items: stretch;
           gap: 12px;
         }
 
+        .product-row {
+          flex-wrap: wrap;
+          padding: 12px 12px;
+          gap: 8px;
+        }
+
+        .product-main {
+          flex: 1;
+          min-width: 0;
+        }
+
         .product-controls {
-          align-self: flex-end;
+          width: 100%;
+          justify-content: flex-end;
+          padding-left: 52px;
+        }
+
+        .adjustment-field {
+          flex: 1;
+          width: auto;
+          min-width: 0;
         }
 
         .drag-handle {
@@ -865,14 +1013,10 @@ import {
           height: 18px;
         }
 
-        mat-panel-description {
-          display: none;
-        }
         mat-mdc-form-field-infix {
           width: fit-content !important;
         }
       }
-      
     `,
   ],
 })
@@ -971,7 +1115,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     if (!this.currentVendorId) return;
 
     this.productAdminService
-      .getProductsForSteps(this.currentVendorId)
+      .getProductsForSteps(this.currentVendorId, true)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (products) => {
@@ -1091,7 +1235,12 @@ export class MenuEditComponent implements OnInit, OnDestroy {
           };
         })
         .filter((item) => item !== null)
-        .sort((a, b) => a.product.name.localeCompare(b.product.name)) as any[]; // ✅ Sort alphabetically
+        .sort((a, b) => {
+          const aAvailable = a.product.is_available !== false;
+          const bAvailable = b.product.is_available !== false;
+          if (aAvailable !== bAvailable) return aAvailable ? -1 : 1;
+          return a.product.name.localeCompare(b.product.name);
+        }) as any[];
     } else {
       this.stepProducts[stepIndex] = [];
     }
@@ -1165,6 +1314,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
       products: this.products,
       alreadySelectedProductIds,
       stepName,
+      categories: this.categories,
     };
 
     const dialogRef = this.dialog.open(BulkProductSelectorDialogComponent, {
@@ -1357,15 +1507,23 @@ export class MenuEditComponent implements OnInit, OnDestroy {
       this.stepProducts[stepIndex] = [];
     }
 
-    // Find the correct insertion point to maintain sorted order
+    // Find the correct insertion point: available products first, then alphabetical
     let insertIndex = 0;
+    const isAvailable = productData.product.is_available !== false;
     const productName = productData.product.name.toLowerCase();
 
-    while (
-      insertIndex < this.stepProducts[stepIndex].length &&
-      this.stepProducts[stepIndex][insertIndex].product.name.toLowerCase() <
-        productName
-    ) {
+    while (insertIndex < this.stepProducts[stepIndex].length) {
+      const current = this.stepProducts[stepIndex][insertIndex];
+      const currentAvailable = current.product.is_available !== false;
+
+      // Available products come before unavailable ones
+      if (isAvailable && !currentAvailable) break;
+      if (!isAvailable && currentAvailable) {
+        insertIndex++;
+        continue;
+      }
+      // Within the same availability group, sort alphabetically
+      if (current.product.name.toLowerCase() >= productName) break;
       insertIndex++;
     }
 

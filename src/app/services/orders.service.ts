@@ -34,6 +34,10 @@ export class OrdersService {
       // Get current vendor
       const currentVendor = this.vendorService.getCurrentVendor();
       const vendorId = currentVendor?.id;
+      console.log('[OrdersService] loadOrders vendor', {
+        vendorId,
+        businessName: currentVendor?.business_name,
+      });
 
       const orders = await this.supabaseAuthService.getOrders(
         undefined,
@@ -396,6 +400,44 @@ export class OrdersService {
           }
         }
 
+        // Atomically reserve stock for all products in the order
+        // This uses row-level locking to prevent race conditions
+        const { data: stockResult, error: stockError } = await (
+          this.supabaseService.getClient() as any
+        ).rpc('reserve_stock_for_order', { p_order_id: dbOrder.id });
+
+        if (stockError) {
+          console.error(
+            '[OrdersService] Stock reservation RPC error:',
+            stockError
+          );
+          // Delete the order since stock reservation failed
+          await this.deleteOrderOnStockFailure(dbOrder.id);
+          throw new Error(
+            'Stock reservation failed due to database error. Please try again.'
+          );
+        }
+
+        if (stockResult && !stockResult.success) {
+          console.warn(
+            '[OrdersService] Insufficient stock for order:',
+            stockResult.insufficientItems
+          );
+          // Delete the order since stock is insufficient
+          await this.deleteOrderOnStockFailure(dbOrder.id);
+
+          // Create a detailed error with insufficient items info
+          const error = new Error('INSUFFICIENT_STOCK') as any;
+          error.insufficientItems = stockResult.insufficientItems;
+          throw error;
+        }
+
+        console.log(
+          '[OrdersService] Stock reserved successfully for order:',
+          dbOrder.id,
+          stockResult?.reservedProducts
+        );
+
         // Reload orders
         await this.loadOrders();
 
@@ -413,12 +455,68 @@ export class OrdersService {
     }
   }
 
+  /**
+   * Deletes an order when stock reservation fails.
+   * This is called to clean up after atomic stock reservation detects insufficient stock.
+   * The database cascades will automatically delete order_items and order_item_complements.
+   */
+  private async deleteOrderOnStockFailure(orderId: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseService
+        .getClient()
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (error) {
+        console.error(
+          '[OrdersService] Failed to delete order after stock failure:',
+          error
+        );
+      } else {
+        console.log(
+          '[OrdersService] Order deleted after stock reservation failure:',
+          orderId
+        );
+      }
+    } catch (error) {
+      console.error(
+        '[OrdersService] Exception deleting order after stock failure:',
+        error
+      );
+    }
+  }
+
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
     try {
       await this.supabaseAuthService.updateOrderStatus(
         orderId,
         status as Database['public']['Enums']['order_status']
       );
+
+      // Restore stock when order is cancelled or refused
+      if (status === 'cancelled' || status === 'refused') {
+        try {
+          const { error: stockError } = await (this.supabaseService
+            .getClient() as any)
+            .rpc('restore_stock_for_order', { p_order_id: orderId });
+
+          if (stockError) {
+            console.warn(
+              '[OrdersService] Stock restore warning (non-blocking):',
+              stockError
+            );
+          } else {
+            console.log('[OrdersService] Stock restored for order:', orderId);
+          }
+        } catch (stockError) {
+          console.warn(
+            '[OrdersService] Stock restore failed (non-blocking):',
+            stockError
+          );
+        }
+      }
+
       await this.loadOrders();
     } catch (error: any) {
       console.error('Error updating order status:', error);
@@ -451,6 +549,30 @@ export class OrdersService {
         status as Database['public']['Enums']['order_status'],
         refuseReason
       );
+
+      // Restore stock when order is refused (this method is typically used for refused orders)
+      if (status === 'cancelled' || status === 'refused') {
+        try {
+          const { error: stockError } = await (this.supabaseService
+            .getClient() as any)
+            .rpc('restore_stock_for_order', { p_order_id: orderId });
+
+          if (stockError) {
+            console.warn(
+              '[OrdersService] Stock restore warning (non-blocking):',
+              stockError
+            );
+          } else {
+            console.log('[OrdersService] Stock restored for refused order:', orderId);
+          }
+        } catch (stockError) {
+          console.warn(
+            '[OrdersService] Stock restore failed (non-blocking):',
+            stockError
+          );
+        }
+      }
+
       await this.loadOrders();
     } catch (error: any) {
       console.error('Error updating order with refuse reason:', error);

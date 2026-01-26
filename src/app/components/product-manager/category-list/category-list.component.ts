@@ -82,7 +82,7 @@ import { ImageUploadComponent } from '../../../shared/components';
           <p class="subtitle">Organisez vos produits par catégories</p>
         </div>
         <button
-          mat-raised-button
+          matButton="filled"
           color="primary"
           (click)="openCategoryDialog()"
           [disabled]="loading"
@@ -314,7 +314,7 @@ import { ImageUploadComponent } from '../../../shared/components';
           <h3>Aucune catégorie trouvée</h3>
           <p>Créez votre première catégorie pour organiser vos produits</p>
           <button
-            mat-raised-button
+            matButton="filled"
             color="primary"
             (click)="openCategoryDialog()"
           >
@@ -1096,7 +1096,7 @@ export class CategoryListComponent implements OnInit, OnDestroy {
     <mat-dialog-actions>
       <button mat-button mat-dialog-close>Annuler</button>
       <button
-        mat-raised-button
+        matButton="filled"
         color="primary"
         (click)="saveCategory()"
         [disabled]="categoryForm.invalid || saving"

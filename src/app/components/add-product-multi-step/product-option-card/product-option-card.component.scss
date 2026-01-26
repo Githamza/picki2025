@@ -223,6 +223,14 @@
           padding: 0 4px;
         }
 
+        .out-of-stock-label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--mat-sys-error, #f44336);
+          font-style: italic;
+          margin-bottom: 4px;
+        }
+
         .option-type-badge {
           margin-bottom: 8px;
 

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { materialComponents } from '../../material.components';
@@ -10,6 +10,7 @@ import { VendorService, Vendor } from '../../services/vendor.service';
   imports: [CommonModule, ...materialComponents],
   templateUrl: './vendor-selection.component.html',
   styleUrls: ['./vendor-selection.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VendorSelectionComponent implements OnInit {
   private vendorService = inject(VendorService);
@@ -55,7 +56,7 @@ export class VendorSelectionComponent implements OnInit {
   }
 
   selectVendor(vendor: Vendor) {
-    if (vendor.is_active) {
+    if (this.isVendorOpen(vendor)) {
       const vendorSlug = this.vendorService.getVendorSlug(vendor);
       this.router.navigate(['/vendor', vendorSlug]);
     } else {
@@ -67,5 +68,9 @@ export class VendorSelectionComponent implements OnInit {
       const vendorSlug = this.vendorService.getVendorSlug(vendor);
       this.router.navigate(['/vendor', vendorSlug]);
     }
+  }
+
+  isVendorOpen(vendor: Vendor): boolean {
+    return this.vendorService.isVendorOrdersOpen(vendor);
   }
 }

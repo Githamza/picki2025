@@ -2,10 +2,12 @@ import { Product } from '../../services/product.service';
 import { ProductState } from '../reducers/product.reducer'; // Adjust path as necessary
 import { MultiStepProductState } from '../reducers/multi-step-product.reducer';
 import { ComplementSelection } from '../../models/complement.model';
+import { PromotionalBannersState } from '../reducers/promotional-banners.reducer';
 
 // App state model
 export interface AppState {
   banner: BannerState;
+  promotionalBanners: PromotionalBannersState;
   category: CategoryState;
   product: ProductState; // Added product state
   multiStepProduct: MultiStepProductState;

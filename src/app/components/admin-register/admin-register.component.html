@@ -1,0 +1,230 @@
+<div class="register-container">
+  <mat-toolbar class="register-header" color="primary">
+    <div class="brand">
+      <mat-icon class="brand-icon">admin_panel_settings</mat-icon>
+      <div class="brand-text">
+        <span class="brand-title">Admin Portal</span>
+        <span class="brand-subtitle">Créer un compte</span>
+      </div>
+    </div>
+  </mat-toolbar>
+
+  <div class="register-content">
+    <div class="registration-intro">
+      <h1 class="main-title">
+        Créez votre espace restaurant en quelques secondes
+      </h1>
+      <p class="main-description">
+        Rejoignez notre plateforme et commencez à gérer vos commandes en toute
+        simplicité.
+      </p>
+    </div>
+
+    <mat-card class="register-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon class="register-icon">person_add</mat-icon>
+          Créer un compte
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="register-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nom du restaurant</mat-label>
+            <input
+              matInput
+              formControlName="businessName"
+              autocomplete="organization"
+              aria-label="Nom du restaurant"
+            />
+            <mat-icon matPrefix>store</mat-icon>
+            @if (form.controls.businessName.touched &&
+            form.controls.businessName.invalid) {
+            <mat-error>Nom du restaurant requis</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Lien boutique Uber Eats (optionnel)</mat-label>
+            <input
+              matInput
+              type="url"
+              formControlName="uberEatsUrl"
+              placeholder="https://www.ubereats.com/..."
+              autocomplete="url"
+              aria-label="Lien Uber Eats du restaurant"
+            />
+            <mat-icon matPrefix>link</mat-icon>
+            <mat-hint> Import automatique de vos produits </mat-hint>
+            @if (form.controls.uberEatsUrl.touched &&
+            form.controls.uberEatsUrl.errors?.['invalidUrl']) {
+            <mat-error>URL invalide</mat-error>
+            } @if (form.controls.uberEatsUrl.touched &&
+            form.controls.uberEatsUrl.errors?.['invalidUberEatsUrl']) {
+            <mat-error>Veuillez fournir un lien Uber Eats</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="two-cols">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Prénom</mat-label>
+              <input
+                matInput
+                formControlName="firstName"
+                autocomplete="given-name"
+                aria-label="Prénom"
+              />
+              <mat-icon matPrefix>person</mat-icon>
+              @if (form.controls.firstName.touched &&
+              form.controls.firstName.invalid) {
+              <mat-error>Prénom requis</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Nom</mat-label>
+              <input
+                matInput
+                formControlName="lastName"
+                autocomplete="family-name"
+                aria-label="Nom"
+              />
+              <mat-icon matPrefix>person</mat-icon>
+              @if (form.controls.lastName.touched &&
+              form.controls.lastName.invalid) {
+              <mat-error>Nom requis</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              aria-label="Email"
+            />
+            <mat-icon matPrefix>email</mat-icon>
+            @if (form.controls.email.touched && form.controls.email.invalid) {
+            <mat-error>Email invalide</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Mot de passe</mat-label>
+            <input
+              matInput
+              [type]="hidePassword() ? 'password' : 'text'"
+              formControlName="password"
+              autocomplete="new-password"
+              aria-label="Mot de passe"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="'Afficher/masquer le mot de passe'"
+              [attr.aria-pressed]="!hidePassword()"
+            >
+              <mat-icon>{{
+                hidePassword() ? "visibility" : "visibility_off"
+              }}</mat-icon>
+            </button>
+            @if (form.controls.password.touched &&
+            form.controls.password.invalid) {
+            <mat-error>Mot de passe (min 6 caractères)</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Confirmer le mot de passe</mat-label>
+            <input
+              matInput
+              [type]="hideConfirmPassword() ? 'password' : 'text'"
+              formControlName="confirmPassword"
+              autocomplete="new-password"
+              aria-label="Confirmer le mot de passe"
+            />
+            <mat-icon matPrefix>lock_clock</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="toggleConfirmPasswordVisibility()"
+              [attr.aria-label]="
+                'Afficher/masquer la confirmation du mot de passe'
+              "
+              [attr.aria-pressed]="!hideConfirmPassword()"
+            >
+              <mat-icon>{{
+                hideConfirmPassword() ? "visibility" : "visibility_off"
+              }}</mat-icon>
+            </button>
+            @if (form.controls.confirmPassword.touched &&
+            form.controls.confirmPassword.invalid) {
+            <mat-error>Confirmation du mot de passe requise</mat-error>
+            } @if (form.touched && form.errors?.['passwordMismatch']) {
+            <mat-error>Les mots de passe ne correspondent pas</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="actions">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              class="primary"
+              [disabled]="form.invalid || isSubmitting()"
+            >
+              @if (isSubmitting()) {
+              <span class="btn-content">
+                <mat-spinner diameter="18" color="accent"></mat-spinner>
+                <span>
+                  {{
+                    isScrapingUberEats()
+                      ? uberEatsProgress()
+                        ? ("Importation de votre menu (" +
+                          uberEatsProgress()!.formatted +
+                          "/" +
+                          uberEatsProgress()!.total +
+                          ")")
+                        : "Importation de votre menu"
+                      : "Création..."
+                  }}
+                </span>
+              </span>
+              } @else {
+              <span class="btn-content">
+                <mat-icon>check</mat-icon>
+                <span>Créer mon compte</span>
+              </span>
+              }
+            </button>
+
+            <button
+              mat-button
+              type="button"
+              class="secondary"
+              (click)="goToLogin()"
+            >
+              J’ai déjà un compte
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="hint">
+      <mat-icon>info</mat-icon>
+      <p>
+        Un menu de démarrage sera ajouté automatiquement. Vous pourrez tout
+        modifier ensuite.
+      </p>
+    </div>
+  </div>
+</div>

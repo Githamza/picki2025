@@ -38,6 +38,7 @@ export class ProductOptionCardComponent implements OnInit, OnDestroy {
   @Input() step!: ProductStep;
   @Input() isSelected: boolean = false;
   @Input() isDisabled: boolean = false;
+  @Input() isOutOfStock: boolean = false;
 
   @Output() optionClicked = new EventEmitter<{
     step: ProductStep;

@@ -1,6 +1,6 @@
-import { Component, OnInit, Pipe, PipeTransform, inject } from '@angular/core';
-import { CommonModule, NgClass } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
@@ -14,25 +14,11 @@ import * as CategorySelectors from '../../store/selectors/category.selectors';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 
-@Pipe({
-  name: 'kebabCase',
-  standalone: true,
-})
-export class KebabCasePipe implements PipeTransform {
-  transform(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-  }
-}
-
 @Component({
   selector: 'app-category-menu',
   standalone: true,
   imports: [
     CommonModule,
-    NgClass,
     RouterModule,
     MatListModule,
     MatIconModule,
@@ -51,7 +37,7 @@ export class CategoryMenuComponent implements OnInit {
   private vendorNavigation = inject(VendorNavigationService);
   private vendorService = inject(VendorService);
 
-  constructor(private store: Store<AppState>, private router: Router) {
+  constructor(private store: Store<AppState>) {
     this.categories$ = this.store.select(CategorySelectors.selectAllCategories);
     this.selectedCategoryId$ = this.store.select(
       CategorySelectors.selectSelectedCategoryId
@@ -90,5 +76,10 @@ export class CategoryMenuComponent implements OnInit {
 
     // Use vendor-aware navigation
     this.vendorNavigation.navigateWithVendor(['promotional-banner', kebab, 'products']);
+  }
+
+  selectAllProducts(): void {
+    this.store.dispatch(CategoryActions.clearSelectedCategory());
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 }

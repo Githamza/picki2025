@@ -237,8 +237,8 @@ export class ProductAdminService {
     return from(this.deleteMenuFromDb(id));
   }
 
-  getProductsForSteps(vendorId: string): Observable<ProductAdmin[]> {
-    return from(this.fetchProductsForSteps(vendorId));
+  getProductsForSteps(vendorId: string, includeAll = false): Observable<ProductAdmin[]> {
+    return from(this.fetchProductsForSteps(vendorId, includeAll));
   }
 
   private async fetchMenusWithSteps(vendorId: string): Promise<MenuAdmin[]> {
@@ -495,9 +495,10 @@ export class ProductAdminService {
   }
 
   private async fetchProductsForSteps(
-    vendorId: string
+    vendorId: string,
+    includeAll = false
   ): Promise<ProductAdmin[]> {
-    const { data: products, error } = await this.supabaseAuthService
+    let query = this.supabaseAuthService
       .getClient()
       .from('products')
       .select(
@@ -507,9 +508,13 @@ export class ProductAdminService {
       `
       )
       .eq('vendor_id', vendorId)
-      .eq('is_multi_step', false)
-      .eq('is_available', true)
-      .order('name');
+      .eq('is_multi_step', false);
+
+    if (!includeAll) {
+      query = query.eq('is_available', true);
+    }
+
+    const { data: products, error } = await query.order('name');
 
     if (error) {
       console.error('Error fetching products for steps:', error);
@@ -740,5 +745,99 @@ export class ProductAdminService {
 
   private async reorderCategoriesAsync(categoryIds: number[]): Promise<void> {
     await this.supabaseAuthService.reorderCategories(categoryIds);
+  }
+
+  // Auto-associate a newly created product with existing menu steps
+  // that already contain products from the same category
+  autoAssociateProductToMenuSteps(
+    product: ProductAdmin,
+    vendorId: string
+  ): Observable<{ associatedStepCount: number }> {
+    return from(this.autoAssociateProductToMenuStepsAsync(product, vendorId));
+  }
+
+  private async autoAssociateProductToMenuStepsAsync(
+    product: ProductAdmin,
+    vendorId: string
+  ): Promise<{ associatedStepCount: number }> {
+    if (!product.category_id) {
+      return { associatedStepCount: 0 };
+    }
+
+    const client = this.supabaseAuthService.getClient();
+
+    // Step 1: Find sibling products in the same category (excluding the new one)
+    const { data: siblingProducts, error: siblingError } = await client
+      .from('products')
+      .select('id')
+      .eq('category_id', product.category_id)
+      .eq('vendor_id', vendorId)
+      .eq('is_multi_step', false)
+      .neq('id', product.id);
+
+    if (siblingError) throw siblingError;
+    if (!siblingProducts || siblingProducts.length === 0) {
+      return { associatedStepCount: 0 };
+    }
+
+    const siblingProductIds = siblingProducts.map(p => p.id);
+
+    // Step 2: Find step options that reference those sibling products
+    const { data: matchingOptions, error: matchError } = await client
+      .from('product_step_options')
+      .select('id, step_ids')
+      .eq('option_type', 'product')
+      .eq('vendor_id', vendorId)
+      .in('product_id', siblingProductIds);
+
+    if (matchError) throw matchError;
+    if (!matchingOptions || matchingOptions.length === 0) {
+      return { associatedStepCount: 0 };
+    }
+
+    // Step 3: Get unique step IDs
+    const uniqueStepIds = [...new Set(
+      matchingOptions.flatMap(opt => opt.step_ids)
+    )];
+
+    // Step 4: Check for existing associations to avoid duplicates
+    const { data: existingOptions, error: existingError } = await client
+      .from('product_step_options')
+      .select('id, step_ids')
+      .eq('product_id', product.id)
+      .eq('vendor_id', vendorId);
+
+    if (existingError) throw existingError;
+
+    const existingStepIds = new Set(
+      existingOptions?.flatMap(opt => opt.step_ids) || []
+    );
+    const stepsToAdd = uniqueStepIds.filter(id => !existingStepIds.has(id));
+
+    if (stepsToAdd.length === 0) {
+      return { associatedStepCount: 0 };
+    }
+
+    // Step 5: Insert new step options
+    const optionsToInsert = stepsToAdd.map(stepId => ({
+      product_id: product.id,
+      name: product.name,
+      price_adjustment: 0,
+      display_order: 999,
+      is_available: true,
+      option_type: 'product' as const,
+      description: null,
+      image_url: product.image_url || null,
+      step_ids: [stepId],
+      vendor_id: vendorId,
+    }));
+
+    const { error: insertError } = await client
+      .from('product_step_options')
+      .insert(optionsToInsert);
+
+    if (insertError) throw insertError;
+
+    return { associatedStepCount: stepsToAdd.length };
   }
 }

@@ -1,0 +1,37 @@
+name: Rollback Supabase Functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Deploy version to roll back to (e.g. 2026.01.26-ec4e199)'
+        required: true
+        type: string
+
+jobs:
+  rollback-functions:
+    name: Redeploy Functions from Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code at deploy tag
+        uses: actions/checkout@v4
+        with:
+          ref: deploy/${{ inputs.version }}
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy Edge Functions
+        run: supabase functions deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Summary
+        run: echo "### Supabase functions rolled back to \`deploy/${{ inputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"

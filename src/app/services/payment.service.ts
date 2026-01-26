@@ -226,37 +226,11 @@ export class PaymentService {
    * @returns Observable with payment details
    */
   getStripeSession(sessionId: string): Observable<PaymentDetails> {
-    // In a real implementation, this would call your backend which calls Stripe's API
-    // Direct Stripe API calls should be done from the backend for security
     console.log('Retrieving Stripe session:', sessionId);
 
-    // TODO: Implement actual backend API call
-    // return this.http.get<any>(`/api/stripe/sessions/${sessionId}`)
-    //   .pipe(map(response => this.mapStripeResponse(response)));
-
-    // Mock response for development
-    const currency = this.vendorService.getCurrentCurrency();
-    return of({
-      id: sessionId,
-      amount: 25.5,
-      currency,
-      status: 'succeeded',
-      customerEmail: 'customer@example.com',
-      metadata: {
-        orderItems: [
-          {
-            productId: '1',
-            name: 'Pizza Margherita',
-            quantity: 1,
-            price: 12.5,
-          },
-          { productId: '2', name: 'Burger Classic', quantity: 1, price: 13.0 },
-        ],
-        diningPreference: 'eat-in',
-        timing: 'asap',
-        tableNumber: '5',
-      },
-    });
+    return this.stripeService.getCheckoutSession(sessionId).pipe(
+      map((session: any) => this.mapStripeResponse(session))
+    );
   }
 
   /**

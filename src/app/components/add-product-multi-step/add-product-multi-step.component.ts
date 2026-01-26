@@ -19,6 +19,7 @@ import { Store } from '@ngrx/store';
 import { Observable, Subject, combineLatest } from 'rxjs';
 import {
   takeUntil,
+  take,
   map,
   filter,
   distinctUntilChanged,
@@ -52,6 +53,7 @@ import { MatDialog } from '@angular/material/dialog';
 // Store imports
 import * as MultiStepProductActions from '../../store/actions/multi-step-product.actions';
 import * as MultiStepProductSelectors from '../../store/selectors/multi-step-product.selectors';
+import { selectCartQuantityByProductId, selectCartQuantityMap } from '../../store/selectors/cart.selectors';
 import { AppState } from '../../store/models/app.state';
 
 // Models
@@ -66,6 +68,7 @@ import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData
 import { ProductService, Product } from '../../services/product.service';
 import { Customisation } from '../../models/customisation.interface';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { ActivatedRoute } from '@angular/router';
 
 // Interface for summary data
 interface StepSummary {
@@ -121,6 +124,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private breakpointObserver = inject(BreakpointObserver);
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
+  private router = inject(ActivatedRoute);
 
   // Observables
   configuration$ = this.store.select(
@@ -164,15 +168,18 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
             step.stepType !== 'summary' &&
             selections[step.id]?.selectedOptionIds?.length > 0
         )
-        .map((step): StepSummary => ({
-          step,
-          selectedOptions:
-            selections[step.id]?.selectedOptionIds
-              ?.map((optionId) =>
-                step.options.find((option) => option.id === optionId)
-              )
-              .filter((option): option is ProductStepOption => !!option) || [],
-        }));
+        .map((step): StepSummary => {
+          const availableOptions = this.getAvailableOptions(step);
+          return {
+            step,
+            selectedOptions:
+              selections[step.id]?.selectedOptionIds
+                ?.map((optionId) =>
+                  availableOptions.find((option) => option.id === optionId)
+                )
+                .filter((option): option is ProductStepOption => !!option) || [],
+          };
+        });
     })
   );
 
@@ -210,7 +217,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       const isOnSummaryStep = currentStep?.stepType === 'summary';
 
       // Show if user is on summary step OR (all required steps are complete OR all steps have been visited)
-      return isOnSummaryStep || isComplete || allStepsVisited;
+      return isOnSummaryStep && isComplete && allStepsVisited;
     })
   );
 
@@ -219,9 +226,14 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   quantity: number = 1;
   visitedSteps: Set<number> = new Set(); // Track which steps have been visited
   comment = signal(''); // Comment for the menu
-  
+
   // Track customisation selections for each step option
   optionCustomisationSelections = new Map<string, Map<number, number[]>>(); // Key: `${stepId}-${optionId}`
+
+  // Stock management
+  baseProductStockQuantity: number | null = null;
+  cartQuantityForBaseProduct: number = 0;
+  private cartQuantityMap = new Map<number, number>();
 
   ngOnInit(): void {
     this.store.dispatch(
@@ -232,6 +244,31 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
 
     // Setup reactive form handling
     this.setupStepForms();
+
+    // Subscribe to base product stock info and cart quantity
+    this.baseProduct$
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((product) => !!product)
+      )
+      .subscribe((product) => {
+        this.baseProductStockQuantity = product.stockQuantity ?? null;
+
+        this.store
+          .select(selectCartQuantityByProductId(product.id))
+          .pipe(takeUntil(this.destroy$))
+          .subscribe((qty) => {
+            this.cartQuantityForBaseProduct = qty;
+          });
+      });
+
+    // Subscribe to cart quantity map for option stock checks
+    this.store
+      .select(selectCartQuantityMap)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((map) => {
+        this.cartQuantityMap = map;
+      });
 
     // Mark initial step as visited
     this.currentStepIndex$
@@ -364,7 +401,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     console.log('addToCart');
     combineLatest([this.configuration$, this.isConfigurationComplete$])
       .pipe(
-        takeUntil(this.destroy$),
+        take(1),
         filter(([config, isComplete]) => !!config && isComplete)
       )
       .subscribe(([configuration]) => {
@@ -379,24 +416,46 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
               })
             );
           }
-
+const category = this.router.snapshot.paramMap.get('category');
+if (category) {
           // Navigate back to products or show success message
+          this.vendorNavigation.navigateWithVendor(['promotional-banner', category, 'products']);
+        } else {
           this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
+        }
         }
       });
   }
 
   // Quantity control methods
   incrementQuantity(): void {
-    console.log('incrementQuantity');
+    const stock = this.baseProductStockQuantity;
+    if (stock != null && (this.quantity + this.cartQuantityForBaseProduct) >= stock) {
+      return;
+    }
     this.quantity++;
   }
 
   decrementQuantity(): void {
-    console.log('decrementQuantity');
     if (this.quantity > 1) {
       this.quantity--;
     }
+  }
+
+  isStockLimitReached(): boolean {
+    const stock = this.baseProductStockQuantity;
+    return stock != null && (this.quantity + this.cartQuantityForBaseProduct) >= stock;
+  }
+
+  isOptionEffectivelyOutOfStock(option: ProductStepOption): boolean {
+    if (option.optionType !== 'product' || option.productId == null) {
+      return false;
+    }
+    if (option.stockQuantity == null) {
+      return false;
+    }
+    const cartQty = this.cartQuantityMap.get(option.productId) || 0;
+    return (option.stockQuantity - cartQty) <= 0;
   }
 
   removeItem(): void {
@@ -408,6 +467,10 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   // Helper methods for template
   getStepForm(stepId: number): FormGroup | null {
     return this.stepForms[stepId] || null;
+  }
+
+  getAvailableOptions(step: ProductStep): ProductStepOption[] {
+    return step.options.filter((option) => option.isAvailable);
   }
 
   // Card selection methods

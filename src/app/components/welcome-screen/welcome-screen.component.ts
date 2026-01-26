@@ -136,7 +136,28 @@ export class WelcomeScreenComponent implements OnInit {
   isLoadingBusinessHours = signal<boolean>(false);
 
   orderForm: FormGroup = this.fb.group({
-    scheduledTime: [null, Validators.required],
+    scheduledTime: [null],
+  });
+
+  // Make scheduledTime required only when "later" has available slots
+  private readonly scheduledTimeRequiredEffect = effect(() => {
+    const ctrl = this.orderForm.get('scheduledTime');
+    if (!ctrl) return;
+
+    const hasSlots = this.availableTimeSlots().length > 0;
+    const shouldRequire = this.selectedTiming === 'later' && hasSlots;
+
+    if (shouldRequire) {
+      ctrl.setValidators([Validators.required]);
+    } else {
+      ctrl.clearValidators();
+      // If there are no slots, ensure we don't keep a stale selection
+      if (!hasSlots) {
+        ctrl.reset(null, { emitEvent: false });
+      }
+    }
+
+    ctrl.updateValueAndValidity({ emitEvent: false });
   });
 
   // Effect to set preselected time when conditions are met
@@ -441,28 +462,44 @@ export class WelcomeScreenComponent implements OnInit {
   onValidate(): void {
     if (!this.selectedPreference) return;
 
-    const selectedTimeValue = this.orderForm.get('scheduledTime')?.value;
-    
-    const orderData = {
-      preference: this.selectedPreference,
-      timing: this.selectedTiming as 'asap' | 'later',
-      scheduledDate:
-        this.selectedTiming === 'later' ? new Date() : undefined,
-      scheduledTime:
-        this.selectedTiming === 'later' ? selectedTimeValue : undefined,
-    };
+    // If delivery, ensure a dropoff selection exists before proceeding.
+    if (this.selectedPreference === 'delivery' && !this.deliverySelection.hasSelection()) {
+      return;
+    }
 
-    // Validate scheduled time is not in the past
-    if (this.selectedTiming === 'later') {
-      if (!this.isValidFutureTime()) {
-        return; // Don't proceed if scheduled time is in the past
+    const hasSlotsToday = this.availableTimeSlots().length > 0;
+    let timing: 'asap' | 'later' = this.selectedTiming ?? 'asap';
+    let scheduledDate: Date | undefined;
+    let scheduledTime: string | undefined;
+
+    if (timing === 'later') {
+      // If there are no remaining slots today (e.g. after closing),
+      // don't block navigation: fallback to ASAP so the user can still browse the shop.
+      if (!hasSlotsToday) {
+        timing = 'asap';
+      } else {
+        // Validate scheduled time is not in the past
+        if (!this.isValidFutureTime()) {
+          return; // Don't proceed if scheduled time is in the past or missing
+        }
+
+        const selectedTimeValue = this.orderForm.get('scheduledTime')?.value;
+        scheduledDate = new Date();
+        scheduledTime = typeof selectedTimeValue === 'string' ? selectedTimeValue : undefined;
       }
     }
 
+    const orderData = {
+      preference: this.selectedPreference,
+      timing,
+      scheduledDate,
+      scheduledTime,
+    };
+
     // Store the complete dining preference data
     this.diningPreferenceService.setDiningPreference(orderData);
-    // Navigate back to vendor products page
-    this.vendorNavigation.navigateWithVendor(['promotional-banner']);
+    // Navigate to the shop (products grid)
+    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
   }
 
   get canValidate(): boolean {

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/dev-proxy/main/schemas/v0.27.0/crudapiplugin.apifile.schema.json",
+  "baseUrl": "http://localhost:8080/api/orders",
+  "auth": "none",
+  "dataFile": "../data/orders-data.json",
+  "actions": [
+    {
+      "action": "getAll"
+    },
+    {
+      "action": "getOne"
+    },
+    {
+      "action": "create"
+    },
+    {
+      "action": "merge"
+    },
+    {
+      "action": "delete"
+    }
+  ]
+}

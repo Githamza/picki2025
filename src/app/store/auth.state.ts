@@ -1,5 +1,6 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AuthUser, AuthState, AuthError } from '../models/auth.models';
+import { AuthUser, AuthState, AuthError, AUTH_CONFIG, DEFAULT_PERMISSIONS } from '../models/auth.models';
+import { environment } from '../../environments/environment';
 
 /**
  * Reactive authentication state management using Angular signals
@@ -101,7 +102,6 @@ export class AuthStateService {
   private isUserDataValid(userData: any): boolean {
     if (!userData || !userData.lastLoginAt) return false;
 
-    const { AUTH_CONFIG } = require('../models/auth.models');
     const sessionAge = Date.now() - new Date(userData.lastLoginAt).getTime();
     return sessionAge < AUTH_CONFIG.SESSION_TIMEOUT;
   }
@@ -179,8 +179,6 @@ export class AuthStateService {
         const user = this.user();
         if (!user) return false;
 
-        // Import permissions from auth models
-        const { DEFAULT_PERMISSIONS } = require('../models/auth.models');
         const userPermissions = DEFAULT_PERMISSIONS[user.role] || [];
 
         return userPermissions.some(
@@ -216,7 +214,6 @@ export class AuthStateService {
     const user = this.user();
     if (!user) return [];
 
-    const { DEFAULT_PERMISSIONS } = require('../models/auth.models');
     return DEFAULT_PERMISSIONS[user.role] || [];
   });
 
@@ -227,7 +224,6 @@ export class AuthStateService {
     const user = this.user();
     if (!user || !user.lastLoginAt) return false;
 
-    const { AUTH_CONFIG } = require('../models/auth.models');
     const sessionAge = Date.now() - new Date(user.lastLoginAt).getTime();
     return sessionAge < AUTH_CONFIG.SESSION_TIMEOUT;
   });
@@ -239,7 +235,6 @@ export class AuthStateService {
     const user = this.user();
     if (!user || !user.lastLoginAt) return 0;
 
-    const { AUTH_CONFIG } = require('../models/auth.models');
     const sessionAge = Date.now() - new Date(user.lastLoginAt).getTime();
     return Math.max(0, AUTH_CONFIG.SESSION_TIMEOUT - sessionAge);
   });
@@ -270,6 +265,3 @@ export class AuthStateService {
     localStorage.removeItem('admin_user_data');
   }
 }
-
-// Import environment for production check
-import { environment } from '../../environments/environment';

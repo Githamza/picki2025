@@ -82,7 +82,7 @@ jobs:
             set ftp:ssl-allow yes;
             set ssl:verify-certificate no;
             mirror --reverse --delete --verbose --parallel=10 \
-              build-output/ $FTP_PATH/;
+              build-output/ $FTP_PATH/www/;
             quit
           "
           echo "### Server 1 deployed: \`${{ needs.version.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
@@ -114,7 +114,7 @@ jobs:
             set ftp:ssl-allow yes;
             set ssl:verify-certificate no;
             mirror --reverse --delete --verbose --parallel=10 \
-              build-output/ $FTP_PATH/;
+              build-output/ $FTP_PATH/www/;
             quit
           "
           echo "### Server 2 deployed: \`${{ needs.version.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"

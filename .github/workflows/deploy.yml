@@ -68,6 +68,9 @@ jobs:
           name: angular-build-${{ needs.version.outputs.version }}
           path: build-output/
 
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
       - name: Deploy via FTP
         env:
           FTP_HOST: ${{ secrets.FTP_HOST_1 }}
@@ -96,6 +99,9 @@ jobs:
         with:
           name: angular-build-${{ needs.version.outputs.version }}
           path: build-output/
+
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy via FTP
         env:

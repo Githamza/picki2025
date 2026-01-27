@@ -177,6 +177,8 @@ jobs:
   tag-release:
     name: Tag Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs:
       - version
       - deploy-server-1

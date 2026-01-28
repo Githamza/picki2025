@@ -383,7 +383,7 @@ export class CustomisationSelectionDialogComponent implements OnInit {
     if (this.shouldAutoValidate()) {
       setTimeout(() => {
         this.onValidate();
-      }, 300);
+      }, 200);
     }
   }
 

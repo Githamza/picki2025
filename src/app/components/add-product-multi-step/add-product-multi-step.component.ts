@@ -500,7 +500,7 @@ if (category) {
       // Automatically advance to next step after a brief delay for visual feedback
       setTimeout(() => {
         this.goNext();
-      }, 500);
+      }, 300);
     }
   }
 
@@ -543,7 +543,7 @@ if (category) {
     if (step.maxSelections && selectedCount === step.maxSelections) {
       setTimeout(() => {
         this.goNext();
-      }, 500);
+      }, 300);
     }
   }
 

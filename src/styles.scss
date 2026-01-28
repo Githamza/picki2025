@@ -202,10 +202,6 @@ body {
   --mat-slide-toggle-selected-handle-color: var(--mat-sys-on-primary);
 }
 
-/* Animation for smooth transitions */
-* {
-  transition: color 0.3s ease, background-color 0.3s ease;
-}
 
 /* Ensure proper Material Design typography */
 .mat-mdc-form-field {

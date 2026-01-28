@@ -56,5 +56,4 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Summary
-        run: |
-          echo "### Database rollback applied: \`${{ inputs.migration_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+        run: 'echo "### Database rollback applied: `${{ inputs.migration_name }}`" >> "$GITHUB_STEP_SUMMARY"'

@@ -3,6 +3,7 @@ import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map } from 'rxjs/operators';
 
@@ -17,7 +18,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder'
 @Component({
   selector: 'app-category-grid',
   standalone: true,
-  imports: [CommonModule, NgOptimizedImage, MatCardModule],
+  imports: [CommonModule, NgOptimizedImage, MatCardModule, MatProgressSpinnerModule],
   templateUrl: './category-grid.component.html',
   styleUrls: ['./category-grid.component.scss'],
 })

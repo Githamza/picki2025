@@ -3,7 +3,11 @@
     <p>{{ error }}</p>
   </div>
 
-  <div class="category-grid">
+  <div *ngIf="loading$ | async" class="categories-loading">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div class="category-grid" *ngIf="!(loading$ | async)">
     <mat-card
       *ngFor="let category of categories$ | async"
       class="category-card"

@@ -71,7 +71,7 @@ const mockCategories = [
 
 export const categoryReducer = createReducer(
   initialCategoryState,
-  on(CategoryActions.loadCategories, (state) => ({
+  on(CategoryActions.loadCategories, CategoryActions.loadCategoriesByVendor, (state) => ({
     ...state,
     loading: true,
     error: null,

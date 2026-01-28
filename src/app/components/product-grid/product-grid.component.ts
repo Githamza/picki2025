@@ -17,6 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
   MatBottomSheetModule,
   MatBottomSheet,
@@ -53,6 +54,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     MatGridListModule,
     MatIconModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     MatBottomSheetModule,
     HorizontalCategoryMenuComponent,
     VendorCurrencyPipe,
@@ -77,6 +79,10 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   readonly products = toSignal(
     this.store.select(ProductSelectors.selectAllProducts),
     { initialValue: [] as Product[] }
+  );
+  readonly productsLoading = toSignal(
+    this.store.select(ProductSelectors.selectProductsLoading),
+    { initialValue: true }
   );
   readonly selectedCategoryId = toSignal(
     this.store.select(CategorySelectors.selectSelectedCategoryId),

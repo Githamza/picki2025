@@ -297,6 +297,14 @@
   }
 }
 
+.products-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+  margin-top: 24px;
+}
+
 .no-products {
   text-align: center;
   padding: 32px;

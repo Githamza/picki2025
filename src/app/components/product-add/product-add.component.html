@@ -10,7 +10,7 @@
     </button>
   </div>
 
-  <div *ngIf="product$ | async as product; else productNotFound">
+  <div *ngIf="product$ | async as product; else loadingOrNotFound">
     <!-- Regular Product View (for all non-multi-step products) -->
     <app-regular-product-view
       *ngIf="!product.isMultiStep"
@@ -31,10 +31,15 @@
     ></app-add-product-multi-step>
   </div>
 
-  <ng-template #productNotFound>
-    <div class="product-not-found">
-      <h2>Product not found</h2>
-      <p>Sorry, we couldn't find the product you're looking for.</p>
+  <ng-template #loadingOrNotFound>
+    <div *ngIf="productsLoading$ | async; else productNotFound" class="product-loading">
+      <mat-spinner diameter="40"></mat-spinner>
     </div>
+    <ng-template #productNotFound>
+      <div class="product-not-found">
+        <h2>Product not found</h2>
+        <p>Sorry, we couldn't find the product you're looking for.</p>
+      </div>
+    </ng-template>
   </ng-template>
 </div>

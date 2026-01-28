@@ -61,12 +61,12 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
     console.log('Loading data for vendor:', vendor.business_name);
 
     // Dispatch actions to load vendor-specific products and categories
-    // this.store.dispatch(
-    //   ProductActions.loadProductsByVendor({ vendorId: vendor.id })
-    // );
-    // this.store.dispatch(
-    //   CategoryActions.loadCategoriesByVendor({ vendorId: vendor.id })
-    // );
+    this.store.dispatch(
+      ProductActions.loadProductsByVendor({ vendorId: vendor.id })
+    );
+    this.store.dispatch(
+      CategoryActions.loadCategoriesByVendor({ vendorId: vendor.id })
+    );
   }
 
   ngOnDestroy() {

@@ -10,6 +10,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Store } from '@ngrx/store';
 import {
   Observable,
@@ -27,6 +28,7 @@ import {
 } from 'rxjs';
 import { AppState } from '../../store/models/app.state';
 import * as ProductSelectors from '../../store/selectors/product.selectors';
+import * as ProductActions from '../../store/actions/product.actions';
 import * as MultiStepProductSelectors from '../../store/selectors/multi-step-product.selectors';
 import * as MultiStepProductActions from '../../store/actions/multi-step-product.actions';
 import { Product } from '../../services/product.service';
@@ -34,6 +36,7 @@ import { UtilsService } from '../../shared/utils.service';
 import { addToCart } from '../../store/actions/cart.actions';
 import { selectCartQuantityByProductId } from '../../store/selectors/cart.selectors';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
+import { VendorService } from '../../services/vendor.service';
 import { AddProductMultiStepComponent } from '../add-product-multi-step/add-product-multi-step.component';
 import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility.service';
 import { RegularProductViewComponent } from './regular-product-view/regular-product-view.component';
@@ -46,6 +49,7 @@ import { RegularProductViewComponent } from './regular-product-view/regular-prod
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     AddProductMultiStepComponent,
     RegularProductViewComponent,
   ],
@@ -57,6 +61,7 @@ export class ProductAddComponent implements OnInit, OnDestroy {
   product: Product | undefined;
   quantity: number = 1;
   cartQuantityForProduct: number = 0;
+  productsLoading$!: Observable<boolean>;
 
   private destroy$ = new Subject<void>();
   private lastInitializedProductId: number | null = null;
@@ -68,12 +73,18 @@ export class ProductAddComponent implements OnInit, OnDestroy {
     private injector: Injector,
     private router: Router,
     private vendorNavigation: VendorNavigationService,
+    private vendorService: VendorService,
     private cartBadgeVisibilityService: CartBadgeVisibilityService
   ) {}
 
   ngOnInit(): void {
     // Hide cart badge when on product add page
     this.cartBadgeVisibilityService.hideCartBadge();
+
+    // Ensure products are loaded (handles page refresh where store is empty)
+    this.ensureProductsLoaded();
+
+    this.productsLoading$ = this.store.select(ProductSelectors.selectProductsLoading);
 
     this.product$ = this.route.paramMap.pipe(
       map((params) =>
@@ -116,6 +127,27 @@ export class ProductAddComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       shareReplay(1) // Share the observable to prevent multiple subscriptions
     );
+  }
+
+  private ensureProductsLoaded(): void {
+    const currentVendor = this.vendorService.getCurrentVendor();
+    if (currentVendor) {
+      this.store.dispatch(
+        ProductActions.loadProductsByVendor({ vendorId: currentVendor.id })
+      );
+    } else {
+      // Vendor may not be set yet on refresh; wait for it
+      this.vendorService.currentVendor$
+        .pipe(
+          filter((vendor) => !!vendor),
+          takeUntil(this.destroy$)
+        )
+        .subscribe((vendor) => {
+          this.store.dispatch(
+            ProductActions.loadProductsByVendor({ vendorId: vendor!.id })
+          );
+        });
+    }
   }
 
   private navigateBackToProducts(): void {

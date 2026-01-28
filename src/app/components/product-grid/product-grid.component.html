@@ -162,8 +162,14 @@
     }
   </div>
   } @if (filteredProducts().length === 0) {
-  <div class="no-products">
-    <p>No products found in this category.</p>
-  </div>
+    @if (productsLoading()) {
+    <div class="products-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+    } @else {
+    <div class="no-products">
+      <p>No products found in this category.</p>
+    </div>
+    }
   }
 </div>

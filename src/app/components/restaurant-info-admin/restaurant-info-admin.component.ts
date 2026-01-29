@@ -196,6 +196,27 @@ import { ChangeDetectionStrategy } from '@angular/core';
             </mat-card-content>
           </mat-card>
 
+          <!-- Stock Management Section -->
+          <mat-card class="info-section">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>inventory_2</mat-icon>
+              <mat-card-title>Gestion des stocks</mat-card-title>
+              <mat-card-subtitle
+                >Paramètres de réinitialisation automatique</mat-card-subtitle
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <div class="order-types">
+                <mat-checkbox formControlName="dailyStockResetEnabled">
+                  Effacer les stocks systématiquement quotidiennement
+                </mat-checkbox>
+              </div>
+              <p class="subtitle" style="margin: 8px 0 0 0">
+                Si activé, tous les stocks seront remis à « illimité » chaque jour à minuit.
+              </p>
+            </mat-card-content>
+          </mat-card>
+
           <!-- Contact Information Section -->
           <mat-card class="info-section">
             <mat-card-header>
@@ -608,6 +629,7 @@ export class RestaurantInfoAdminComponent implements OnInit {
       payments: this.fb.group({
         onlinePaymentsEnabled: [info.vendor.online_payments_enabled ?? true],
       }),
+      dailyStockResetEnabled: [(info.vendor as any).daily_stock_reset_enabled ?? true],
       contact: this.fb.group({
         phone: [info.contact.phone || '', []],
         email: [info.contact.email || '', [Validators.email]],
@@ -635,6 +657,7 @@ export class RestaurantInfoAdminComponent implements OnInit {
       payments: this.fb.group({
         onlinePaymentsEnabled: [true],
       }),
+      dailyStockResetEnabled: [true],
       contact: this.fb.group({
         phone: ['', []],
         email: ['', [Validators.email]],
@@ -814,6 +837,7 @@ export class RestaurantInfoAdminComponent implements OnInit {
         address: formValue.address,
         enabledOrderTypes,
         onlinePaymentsEnabled: !!formValue.payments?.onlinePaymentsEnabled,
+        dailyStockResetEnabled: !!formValue.dailyStockResetEnabled,
         deliverySettings: {
           deliverySystem:
             formValue.deliverySettings?.deliverySystem === 'own' ? 'own' : 'picki',

@@ -103,12 +103,16 @@
 .orders-container {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 24px;
   padding: 24px;
   overflow: hidden;
   background-color: var(--mat-sys-surface-container-low);
   min-height: 0;
+  justify-content: center;
+  max-width: 70%;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .orders-column {
@@ -850,6 +854,7 @@ mat-card-actions {
   .orders-container {
     gap: 20px;
     padding: 20px;
+    max-width: 100%;
   }
 
   .orders-column {
@@ -873,6 +878,7 @@ mat-card-actions {
     grid-template-columns: 1fr;
     gap: 16px;
     padding: 16px;
+    max-width: 100%;
   }
 
   .orders-column {

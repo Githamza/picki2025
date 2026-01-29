@@ -578,6 +578,7 @@ export class VendorService {
     };
     enabledOrderTypes?: OrderType[];
     onlinePaymentsEnabled?: boolean;
+    dailyStockResetEnabled?: boolean;
     deliverySettings?: {
       deliverySystem: 'picki' | 'own';
       ownDeliveryPrice: number;
@@ -622,6 +623,13 @@ export class VendorService {
         updatedVendor = await this.supabaseAuthService.updateVendorDeliverySettings(
           currentVendor.id,
           restaurantData.deliverySettings
+        );
+      }
+
+      if (typeof restaurantData.dailyStockResetEnabled === 'boolean') {
+        updatedVendor = await this.supabaseAuthService.updateVendorDailyStockReset(
+          currentVendor.id,
+          restaurantData.dailyStockResetEnabled
         );
       }
 

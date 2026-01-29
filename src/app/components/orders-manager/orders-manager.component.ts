@@ -44,6 +44,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import '@angular/common/locales/global/fr';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { OrderType } from '../../services/vendor.service';
 
 export type PeriodFilter = 'today' | 'yesterday' | '7days' | 'month' | 'all';
 
@@ -111,6 +112,23 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
   // Convert orders observable to signal for reactive computation
   private ordersSignal = toSignal(this.ordersService.orders$, { initialValue: [] });
+
+  // Enabled order types from current vendor
+  private vendorSignal = toSignal(this.vendorService.currentVendor$, { initialValue: null });
+
+  enabledOrderTypes = computed<OrderType[]>(() => {
+    const vendor = this.vendorSignal();
+    return vendor?.enabled_order_types?.length
+      ? vendor.enabled_order_types
+      : (['eat-in', 'take-away', 'delivery'] as OrderType[]);
+  });
+
+  showDineInColumn = computed(() => this.enabledOrderTypes().includes('eat-in'));
+  showTakeawayColumn = computed(() => this.enabledOrderTypes().includes('take-away'));
+  showDeliveryColumn = computed(() => this.enabledOrderTypes().includes('delivery'));
+  showPickupDeliveryColumn = computed(() =>
+    this.enabledOrderTypes().includes('take-away') || this.enabledOrderTypes().includes('delivery')
+  );
 
   // Computed property to get total amount for selected period
   periodTotalAmount = computed(() => {
@@ -300,12 +318,17 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     this.combinedPickupDeliveryOrders$ = combineLatest([
       this.ordersService.orders$,
       this.loadingOrders$,
+      this.vendorService.currentVendor$,
     ]).pipe(
-      map(([orders, loadingOrders]) => {
+      map(([orders, loadingOrders, vendor]) => {
+        const enabledTypes = vendor?.enabled_order_types?.length
+          ? vendor.enabled_order_types
+          : (['take-away', 'delivery'] as OrderType[]);
+
         let pickupAndDelivery = orders.filter(
           (order) =>
-            (order.orderType === 'take-away' ||
-              order.orderType === 'delivery') &&
+            ((order.orderType === 'take-away' && enabledTypes.includes('take-away')) ||
+              (order.orderType === 'delivery' && enabledTypes.includes('delivery'))) &&
             order.status !== 'initiated'
         );
 

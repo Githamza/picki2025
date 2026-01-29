@@ -1308,6 +1308,7 @@ export type Database = {
           created_at: string | null
           currency: string
           customDomain: string | null
+          daily_stock_reset_enabled: boolean | null
           delivery_system: string
           delivery_dropoff_input_mode: string
           own_delivery_price: number
@@ -1334,6 +1335,7 @@ export type Database = {
           created_at?: string | null
           currency?: string
           customDomain?: string | null
+          daily_stock_reset_enabled?: boolean | null
           delivery_system?: string
           delivery_dropoff_input_mode?: string
           own_delivery_price?: number
@@ -1360,6 +1362,7 @@ export type Database = {
           created_at?: string | null
           currency?: string
           customDomain?: string | null
+          daily_stock_reset_enabled?: boolean | null
           delivery_system?: string
           delivery_dropoff_input_mode?: string
           own_delivery_price?: number

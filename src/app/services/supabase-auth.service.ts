@@ -447,6 +447,26 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async updateVendorDailyStockReset(vendorId: string, enabled: boolean) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        daily_stock_reset_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
   // Business Hours (admin operations)
   async getBusinessHours(vendorId: string) {
     console.log(

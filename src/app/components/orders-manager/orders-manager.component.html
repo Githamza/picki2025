@@ -76,6 +76,7 @@
 
   <div class="orders-container">
     <!-- Dine-in Orders Column -->
+    @if (showDineInColumn()) {
     <div class="orders-column">
       <h2 class="column-title">
         <mat-icon>restaurant</mat-icon>
@@ -103,12 +104,20 @@
         />
       </div>
     </div>
+    }
 
     <!-- Combined Pickup and Delivery Orders Column -->
+    @if (showPickupDeliveryColumn()) {
     <div class="orders-column">
       <h2 class="column-title">
         <mat-icon>shopping_bag</mat-icon>
-        À Emporter & Livraison
+        @if (showTakeawayColumn() && showDeliveryColumn()) {
+          À Emporter & Livraison
+        } @else if (showTakeawayColumn()) {
+          À Emporter
+        } @else {
+          Livraison
+        }
       </h2>
 
       <div class="orders-list">
@@ -135,5 +144,6 @@
         />
       </div>
     </div>
+    }
   </div>
 </div>

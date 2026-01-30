@@ -14,11 +14,12 @@ import { Category } from '../../store/models/app.state';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
+import { CachedImageDirective } from '../../shared/directives/cached-image.directive';
 
 @Component({
   selector: 'app-category-grid',
   standalone: true,
-  imports: [CommonModule, NgOptimizedImage, MatCardModule, MatProgressSpinnerModule],
+  imports: [CommonModule, NgOptimizedImage, MatCardModule, MatProgressSpinnerModule, CachedImageDirective],
   templateUrl: './category-grid.component.html',
   styleUrls: ['./category-grid.component.scss'],
 })

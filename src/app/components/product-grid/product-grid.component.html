@@ -51,7 +51,8 @@
     >
       <img
         mat-card-image
-        [src]="product.imageUrl || placeholderImage"
+        [appCachedImage]="product.imageUrl || placeholderImage"
+        [fallbackSrc]="placeholderImage"
         [alt]="product.name"
         title="Product image"
         [class.grayscale]="isEffectivelyOutOfStock(product)"
@@ -112,7 +113,8 @@
     >
       <div class="product-image-container">
         <img
-          [src]="product.imageUrl || placeholderImage"
+          [appCachedImage]="product.imageUrl || placeholderImage"
+          [fallbackSrc]="placeholderImage"
           [alt]="product.name"
           title="Product image"
           class="product-image"

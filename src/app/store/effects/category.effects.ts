@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
 import {
   catchError,
@@ -8,21 +9,49 @@ import {
   tap,
   exhaustMap,
   withLatestFrom,
+  filter,
 } from 'rxjs/operators';
 import * as CategoryActions from '../actions/category.actions';
 import { CategoryService, Category } from '../../services/category.service';
 import { VendorService } from '../../services/vendor.service';
+import { ImageCacheService } from '../../services/image-cache.service';
+import {
+  selectCategoriesLoadedAt,
+  selectCategoriesLoadedVendorId,
+} from '../selectors/category.selectors';
+
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 @Injectable()
 export class CategoryEffects {
   private actions$ = inject(Actions);
+  private store = inject(Store);
   private categoryService = inject(CategoryService);
   private vendorService = inject(VendorService);
+  private imageCacheService = inject(ImageCacheService);
 
   loadCategories$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CategoryActions.loadCategories),
-      withLatestFrom(this.vendorService.currentVendor$),
+      withLatestFrom(
+        this.vendorService.currentVendor$,
+        this.store.select(selectCategoriesLoadedAt),
+        this.store.select(selectCategoriesLoadedVendorId)
+      ),
+      filter(([action, currentVendor, loadedAt, loadedVendorId]) => {
+        const vendorId = action.vendorId || currentVendor?.id;
+        // Skip if same vendor was loaded recently (within cache duration)
+        if (loadedAt && loadedVendorId === vendorId) {
+          const timeSinceLoad = Date.now() - loadedAt;
+          if (timeSinceLoad < CACHE_DURATION_MS) {
+            console.log(
+              `Skipping categories reload - cached ${Math.round(timeSinceLoad / 1000)}s ago`
+            );
+            return false;
+          }
+        }
+        return true;
+      }),
       tap(([action, currentVendor]) => {
         const vendorId = action.vendorId || currentVendor?.id;
         console.log('Loading categories for vendor:', vendorId);
@@ -33,8 +62,15 @@ export class CategoryEffects {
         // If we have a vendor ID, load vendor-specific categories
         if (vendorId) {
           return this.categoryService.getCategoriesByVendor(vendorId).pipe(
+            tap((categories: Category[]) => {
+              // Preload category images in background
+              const imageUrls = categories
+                .map((c) => c.imageUrl)
+                .filter((url): url is string => !!url);
+              this.imageCacheService.preloadImages(imageUrls, 4);
+            }),
             map((categories: Category[]) =>
-              CategoryActions.loadCategoriesSuccess({ categories })
+              CategoryActions.loadCategoriesSuccess({ categories, vendorId })
             ),
             catchError((error) => {
               console.error('Error loading vendor categories:', error);
@@ -52,6 +88,13 @@ export class CategoryEffects {
 
         // Otherwise, load all categories
         return this.categoryService.getCategories().pipe(
+          tap((categories: Category[]) => {
+            // Preload category images in background
+            const imageUrls = categories
+              .map((c) => c.imageUrl)
+              .filter((url): url is string => !!url);
+            this.imageCacheService.preloadImages(imageUrls, 4);
+          }),
           map((categories: Category[]) =>
             CategoryActions.loadCategoriesSuccess({ categories })
           ),
@@ -73,13 +116,40 @@ export class CategoryEffects {
   loadCategoriesByVendor$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CategoryActions.loadCategoriesByVendor),
-      tap((action) =>
+      withLatestFrom(
+        this.store.select(selectCategoriesLoadedAt),
+        this.store.select(selectCategoriesLoadedVendorId)
+      ),
+      filter(([action, loadedAt, loadedVendorId]) => {
+        // Skip if same vendor was loaded recently (within cache duration)
+        if (loadedAt && loadedVendorId === action.vendorId) {
+          const timeSinceLoad = Date.now() - loadedAt;
+          if (timeSinceLoad < CACHE_DURATION_MS) {
+            console.log(
+              `Skipping categories reload - cached ${Math.round(timeSinceLoad / 1000)}s ago`
+            );
+            return false;
+          }
+        }
+        return true;
+      }),
+      tap(([action]) =>
         console.log('Loading categories for vendor:', action.vendorId)
       ),
-      switchMap((action) =>
+      switchMap(([action]) =>
         this.categoryService.getCategoriesByVendor(action.vendorId).pipe(
+          tap((categories: Category[]) => {
+            // Preload category images in background
+            const imageUrls = categories
+              .map((c) => c.imageUrl)
+              .filter((url): url is string => !!url);
+            this.imageCacheService.preloadImages(imageUrls, 4);
+          }),
           map((categories: Category[]) =>
-            CategoryActions.loadCategoriesSuccess({ categories })
+            CategoryActions.loadCategoriesSuccess({
+              categories,
+              vendorId: action.vendorId,
+            })
           ),
           catchError((error) => {
             console.error('Error loading vendor categories:', error);

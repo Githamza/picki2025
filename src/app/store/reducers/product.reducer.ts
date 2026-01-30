@@ -6,12 +6,16 @@ export interface ProductState {
   products: Product[];
   loading: boolean;
   error: string | null;
+  loadedAt: number | null;
+  loadedVendorId: string | null;
 }
 
 export const initialProductState: ProductState = {
   products: [],
   loading: false,
   error: null,
+  loadedAt: null,
+  loadedVendorId: null,
 };
 
 export const productReducer = createReducer(
@@ -21,10 +25,12 @@ export const productReducer = createReducer(
     loading: true,
     error: null,
   })),
-  on(ProductActions.loadProductsSuccess, (state, { products }) => ({
+  on(ProductActions.loadProductsSuccess, (state, { products, vendorId }) => ({
     ...state,
     products,
     loading: false,
+    loadedAt: Date.now(),
+    loadedVendorId: vendorId ?? null,
   })),
   on(ProductActions.loadProductsFailure, (state, { error }) => ({
     ...state,

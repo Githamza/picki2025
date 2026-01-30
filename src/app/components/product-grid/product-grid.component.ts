@@ -42,6 +42,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { CachedImageDirective } from '../../shared/directives/cached-image.directive';
 
 @Component({
   selector: 'app-product-grid',
@@ -58,6 +59,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     MatBottomSheetModule,
     HorizontalCategoryMenuComponent,
     VendorCurrencyPipe,
+    CachedImageDirective,
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.scss'],

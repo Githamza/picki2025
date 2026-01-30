@@ -19,7 +19,7 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
 @Component({
   selector: 'app-category-grid',
   standalone: true,
-  imports: [CommonModule, NgOptimizedImage, MatCardModule, MatProgressSpinnerModule, CachedImageDirective],
+  imports: [CommonModule, MatCardModule, MatProgressSpinnerModule, CachedImageDirective],
   templateUrl: './category-grid.component.html',
   styleUrls: ['./category-grid.component.scss'],
 })

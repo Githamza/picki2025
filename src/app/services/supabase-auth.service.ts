@@ -1005,4 +1005,70 @@ export class SupabaseAuthService implements OnDestroy {
       throw error;
     }
   }
+
+  // Payment Provider Management (admin operations)
+  async getVendorPaymentConfig(vendorId: string): Promise<{
+    stripe_account_id: string | null;
+    stripe_onboarding_completed: boolean | null;
+    paymentprovider: 'PAYGREEN' | 'STRIPE' | null;
+  } | null> {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .select('stripe_account_id, stripe_onboarding_completed, paymentprovider')
+      .eq('id', vendorId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching vendor payment config:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async getPaygreenCredentials(vendorId: string): Promise<{
+    public_key: string;
+    shop_id: string;
+    active: boolean;
+  } | null> {
+    const { data, error } = await this.supabaseAuth
+      .from('vendor_paygreen_credentials')
+      .select('public_key, shop_id, active')
+      .eq('vendor_id', vendorId)
+      .single();
+
+    if (error) {
+      // PGRST116 = no rows returned, which is expected if not configured
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error fetching PayGreen credentials:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async updateVendorPaymentProvider(
+    vendorId: string,
+    provider: 'PAYGREEN' | 'STRIPE'
+  ) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        paymentprovider: provider,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
 }

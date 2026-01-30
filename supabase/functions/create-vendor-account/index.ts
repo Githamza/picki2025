@@ -360,7 +360,6 @@ async function seedCatalog(
             name: opt.productName,
             price_adjustment: opt.price_adjustment ?? 0,
             display_order: optIndex,
-            is_available: true,
             image_url: null,
             option_type: 'product',
             description: null,

@@ -80,37 +80,47 @@ export class StripeService {
   }
 
   /**
-   * Create a Stripe Express account for a vendor
-   * Note: Not wired yet (needs Edge Function + DB update flow)
-   * @param accountData Account creation data
-   * @returns Observable with account details
+   * Create a Stripe onboarding link for a vendor.
+   * This will create a Stripe Express account if one doesn't exist,
+   * then return an onboarding link URL.
+   * @param vendorId Vendor UUID
+   * @param refreshUrl URL to redirect if link expires
+   * @param returnUrl URL to redirect after onboarding
+   * @returns Observable with onboarding link URL
    */
-  createExpressAccount(accountData: {
-    email: string;
-    country: string;
-    business_type?: 'individual' | 'company';
-  }): Observable<StripeExpressAccount> {
-    return throwError(
-      () => new Error('Stripe Express onboarding is not implemented yet')
+  createOnboardingLink(
+    vendorId: string,
+    refreshUrl: string,
+    returnUrl: string
+  ): Observable<{ url: string; expires_at: number; stripe_account_id: string }> {
+    return this.invokeFunction<{ url: string; expires_at: number; stripe_account_id: string }>(
+      'stripe-create-onboarding-link',
+      { vendorId, refreshUrl, returnUrl }
     );
   }
 
   /**
-   * Create an account link for vendor onboarding
-   * Note: This requires a backend endpoint
-   * @param accountId Stripe account ID
-   * @param refreshUrl URL to redirect if link expires
-   * @param returnUrl URL to redirect after onboarding
-   * @returns Observable with account link
+   * Check Stripe account onboarding status and update the vendor record.
+   * Call this when user returns from Stripe onboarding.
+   * @param vendorId Vendor UUID
+   * @returns Observable with onboarding status
    */
-  createAccountLink(
-    accountId: string,
-    refreshUrl: string,
-    returnUrl: string
-  ): Observable<StripeAccountLink> {
-    return throwError(
-      () => new Error('Stripe Express onboarding is not implemented yet')
-    );
+  checkOnboardingStatus(vendorId: string): Observable<{
+    stripe_account_id: string;
+    details_submitted: boolean;
+    charges_enabled: boolean;
+    payouts_enabled: boolean;
+    onboarding_complete: boolean;
+    requirements: any;
+  }> {
+    return this.invokeFunction<{
+      stripe_account_id: string;
+      details_submitted: boolean;
+      charges_enabled: boolean;
+      payouts_enabled: boolean;
+      onboarding_complete: boolean;
+      requirements: any;
+    }>('stripe-check-onboarding-status', { vendorId });
   }
 
   /**

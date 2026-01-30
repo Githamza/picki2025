@@ -895,4 +895,77 @@ export class VendorService {
       { day: 'Dimanche', open_time: null, close_time: null, is_closed: true },
     ];
   }
+
+  // Payment Provider Configuration
+  async getPaymentProvidersStatus(vendorId?: string): Promise<{
+    stripe: { configured: boolean; accountId: string | null };
+    paygreen: { configured: boolean };
+    selectedProvider: 'STRIPE' | 'PAYGREEN' | null;
+  }> {
+    const currentVendor = vendorId
+      ? this.vendorsSubject.value.find((v) => v.id === vendorId)
+      : this.getCurrentVendor();
+
+    if (!currentVendor) {
+      return {
+        stripe: { configured: false, accountId: null },
+        paygreen: { configured: false },
+        selectedProvider: null,
+      };
+    }
+
+    try {
+      const [vendorPaymentConfig, paygreenCredentials] = await Promise.all([
+        this.supabaseAuthService.getVendorPaymentConfig(currentVendor.id),
+        this.supabaseAuthService.getPaygreenCredentials(currentVendor.id),
+      ]);
+
+      const stripeConfigured =
+        !!vendorPaymentConfig?.stripe_account_id &&
+        vendorPaymentConfig?.stripe_onboarding_completed === true;
+
+      const paygreenConfigured =
+        !!paygreenCredentials?.public_key &&
+        !!paygreenCredentials?.shop_id &&
+        paygreenCredentials?.active === true;
+
+      return {
+        stripe: {
+          configured: stripeConfigured,
+          accountId: vendorPaymentConfig?.stripe_account_id ?? null,
+        },
+        paygreen: { configured: paygreenConfigured },
+        selectedProvider: vendorPaymentConfig?.paymentprovider ?? null,
+      };
+    } catch (error) {
+      console.error('Error fetching payment providers status:', error);
+      return {
+        stripe: { configured: false, accountId: null },
+        paygreen: { configured: false },
+        selectedProvider: null,
+      };
+    }
+  }
+
+  async updatePaymentProvider(provider: 'STRIPE' | 'PAYGREEN'): Promise<void> {
+    const currentVendor = this.getCurrentVendor();
+    if (!currentVendor) {
+      throw new Error('No current vendor found');
+    }
+
+    const updatedVendor = await this.supabaseAuthService.updateVendorPaymentProvider(
+      currentVendor.id,
+      provider
+    );
+
+    // Update local state
+    this.currentVendorSubject.next(updatedVendor);
+    this.vendorsSubject.next(
+      this.vendorsSubject.value.map((v) =>
+        v.id === updatedVendor.id ? updatedVendor : v
+      )
+    );
+    this.vendorsCache = this.vendorsSubject.value;
+    this.cacheTimestamp = Date.now();
+  }
 }

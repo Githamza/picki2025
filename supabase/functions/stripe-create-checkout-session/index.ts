@@ -19,7 +19,7 @@ const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
+    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-version',
 };
 
 const json = (data: unknown, init: ResponseInit = {}) =>

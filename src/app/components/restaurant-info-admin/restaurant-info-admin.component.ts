@@ -25,8 +25,16 @@ import {
   type BusinessHours,
   type OrderType,
 } from '../../services/vendor.service';
+import { StripeService } from '../../services/stripe.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ChangeDetectionStrategy } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+
+export interface PaymentProviderStatus {
+  stripe: { configured: boolean; accountId: string | null };
+  paygreen: { configured: boolean };
+  selectedProvider: 'STRIPE' | 'PAYGREEN' | null;
+}
 
 @Component({
   selector: 'app-restaurant-info-admin',
@@ -193,6 +201,141 @@ import { ChangeDetectionStrategy } from '@angular/core';
               <p class="subtitle" style="margin: 8px 0 0 0">
                 Si désactivé, les commandes seront créées avec la mention « À payer au retrait ».
               </p>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Payment Providers Section (only shown when online payments enabled) -->
+          <mat-card class="info-section" *ngIf="restaurantForm.get('payments.onlinePaymentsEnabled')?.value">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>account_balance</mat-icon>
+              <mat-card-title>Fournisseurs de paiement</mat-card-title>
+              <mat-card-subtitle
+                >Configurez vos méthodes de paiement en ligne</mat-card-subtitle
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <div class="payment-providers-loading" *ngIf="isLoadingPaymentProviders()">
+                <mat-spinner diameter="24"></mat-spinner>
+                <span>Chargement...</span>
+              </div>
+
+              <div class="payment-providers" *ngIf="!isLoadingPaymentProviders() && paymentProvidersStatus()">
+                <mat-radio-group
+                  class="providers-radio-group"
+                  [value]="paymentProvidersStatus()?.selectedProvider"
+                  (change)="onProviderSelect($event.value)"
+                >
+                  <!-- Stripe Provider -->
+                  <div class="provider-row">
+                    <div class="provider-select">
+                      <mat-radio-button
+                        value="STRIPE"
+                        [disabled]="isUpdatingProvider() || !paymentProvidersStatus()?.stripe?.configured"
+                      >
+                      </mat-radio-button>
+                    </div>
+                    <div class="provider-info">
+                      <div class="provider-header">
+                        <mat-icon class="provider-icon stripe-icon">credit_card</mat-icon>
+                        <span class="provider-name">Stripe</span>
+                        <span
+                          class="provider-status"
+                          [class.configured]="paymentProvidersStatus()?.stripe?.configured"
+                          [class.not-configured]="!paymentProvidersStatus()?.stripe?.configured"
+                        >
+                          {{ paymentProvidersStatus()?.stripe?.configured ? 'Configuré' : 'Non configuré' }}
+                        </span>
+                        <span
+                          *ngIf="!paymentProvidersStatus()?.stripe?.configured"
+                          class="provider-badge quick-setup"
+                        >
+                          Configuration en quelques minutes
+                        </span>
+                      </div>
+                      <p class="provider-description">
+                        Acceptez les paiements par carte bancaire via Stripe.
+                      </p>
+                    </div>
+                    <div class="provider-actions">
+                      <button
+                        *ngIf="!paymentProvidersStatus()?.stripe?.configured"
+                        mat-stroked-button
+                        color="primary"
+                        type="button"
+                        [disabled]="isCreatingStripeOnboarding()"
+                        (click)="onConfigureStripe()"
+                      >
+                        <mat-spinner *ngIf="isCreatingStripeOnboarding()" diameter="18" class="button-spinner"></mat-spinner>
+                        <mat-icon *ngIf="!isCreatingStripeOnboarding()">settings</mat-icon>
+                        {{ isCreatingStripeOnboarding() ? 'Création...' : 'Configurer mon compte' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- PayGreen Provider -->
+                  <div class="provider-row">
+                    <div class="provider-select">
+                      <mat-radio-button
+                        value="PAYGREEN"
+                        [disabled]="isUpdatingProvider() || !paymentProvidersStatus()?.paygreen?.configured"
+                      >
+                      </mat-radio-button>
+                    </div>
+                    <div class="provider-info">
+                      <div class="provider-header">
+                        <mat-icon class="provider-icon paygreen-icon">eco</mat-icon>
+                        <span class="provider-name">PayGreen</span>
+                        <span
+                          class="provider-status"
+                          [class.configured]="paymentProvidersStatus()?.paygreen?.configured"
+                          [class.not-configured]="!paymentProvidersStatus()?.paygreen?.configured"
+                        >
+                          {{ paymentProvidersStatus()?.paygreen?.configured ? 'Configuré' : 'Non configuré' }}
+                        </span>
+                        <span
+                          *ngIf="!paymentProvidersStatus()?.paygreen?.configured"
+                          class="provider-badge complete-setup"
+                        >
+                          Configuration plus complète
+                        </span>
+                      </div>
+                      <p class="provider-description">
+                        Solution de paiement éco-responsable.
+                      </p>
+                    </div>
+                    <div class="provider-actions">
+                      <button
+                        *ngIf="!paymentProvidersStatus()?.paygreen?.configured"
+                        mat-stroked-button
+                        color="primary"
+                        type="button"
+                        (click)="onConfigurePaygreen()"
+                      >
+                        <mat-icon>settings</mat-icon>
+                        Configurer mon compte
+                      </button>
+                    </div>
+                  </div>
+                </mat-radio-group>
+
+                <div
+                  class="provider-warning"
+                  *ngIf="!paymentProvidersStatus()?.stripe?.configured && !paymentProvidersStatus()?.paygreen?.configured"
+                >
+                  <mat-icon>warning</mat-icon>
+                  <span>Aucun fournisseur de paiement n'est configuré. Les paiements en ligne ne seront pas disponibles.</span>
+                </div>
+
+                <div
+                  class="provider-info-text"
+                  *ngIf="paymentProvidersStatus()?.selectedProvider"
+                >
+                  <mat-icon>info</mat-icon>
+                  <span>
+                    Fournisseur actif : <strong>{{ paymentProvidersStatus()?.selectedProvider === 'STRIPE' ? 'Stripe' : 'PayGreen' }}</strong>
+                  </span>
+                </div>
+              </div>
             </mat-card-content>
           </mat-card>
 
@@ -531,6 +674,164 @@ import { ChangeDetectionStrategy } from '@angular/core';
         color: var(--mat-sys-on-surface-variant);
       }
 
+      .payment-providers-loading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      .payment-providers {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .providers-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .provider-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--mat-sys-outline-variant);
+        border-radius: 12px;
+        background: var(--mat-sys-surface-container-lowest);
+      }
+
+      .provider-select {
+        display: flex;
+        align-items: center;
+      }
+
+      .provider-info {
+        flex: 1;
+      }
+
+      .provider-header {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+
+      .provider-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+
+      .stripe-icon {
+        color: var(--mat-sys-primary);
+      }
+
+      .paygreen-icon {
+        color: var(--mat-sys-tertiary);
+      }
+
+      .provider-name {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--mat-sys-on-surface);
+      }
+
+      .provider-status {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+      }
+
+      .provider-status.configured {
+        background: var(--mat-sys-tertiary-container);
+        color: var(--mat-sys-on-tertiary-container);
+      }
+
+      .provider-status.not-configured {
+        background: var(--mat-sys-error-container);
+        color: var(--mat-sys-on-error-container);
+      }
+
+      .provider-badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+      }
+
+      .provider-badge.quick-setup {
+        background: var(--mat-sys-primary-container);
+        color: var(--mat-sys-on-primary-container);
+      }
+
+      .provider-badge.complete-setup {
+        background: var(--mat-sys-secondary-container);
+        color: var(--mat-sys-on-secondary-container);
+      }
+
+      .provider-description {
+        margin: 0;
+        font-size: 13px;
+        color: var(--mat-sys-on-surface-variant);
+        padding-left: 36px;
+      }
+
+      .provider-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .provider-actions button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .button-spinner {
+        display: inline-block;
+      }
+
+      .provider-warning {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--mat-sys-error-container);
+        border-radius: 8px;
+        color: var(--mat-sys-on-error-container);
+        font-size: 13px;
+      }
+
+      .provider-warning mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .provider-info-text {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--mat-sys-primary-container);
+        border-radius: 8px;
+        color: var(--mat-sys-on-primary-container);
+        font-size: 13px;
+      }
+
+      .provider-info-text mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
       @media (max-width: 768px) {
         .restaurant-info-admin {
           padding: 16px;
@@ -554,6 +855,27 @@ import { ChangeDetectionStrategy } from '@angular/core';
         .actions {
           flex-direction: column;
         }
+
+        .provider-row {
+          flex-wrap: wrap;
+        }
+
+        .provider-select {
+          order: 1;
+        }
+
+        .provider-info {
+          order: 2;
+          flex: 1;
+          min-width: 200px;
+        }
+
+        .provider-actions {
+          order: 3;
+          width: 100%;
+          justify-content: flex-end;
+          margin-top: 8px;
+        }
       }
     `,
   ],
@@ -561,12 +883,21 @@ import { ChangeDetectionStrategy } from '@angular/core';
 export class RestaurantInfoAdminComponent implements OnInit {
   private fb = inject(FormBuilder);
   private vendorService = inject(VendorService);
+  private stripeService = inject(StripeService);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   restaurantForm: FormGroup | null = null;
   isSaving = signal(false);
+
+  // Payment providers state
+  paymentProvidersStatus = signal<PaymentProviderStatus | null>(null);
+  isLoadingPaymentProviders = signal(true);
+  isUpdatingProvider = signal(false);
+  isCreatingStripeOnboarding = signal(false);
 
   private dayNames = [
     'Dimanche',
@@ -580,6 +911,168 @@ export class RestaurantInfoAdminComponent implements OnInit {
 
   ngOnInit() {
     this.loadRestaurantInfo();
+    this.loadPaymentProvidersStatus();
+    this.checkStripeOnboardingReturn();
+  }
+
+  private checkStripeOnboardingReturn() {
+    // Check query params immediately (for page reload/redirect from Stripe)
+    const params = this.route.snapshot.queryParams;
+    const stripeOnboarding = params['stripe_onboarding'];
+
+    console.log('Checking Stripe onboarding return, param:', stripeOnboarding);
+
+    if (stripeOnboarding === 'success' || stripeOnboarding === 'refresh') {
+      console.log('Stripe onboarding return detected, verifying status...');
+
+      // Clear the query param from URL
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { stripe_onboarding: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+
+      // Check onboarding status with Stripe (with small delay to ensure vendor is loaded)
+      setTimeout(() => {
+        this.verifyStripeOnboardingStatus();
+      }, 500);
+    }
+  }
+
+  private verifyStripeOnboardingStatus() {
+    const currentVendor = this.vendorService.getCurrentVendor();
+    if (!currentVendor) return;
+
+    this.snackBar.open('Vérification du statut Stripe...', '', {
+      duration: 2000,
+    });
+
+    this.stripeService.checkOnboardingStatus(currentVendor.id).subscribe({
+      next: (status) => {
+        if (status.onboarding_complete) {
+          this.snackBar.open('Configuration Stripe terminée avec succès!', 'Fermer', {
+            duration: 5000,
+            panelClass: ['success-snackbar'],
+          });
+          // Reload payment providers status to reflect the change
+          this.loadPaymentProvidersStatus();
+        } else {
+          const pendingRequirements = status.requirements?.currently_due?.length || 0;
+          this.snackBar.open(
+            `Configuration Stripe en cours. ${pendingRequirements} étape(s) restante(s).`,
+            'Fermer',
+            { duration: 5000 }
+          );
+        }
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error checking Stripe onboarding status:', error);
+        this.snackBar.open('Erreur lors de la vérification du statut Stripe', 'Fermer', {
+          duration: 5000,
+          panelClass: ['error-snackbar'],
+        });
+      },
+    });
+  }
+
+  private async loadPaymentProvidersStatus() {
+    this.isLoadingPaymentProviders.set(true);
+    try {
+      const status = await this.vendorService.getPaymentProvidersStatus();
+      this.paymentProvidersStatus.set(status);
+    } catch (error) {
+      console.error('Error loading payment providers status:', error);
+      this.snackBar.open('Erreur lors du chargement des fournisseurs de paiement', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.isLoadingPaymentProviders.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  async onProviderSelect(provider: 'STRIPE' | 'PAYGREEN' | null) {
+    if (!provider) return;
+
+    const currentStatus = this.paymentProvidersStatus();
+    if (!currentStatus) return;
+
+    // Don't update if already selected
+    if (currentStatus.selectedProvider === provider) {
+      return;
+    }
+
+    this.isUpdatingProvider.set(true);
+    try {
+      await this.vendorService.updatePaymentProvider(provider);
+      this.paymentProvidersStatus.set({
+        ...currentStatus,
+        selectedProvider: provider,
+      });
+      this.snackBar.open(`Fournisseur de paiement changé vers ${provider === 'STRIPE' ? 'Stripe' : 'PayGreen'}`, 'Fermer', {
+        duration: 3000,
+        panelClass: ['success-snackbar'],
+      });
+    } catch (error) {
+      console.error('Error updating payment provider:', error);
+      this.snackBar.open('Erreur lors de la mise à jour du fournisseur', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+      // Reload to reset the radio group state
+      await this.loadPaymentProvidersStatus();
+    } finally {
+      this.isUpdatingProvider.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  onConfigureStripe() {
+    const currentVendor = this.vendorService.getCurrentVendor();
+    if (!currentVendor) {
+      this.snackBar.open('Erreur: Aucun vendeur sélectionné', 'Fermer', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+      return;
+    }
+
+    this.isCreatingStripeOnboarding.set(true);
+
+    const baseUrl = window.location.origin;
+    const returnUrl = `${baseUrl}/admin/restaurant-info?stripe_onboarding=success`;
+    const refreshUrl = `${baseUrl}/admin/restaurant-info?stripe_onboarding=refresh`;
+
+    this.stripeService.createOnboardingLink(currentVendor.id, refreshUrl, returnUrl).subscribe({
+      next: (response) => {
+        this.isCreatingStripeOnboarding.set(false);
+        // Open Stripe onboarding in new tab
+        window.open(response.url, '_blank');
+        this.snackBar.open('Redirection vers Stripe pour finaliser la configuration...', 'Fermer', {
+          duration: 5000,
+        });
+      },
+      error: (error) => {
+        this.isCreatingStripeOnboarding.set(false);
+        console.error('Error creating Stripe onboarding link:', error);
+        this.snackBar.open('Erreur lors de la création du lien Stripe. Veuillez réessayer.', 'Fermer', {
+          duration: 5000,
+          panelClass: ['error-snackbar'],
+        });
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  onConfigurePaygreen() {
+    // Open PayGreen signup page in a new tab
+    window.open('https://app.paygreen.fr/auth/signup', '_blank');
+    this.snackBar.open('Redirection vers PayGreen pour créer votre compte...', 'Fermer', {
+      duration: 5000,
+    });
   }
 
   get businessHoursArray(): FormArray {

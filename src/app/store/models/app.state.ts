@@ -28,6 +28,8 @@ export interface CategoryState {
   selectedCategoryId: number | null;
   loading: boolean;
   error: string | null;
+  loadedAt: number | null;
+  loadedVendorId: string | null;
 }
 
 // Category model

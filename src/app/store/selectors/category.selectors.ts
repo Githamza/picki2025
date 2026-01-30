@@ -32,3 +32,13 @@ export const selectSelectedCategory = createSelector(
   (categories: Category[], selectedId: number | null) =>
     categories.find((category) => category.id === selectedId) || null
 );
+
+export const selectCategoriesLoadedAt = createSelector(
+  selectCategoryState,
+  (state: CategoryState) => state.loadedAt
+);
+
+export const selectCategoriesLoadedVendorId = createSelector(
+  selectCategoryState,
+  (state: CategoryState) => state.loadedVendorId
+);

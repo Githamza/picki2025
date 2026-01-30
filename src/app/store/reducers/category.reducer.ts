@@ -7,6 +7,8 @@ export const initialCategoryState: CategoryState = {
   selectedCategoryId: null,
   loading: false,
   error: null,
+  loadedAt: null,
+  loadedVendorId: null,
 };
 
 // Mock categories for testing
@@ -76,10 +78,12 @@ export const categoryReducer = createReducer(
     loading: true,
     error: null,
   })),
-  on(CategoryActions.loadCategoriesSuccess, (state, { categories }) => ({
+  on(CategoryActions.loadCategoriesSuccess, (state, { categories, vendorId }) => ({
     ...state,
     categories,
     loading: false,
+    loadedAt: Date.now(),
+    loadedVendorId: vendorId ?? null,
   })),
   on(CategoryActions.loadCategoriesFailure, (state, { error }) => ({
     ...state,

@@ -9,7 +9,7 @@ export const loadCategories = createAction(
 
 export const loadCategoriesSuccess = createAction(
   '[Category] Load Categories Success',
-  props<{ categories: Category[] }>()
+  props<{ categories: Category[]; vendorId?: string }>()
 );
 
 export const loadCategoriesFailure = createAction(

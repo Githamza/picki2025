@@ -19,6 +19,16 @@ export const selectProductsError = createSelector(
   (state: ProductState) => state.error
 );
 
+export const selectProductsLoadedAt = createSelector(
+  selectProductState,
+  (state: ProductState) => state.loadedAt
+);
+
+export const selectProductsLoadedVendorId = createSelector(
+  selectProductState,
+  (state: ProductState) => state.loadedVendorId
+);
+
 // Vendor-filtered selectors
 export const selectProductsByVendor = (vendorId: string) =>
   createSelector(selectAllProducts, (products) =>

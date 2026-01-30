@@ -9,7 +9,7 @@ export const loadProducts = createAction(
 
 export const loadProductsSuccess = createAction(
   '[Product] Load Products Success',
-  props<{ products: Product[] }>()
+  props<{ products: Product[]; vendorId?: string }>()
 );
 
 export const loadProductsFailure = createAction(

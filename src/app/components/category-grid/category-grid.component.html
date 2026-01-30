@@ -16,12 +16,10 @@
     >
       <div class="category-image-container">
         <img
-          [ngSrc]="category.imageUrl || placeholderImage"
+          [appCachedImage]="category.imageUrl || placeholderImage"
+          [fallbackSrc]="placeholderImage"
           [alt]="category.name + ' category'"
           class="category-image"
-          width="300"
-          height="200"
-          priority
         />
       </div>
       <mat-card-content>

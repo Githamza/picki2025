@@ -36,5 +36,9 @@ export const productReducer = createReducer(
     ...state,
     loading: false,
     error,
+  })),
+  on(ProductActions.loadProductsCacheHit, (state) => ({
+    ...state,
+    loading: false,
   }))
 );

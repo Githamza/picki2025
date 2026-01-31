@@ -23,6 +23,11 @@ export const loadCategoriesByVendor = createAction(
   props<{ vendorId: string }>()
 );
 
+// Cache hit - data already loaded, skip fetching
+export const loadCategoriesCacheHit = createAction(
+  '[Category] Load Categories Cache Hit'
+);
+
 // Select category
 export const selectCategory = createAction(
   '[Category] Select Category',

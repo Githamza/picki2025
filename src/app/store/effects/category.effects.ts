@@ -7,9 +7,8 @@ import {
   map,
   switchMap,
   tap,
-  exhaustMap,
+  mergeMap,
   withLatestFrom,
-  filter,
 } from 'rxjs/operators';
 import * as CategoryActions from '../actions/category.actions';
 import { CategoryService, Category } from '../../services/category.service';
@@ -38,7 +37,7 @@ export class CategoryEffects {
         this.store.select(selectCategoriesLoadedAt),
         this.store.select(selectCategoriesLoadedVendorId)
       ),
-      filter(([action, currentVendor, loadedAt, loadedVendorId]) => {
+      mergeMap(([action, currentVendor, loadedAt, loadedVendorId]) => {
         const vendorId = action.vendorId || currentVendor?.id;
         // Skip if same vendor was loaded recently (within cache duration)
         if (loadedAt && loadedVendorId === vendorId) {
@@ -47,17 +46,10 @@ export class CategoryEffects {
             console.log(
               `Skipping categories reload - cached ${Math.round(timeSinceLoad / 1000)}s ago`
             );
-            return false;
+            return of(CategoryActions.loadCategoriesCacheHit());
           }
         }
-        return true;
-      }),
-      tap(([action, currentVendor]) => {
-        const vendorId = action.vendorId || currentVendor?.id;
         console.log('Loading categories for vendor:', vendorId);
-      }),
-      exhaustMap(([action, currentVendor]) => {
-        const vendorId = action.vendorId || currentVendor?.id;
 
         // If we have a vendor ID, load vendor-specific categories
         if (vendorId) {
@@ -120,7 +112,7 @@ export class CategoryEffects {
         this.store.select(selectCategoriesLoadedAt),
         this.store.select(selectCategoriesLoadedVendorId)
       ),
-      filter(([action, loadedAt, loadedVendorId]) => {
+      switchMap(([action, loadedAt, loadedVendorId]) => {
         // Skip if same vendor was loaded recently (within cache duration)
         if (loadedAt && loadedVendorId === action.vendorId) {
           const timeSinceLoad = Date.now() - loadedAt;
@@ -128,16 +120,11 @@ export class CategoryEffects {
             console.log(
               `Skipping categories reload - cached ${Math.round(timeSinceLoad / 1000)}s ago`
             );
-            return false;
+            return of(CategoryActions.loadCategoriesCacheHit());
           }
         }
-        return true;
-      }),
-      tap(([action]) =>
-        console.log('Loading categories for vendor:', action.vendorId)
-      ),
-      switchMap(([action]) =>
-        this.categoryService.getCategoriesByVendor(action.vendorId).pipe(
+        console.log('Loading categories for vendor:', action.vendorId);
+        return this.categoryService.getCategoriesByVendor(action.vendorId).pipe(
           tap((categories: Category[]) => {
             // Preload category images in background
             const imageUrls = categories
@@ -162,8 +149,8 @@ export class CategoryEffects {
               })
             );
           })
-        )
-      )
+        );
+      })
     )
   );
 

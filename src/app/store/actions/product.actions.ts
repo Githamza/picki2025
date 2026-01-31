@@ -22,3 +22,8 @@ export const loadProductsByVendor = createAction(
   '[Product] Load Products By Vendor',
   props<{ vendorId: string }>()
 );
+
+// Cache hit - data already loaded, skip fetching
+export const loadProductsCacheHit = createAction(
+  '[Product] Load Products Cache Hit'
+);

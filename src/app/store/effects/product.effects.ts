@@ -5,11 +5,10 @@ import { of } from 'rxjs';
 import {
   catchError,
   map,
-  exhaustMap,
   tap,
   switchMap,
   withLatestFrom,
-  filter,
+  mergeMap,
 } from 'rxjs/operators';
 import * as ProductActions from '../actions/product.actions';
 import { ProductService, Product } from '../../services/product.service';
@@ -38,7 +37,7 @@ export class ProductEffects {
         this.store.select(selectProductsLoadedAt),
         this.store.select(selectProductsLoadedVendorId)
       ),
-      filter(([action, currentVendor, loadedAt, loadedVendorId]) => {
+      mergeMap(([action, currentVendor, loadedAt, loadedVendorId]) => {
         const vendorId = action.vendorId || currentVendor?.id;
         // Skip if same vendor was loaded recently (within cache duration)
         if (loadedAt && loadedVendorId === vendorId) {
@@ -47,17 +46,10 @@ export class ProductEffects {
             console.log(
               `Skipping products reload - cached ${Math.round(timeSinceLoad / 1000)}s ago`
             );
-            return false;
+            return of(ProductActions.loadProductsCacheHit());
           }
         }
-        return true;
-      }),
-      tap(([action, currentVendor]) => {
-        const vendorId = action.vendorId || currentVendor?.id;
         console.log('Loading products for vendor:', vendorId);
-      }),
-      exhaustMap(([action, currentVendor]) => {
-        const vendorId = action.vendorId || currentVendor?.id;
         return this.productService.getProducts(vendorId).pipe(
           tap((products: Product[]) => {
             // Preload product images in background
@@ -91,7 +83,7 @@ export class ProductEffects {
         this.store.select(selectProductsLoadedAt),
         this.store.select(selectProductsLoadedVendorId)
       ),
-      filter(([action, loadedAt, loadedVendorId]) => {
+      switchMap(([action, loadedAt, loadedVendorId]) => {
         // Skip if same vendor was loaded recently (within cache duration)
         if (loadedAt && loadedVendorId === action.vendorId) {
           const timeSinceLoad = Date.now() - loadedAt;
@@ -99,16 +91,11 @@ export class ProductEffects {
             console.log(
               `Skipping products reload - cached ${Math.round(timeSinceLoad / 1000)}s ago`
             );
-            return false;
+            return of(ProductActions.loadProductsCacheHit());
           }
         }
-        return true;
-      }),
-      tap(([action]) =>
-        console.log('Loading products for vendor:', action.vendorId)
-      ),
-      switchMap(([action]) =>
-        this.productService.getProducts(action.vendorId).pipe(
+        console.log('Loading products for vendor:', action.vendorId);
+        return this.productService.getProducts(action.vendorId).pipe(
           tap((products: Product[]) => {
             // Preload product images in background
             const imageUrls = products
@@ -133,8 +120,8 @@ export class ProductEffects {
               })
             );
           })
-        )
-      )
+        );
+      })
     )
   );
 }

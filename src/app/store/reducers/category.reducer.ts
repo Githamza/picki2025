@@ -90,6 +90,10 @@ export const categoryReducer = createReducer(
     loading: false,
     error,
   })),
+  on(CategoryActions.loadCategoriesCacheHit, (state) => ({
+    ...state,
+    loading: false,
+  })),
   on(CategoryActions.selectCategory, (state, { categoryId }) => ({
     ...state,
     selectedCategoryId: categoryId,

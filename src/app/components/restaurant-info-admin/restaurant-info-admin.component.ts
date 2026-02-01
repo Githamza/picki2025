@@ -33,7 +33,7 @@ import { ImageUploadComponent } from '../../shared/components/image-upload/image
 
 export interface PaymentProviderStatus {
   stripe: { configured: boolean; accountId: string | null };
-  paygreen: { configured: boolean };
+  paygreen: { configured: boolean; onboardingCompleted: boolean };
   selectedProvider: 'STRIPE' | 'PAYGREEN' | null;
 }
 
@@ -331,7 +331,7 @@ export interface PaymentProviderStatus {
                     <div class="provider-select">
                       <mat-radio-button
                         value="PAYGREEN"
-                        [disabled]="isUpdatingProvider() || !paymentProvidersStatus()?.paygreen?.configured"
+                        [disabled]="isUpdatingProvider() || !paymentProvidersStatus()?.paygreen?.onboardingCompleted"
                       >
                       </mat-radio-button>
                     </div>

@@ -917,7 +917,7 @@ export class VendorService {
   // Payment Provider Configuration
   async getPaymentProvidersStatus(vendorId?: string): Promise<{
     stripe: { configured: boolean; accountId: string | null };
-    paygreen: { configured: boolean };
+    paygreen: { configured: boolean; onboardingCompleted: boolean };
     selectedProvider: 'STRIPE' | 'PAYGREEN' | null;
   }> {
     const currentVendor = vendorId
@@ -927,7 +927,7 @@ export class VendorService {
     if (!currentVendor) {
       return {
         stripe: { configured: false, accountId: null },
-        paygreen: { configured: false },
+        paygreen: { configured: false, onboardingCompleted: false },
         selectedProvider: null,
       };
     }
@@ -942,8 +942,11 @@ export class VendorService {
         !!vendorPaymentConfig?.stripe_account_id &&
         vendorPaymentConfig?.stripe_onboarding_completed === true;
 
+      const paygreenOnboardingCompleted =
+        vendorPaymentConfig?.paygreen_onboarding_completed === true;
+
       const paygreenConfigured =
-        vendorPaymentConfig?.paygreen_onboarding_completed === true &&
+        paygreenOnboardingCompleted &&
         !!paygreenCredentials?.public_key &&
         !!paygreenCredentials?.shop_id &&
         paygreenCredentials?.active === true;
@@ -953,14 +956,14 @@ export class VendorService {
           configured: stripeConfigured,
           accountId: vendorPaymentConfig?.stripe_account_id ?? null,
         },
-        paygreen: { configured: paygreenConfigured },
+        paygreen: { configured: paygreenConfigured, onboardingCompleted: paygreenOnboardingCompleted },
         selectedProvider: vendorPaymentConfig?.paymentprovider ?? null,
       };
     } catch (error) {
       console.error('Error fetching payment providers status:', error);
       return {
         stripe: { configured: false, accountId: null },
-        paygreen: { configured: false },
+        paygreen: { configured: false, onboardingCompleted: false },
         selectedProvider: null,
       };
     }

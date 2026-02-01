@@ -608,8 +608,6 @@ import { Customisation } from '../../models/customisation.interface';
         font-size: 24px;
         width: 24px;
         height: 24px;
-        margin-bottom: 24px;
-        color: var(--mat-sys-outline);
       }
 
       .empty-state h3 {

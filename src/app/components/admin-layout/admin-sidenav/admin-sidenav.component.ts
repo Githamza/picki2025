@@ -56,10 +56,9 @@ export class AdminSidenavComponent {
       this.vendorService.loadVendors().then(() => {
         const vendor = this.vendorService.getCurrentVendor();
         if (vendor) {
-          this.vendorNavigation.navigateWithVendor([
-            'admin',
-            'product-manager',
-          ]);
+          this.router.navigate(['admin', 'product-manager'], {
+            queryParams: { tab: 'products' },
+          });
         } else {
           this.router.navigate(['/']);
         }
@@ -67,7 +66,9 @@ export class AdminSidenavComponent {
       return;
     }
 
-    this.vendorNavigation.navigateWithVendor(['admin', 'product-manager']);
+    this.router.navigate(['admin', 'product-manager'], {
+      queryParams: { tab: 'products' },
+    });
   }
 
   navigateToRestaurantInfo() {

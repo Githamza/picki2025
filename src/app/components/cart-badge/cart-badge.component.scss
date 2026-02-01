@@ -9,10 +9,25 @@
   align-items: center;
   padding: 0 20px;
   font-size: 1.2rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  // M3 elevation for FAB (level 3)
+  box-shadow: var(--mat-sys-level3);
+  // FAB uses primary-container with on-primary-container text
+  background-color: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+
+  &:hover {
+    // Elevated state on hover
+    box-shadow: var(--mat-sys-level4);
+  }
+
+  mat-icon {
+    color: var(--mat-sys-on-primary-container);
+  }
 }
+
 .cart-count {
   margin-left: 8px;
   font-weight: bold;
   font-size: 1.1em;
+  color: var(--mat-sys-on-primary-container);
 }

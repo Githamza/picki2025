@@ -111,6 +111,8 @@ import {
     `
       .restaurant-info-dialog {
         max-width: 600px;
+        background: var(--mat-sys-surface-container-high);
+        color: var(--mat-sys-on-surface);
       }
 
       .dialog-header {
@@ -129,6 +131,7 @@ import {
         height: 48px;
         border-radius: 8px;
         object-fit: cover;
+        background: var(--mat-sys-surface-container);
       }
 
       .restaurant-logo-fallback {
@@ -141,6 +144,7 @@ import {
       .restaurant-header h2 {
         margin: 0;
         color: var(--mat-sys-on-surface);
+        font: var(--mat-sys-headline-medium);
       }
 
       .info-sections {
@@ -151,6 +155,12 @@ import {
 
       .info-card {
         border-radius: 12px;
+        background: var(--mat-sys-surface-container);
+        box-shadow: var(--mat-sys-level1);
+      }
+
+      .info-card mat-card-header mat-icon[mat-card-avatar] {
+        color: var(--mat-sys-primary);
       }
 
       .business-hours {
@@ -164,6 +174,11 @@ import {
         justify-content: space-between;
         align-items: center;
         padding: 4px 0;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+      }
+
+      .day-hours:last-child {
+        border-bottom: none;
       }
 
       .day {
@@ -190,6 +205,7 @@ import {
         display: flex;
         align-items: center;
         gap: 12px;
+        color: var(--mat-sys-on-surface);
       }
 
       .contact-item mat-icon {
@@ -203,6 +219,7 @@ import {
 
       .contact-item a:hover {
         text-decoration: underline;
+        color: var(--mat-sys-primary);
       }
 
       .address-info p {
@@ -212,10 +229,13 @@ import {
 
       mat-dialog-actions {
         padding: 16px 24px;
+        border-top: 1px solid var(--mat-sys-outline-variant);
+        background: var(--mat-sys-surface-container-high);
       }
 
       mat-dialog-actions button {
         border-radius: 20px;
+        color: var(--mat-sys-primary);
       }
     `,
   ],

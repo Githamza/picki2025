@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: var(--mat-sys-background);
+  background-color: var(--mat-sys-surface);
 }
 
 .toolbar {
@@ -211,11 +211,11 @@
 // Dark mode specific overrides using Material theming
 @media (prefers-color-scheme: dark) {
   .main-content {
-    box-shadow: var(--mat-sys-elevation-level2);
+    box-shadow: var(--mat-sys-level2);
   }
 
   .mobile-category-menu {
-    box-shadow: var(--mat-sys-elevation-level3);
+    box-shadow: var(--mat-sys-level3);
   }
 }
 

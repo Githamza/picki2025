@@ -7,10 +7,10 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--mat-sys-outline-variant-transparent);
+  border-right: 1px solid var(--mat-sys-outline-variant);
   border-radius: 8px;
   background: var(--mat-sys-surface-container);
-  box-shadow: var(--mat-sys-elevation-level1);
+  box-shadow: var(--mat-sys-level1);
   overflow: hidden;
 
   .menu-title {
@@ -28,20 +28,21 @@
   }
 
   .error-message {
-    color: var(--mat-warn);
+    color: var(--mat-sys-on-error-container);
     padding: 8px 16px;
     margin: 8px 0;
-    background-color: var(--mat-warn-transparent);
+    background-color: var(--mat-sys-error-container);
     border-radius: 4px;
   }
 
   .active-category {
-    background-color: var(--mat-primary-transparent) !important;
+    background-color: var(--mat-sys-secondary-container) !important;
+    color: var(--mat-sys-on-secondary-container);
   }
 
   .menu-divider {
     margin: 16px 0;
-    border-color: var(--mat-outline-variant-transparent);
+    border-color: var(--mat-sys-outline-variant);
   }
 
   /* Material icon styles */
@@ -70,8 +71,9 @@
       margin-bottom: 4px;
 
       &.active-category {
-        background-color: var(--mat-primary-transparent);
-        border-left: 4px solid var(--mat-primary);
+        background-color: var(--mat-sys-secondary-container);
+        border-left: 4px solid var(--mat-sys-primary);
+        color: var(--mat-sys-on-secondary-container);
 
         .mat-icon {
           color: var(--mat-sys-primary);
@@ -79,7 +81,7 @@
       }
 
       &:hover {
-        background-color: var(--mat-sys-on-surface-transparent);
+        background-color: var(--mat-sys-surface-container-high);
       }
 
       .mat-icon {
@@ -98,7 +100,7 @@
     height: auto;
     max-height: none;
     border-right: none;
-    border-bottom: 1px solid var(--mat-outline-variant-transparent);
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
     border-radius: 0;
     box-shadow: none;
 

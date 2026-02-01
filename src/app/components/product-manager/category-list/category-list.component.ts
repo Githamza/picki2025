@@ -373,7 +373,7 @@ import { ImageUploadComponent } from '../../../shared/components';
       /* ===== Loading ===== */
       .loading-container {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
         justify-content: center;
         padding: 64px;
@@ -744,7 +744,6 @@ import { ImageUploadComponent } from '../../../shared/components';
         }
 
         .category-title {
-          flex-direction: column;
           align-items: flex-start;
           gap: 8px;
         }

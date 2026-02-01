@@ -29,6 +29,7 @@ import { StripeService } from '../../services/stripe.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ImageUploadComponent } from '../../shared/components/image-upload/image-upload.component';
 
 export interface PaymentProviderStatus {
   stripe: { configured: boolean; accountId: string | null };
@@ -38,7 +39,7 @@ export interface PaymentProviderStatus {
 
 @Component({
   selector: 'app-restaurant-info-admin',
-  imports: [CommonModule, ReactiveFormsModule, ...materialComponents],
+  imports: [CommonModule, ReactiveFormsModule, ...materialComponents, ImageUploadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="restaurant-info-admin">
@@ -52,6 +53,59 @@ export interface PaymentProviderStatus {
 
       <div class="content" *ngIf="restaurantForm">
         <form [formGroup]="restaurantForm" (ngSubmit)="onSave()">
+          <!-- Banner & Logo Section -->
+          <mat-card class="info-section branding-section">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>image</mat-icon>
+              <mat-card-title>Image de marque</mat-card-title>
+              <mat-card-subtitle
+                >Personnalisez l'apparence de votre restaurant</mat-card-subtitle
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <!-- Banner Image -->
+              <div class="branding-item">
+                <div class="branding-label">
+                  <mat-icon>panorama</mat-icon>
+                  <div class="branding-label-text">
+                    <span class="label-title">Image de bannière</span>
+                    <span class="label-hint">Format recommandé : 1200x400px</span>
+                  </div>
+                </div>
+                <div class="banner-preview-container" *ngIf="restaurantForm.get('bannerUrl')?.value">
+                  <img
+                    [src]="restaurantForm.get('bannerUrl')?.value"
+                    alt="Bannière du restaurant"
+                    class="banner-preview"
+                  />
+                </div>
+                <app-image-upload
+                  formControlName="bannerUrl"
+                  label="URL de la bannière"
+                  placeholder="https://... ou téléchargez une image"
+                ></app-image-upload>
+              </div>
+
+              <mat-divider class="branding-divider"></mat-divider>
+
+              <!-- Logo -->
+              <div class="branding-item">
+                <div class="branding-label">
+                  <mat-icon>store</mat-icon>
+                  <div class="branding-label-text">
+                    <span class="label-title">Logo du restaurant</span>
+                    <span class="label-hint">Format recommandé : 200x200px (carré)</span>
+                  </div>
+                </div>
+                <app-image-upload
+                  formControlName="logoUrl"
+                  label="URL du logo"
+                  placeholder="https://... ou téléchargez une image"
+                ></app-image-upload>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
           <!-- Business Hours Section -->
           <mat-card class="info-section">
             <mat-card-header>
@@ -184,7 +238,7 @@ export interface PaymentProviderStatus {
           </mat-card>
 
           <!-- Payments Section -->
-          <mat-card class="info-section">
+          <mat-card class="info-section" id="payments-section">
             <mat-card-header>
               <mat-icon mat-card-avatar>payments</mat-icon>
               <mat-card-title>Paiement</mat-card-title>
@@ -198,14 +252,14 @@ export interface PaymentProviderStatus {
                   Accepter les paiements en ligne
                 </mat-checkbox>
               </div>
-              <p class="subtitle" style="margin: 8px 0 0 0">
+              <p class="hint-text">
                 Si désactivé, les commandes seront créées avec la mention « À payer au retrait ».
               </p>
             </mat-card-content>
           </mat-card>
 
           <!-- Payment Providers Section (only shown when online payments enabled) -->
-          <mat-card class="info-section" *ngIf="restaurantForm.get('payments.onlinePaymentsEnabled')?.value">
+          <mat-card class="info-section" id="payment-providers" *ngIf="restaurantForm.get('payments.onlinePaymentsEnabled')?.value">
             <mat-card-header>
               <mat-icon mat-card-avatar>account_balance</mat-icon>
               <mat-card-title>Fournisseurs de paiement</mat-card-title>
@@ -354,7 +408,7 @@ export interface PaymentProviderStatus {
                   Effacer les stocks systématiquement quotidiennement
                 </mat-checkbox>
               </div>
-              <p class="subtitle" style="margin: 8px 0 0 0">
+              <p class="hint-text">
                 Si activé, tous les stocks seront remis à « illimité » chaque jour à minuit.
               </p>
             </mat-card-content>
@@ -500,15 +554,25 @@ export interface PaymentProviderStatus {
   `,
   styles: [
     `
+      /* ===== Layout ===== */
+      :host {
+        display: block;
+        background: var(--mat-sys-surface);
+      }
+
       .restaurant-info-admin {
         padding: 24px;
-        max-width: 1200px;
+        max-width: 800px;
         margin: 0 auto;
       }
 
+      /* ===== Header ===== */
       .header {
         margin-bottom: 32px;
+        padding: 24px;
         text-align: center;
+        background: var(--mat-sys-surface-container-low);
+        border-radius: var(--mat-sys-corner-extra-large);
       }
 
       .header h2 {
@@ -517,40 +581,128 @@ export interface PaymentProviderStatus {
         justify-content: center;
         gap: 12px;
         margin: 0 0 8px 0;
+        font: var(--mat-sys-headline-medium);
+        color: var(--mat-sys-on-surface);
+      }
+
+      .header h2 mat-icon {
         color: var(--mat-sys-primary);
       }
 
       .subtitle {
         margin: 0;
+        font: var(--mat-sys-body-medium);
         color: var(--mat-sys-on-surface-variant);
       }
 
+      /* ===== Content ===== */
       .content {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding-bottom: 24px;
+      }
+
+      .info-section {
+        background: var(--mat-sys-surface-container);
+        border-radius: var(--mat-sys-corner-large);
+        box-shadow: var(--mat-sys-level1);
+        margin: 10px 0px;
+      }
+
+      .info-section mat-card-header {
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--mat-sys-surface-variant);
+        margin-bottom: 16px;
+      }
+
+      .info-section mat-card-title {
+        font: var(--mat-sys-title-medium);
+      }
+
+      .info-section mat-card-subtitle {
+        font: var(--mat-sys-body-small);
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      /* ===== Branding Section ===== */
+      .branding-section mat-card-content {
         display: flex;
         flex-direction: column;
         gap: 24px;
       }
 
-      .info-section {
-        border-radius: 16px;
+      .branding-item {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
 
+      .branding-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .branding-label mat-icon {
+        color: var(--mat-sys-primary);
+        margin-top: 2px;
+      }
+
+      .branding-label-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .label-title {
+        font: var(--mat-sys-label-large);
+        color: var(--mat-sys-on-surface);
+      }
+
+      .label-hint {
+        font: var(--mat-sys-body-small);
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      .banner-preview-container {
+        width: 100%;
+        max-height: 200px;
+        border-radius: var(--mat-sys-corner-medium);
+        overflow: hidden;
+        border: 1px solid var(--mat-sys-outline-variant);
+      }
+
+      .banner-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .branding-divider {
+        margin: 8px 0;
+      }
+
+      /* ===== Business Hours ===== */
       .business-hours-form {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 8px;
       }
 
       .day-row {
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--mat-sys-outline-variant);
+        padding: 12px 16px;
+        background: var(--mat-sys-surface-container-high);
+        border-radius: var(--mat-sys-corner-medium);
+        transition: background-color 0.15s ease;
       }
 
-      .day-row:last-child {
-        border-bottom: none;
+      .day-row:hover {
+        background: var(--mat-sys-surface-container-highest);
       }
 
       .day-info {
@@ -558,7 +710,7 @@ export interface PaymentProviderStatus {
       }
 
       .day-name {
-        font-weight: 500;
+        font: var(--mat-sys-label-large);
         color: var(--mat-sys-on-surface);
       }
 
@@ -578,6 +730,7 @@ export interface PaymentProviderStatus {
       }
 
       .time-separator {
+        font: var(--mat-sys-body-large);
         color: var(--mat-sys-on-surface-variant);
       }
 
@@ -587,10 +740,12 @@ export interface PaymentProviderStatus {
       }
 
       .closed-text {
+        font: var(--mat-sys-body-medium);
         color: var(--mat-sys-error);
         font-style: italic;
       }
 
+      /* ===== Forms ===== */
       .contact-form,
       .address-form {
         display: flex;
@@ -601,33 +756,35 @@ export interface PaymentProviderStatus {
       .order-types {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
         padding: 8px 0;
       }
 
       .delivery-settings {
         margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--mat-sys-outline-variant);
+        padding: 16px;
+        background: var(--mat-sys-surface-container-high);
+        border: 1px solid var(--mat-sys-outline-variant);
+        border-radius: var(--mat-sys-corner-medium);
       }
 
       .delivery-settings-title {
-        margin: 0 0 12px 0;
-        font-weight: 600;
+        margin: 0 0 16px 0;
+        font: var(--mat-sys-title-small);
         color: var(--mat-sys-on-surface);
       }
 
       .delivery-system-radio {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 12px;
+        margin-bottom: 16px;
       }
 
       .validation-error {
         margin-top: 8px;
+        font: var(--mat-sys-body-small);
         color: var(--mat-sys-error);
-        font-size: 12px;
       }
 
       .address-row {
@@ -647,23 +804,27 @@ export interface PaymentProviderStatus {
         width: 100%;
       }
 
+      .hint-text {
+        margin: 12px 0 0 0;
+        font: var(--mat-sys-body-small);
+        color: var(--mat-sys-on-surface-variant);
+      }
+
+      /* ===== Actions ===== */
       .actions {
         display: flex;
         gap: 16px;
         justify-content: center;
-        padding: 24px 0;
+        padding: 24px;
+        margin-top: 8px;
+        background: var(--mat-sys-surface-container-low);
+        border-radius: var(--mat-sys-corner-large);
+        position: sticky;
+        bottom: 16px;
+        box-shadow: var(--mat-sys-level2);
       }
 
-      .save-button {
-        border-radius: 24px;
-        padding: 0 32px;
-      }
-
-      .reset-button {
-        border-radius: 24px;
-        padding: 0 24px;
-      }
-
+      /* ===== Loading State ===== */
       .loading {
         display: flex;
         flex-direction: column;
@@ -671,14 +832,24 @@ export interface PaymentProviderStatus {
         justify-content: center;
         gap: 16px;
         padding: 64px;
+        background: var(--mat-sys-surface-container);
+        border-radius: var(--mat-sys-corner-large);
+      }
+
+      .loading p {
+        font: var(--mat-sys-body-medium);
         color: var(--mat-sys-on-surface-variant);
       }
 
+      /* ===== Payment Providers ===== */
       .payment-providers-loading {
         display: flex;
         align-items: center;
         gap: 12px;
         padding: 16px;
+        background: var(--mat-sys-surface-container-high);
+        border-radius: var(--mat-sys-corner-medium);
+        font: var(--mat-sys-body-medium);
         color: var(--mat-sys-on-surface-variant);
       }
 
@@ -691,17 +862,23 @@ export interface PaymentProviderStatus {
       .providers-radio-group {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
       }
 
       .provider-row {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
         padding: 16px;
+        background: var(--mat-sys-surface-container-high);
         border: 1px solid var(--mat-sys-outline-variant);
-        border-radius: 12px;
-        background: var(--mat-sys-surface-container-lowest);
+        border-radius: var(--mat-sys-corner-medium);
+        transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .provider-row:hover {
+        background: var(--mat-sys-surface-container-highest);
+        border-color: var(--mat-sys-outline);
       }
 
       .provider-select {
@@ -736,16 +913,14 @@ export interface PaymentProviderStatus {
       }
 
       .provider-name {
-        font-weight: 600;
-        font-size: 16px;
+        font: var(--mat-sys-title-small);
         color: var(--mat-sys-on-surface);
       }
 
       .provider-status {
-        font-size: 12px;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-weight: 500;
+        font: var(--mat-sys-label-small);
+        padding: 4px 12px;
+        border-radius: var(--mat-sys-corner-full);
       }
 
       .provider-status.configured {
@@ -759,10 +934,9 @@ export interface PaymentProviderStatus {
       }
 
       .provider-badge {
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-weight: 500;
+        font: var(--mat-sys-label-small);
+        padding: 4px 12px;
+        border-radius: var(--mat-sys-corner-full);
       }
 
       .provider-badge.quick-setup {
@@ -777,9 +951,9 @@ export interface PaymentProviderStatus {
 
       .provider-description {
         margin: 0;
-        font-size: 13px;
+        font: var(--mat-sys-body-small);
         color: var(--mat-sys-on-surface-variant);
-        padding-left: 36px;
+        padding-left: 32px;
       }
 
       .provider-actions {
@@ -798,43 +972,73 @@ export interface PaymentProviderStatus {
         display: inline-block;
       }
 
+      /* ===== Alerts ===== */
       .provider-warning {
         display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
         background: var(--mat-sys-error-container);
-        border-radius: 8px;
-        color: var(--mat-sys-on-error-container);
-        font-size: 13px;
+        border-radius: var(--mat-sys-corner-medium);
       }
 
       .provider-warning mat-icon {
         font-size: 20px;
         width: 20px;
         height: 20px;
+        color: var(--mat-sys-on-error-container);
+        flex-shrink: 0;
+      }
+
+      .provider-warning span {
+        font: var(--mat-sys-body-medium);
+        color: var(--mat-sys-on-error-container);
       }
 
       .provider-info-text {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
+        gap: 12px;
+        padding: 16px;
         background: var(--mat-sys-primary-container);
-        border-radius: 8px;
-        color: var(--mat-sys-on-primary-container);
-        font-size: 13px;
+        border-radius: var(--mat-sys-corner-medium);
       }
 
       .provider-info-text mat-icon {
         font-size: 20px;
         width: 20px;
         height: 20px;
+        color: var(--mat-sys-on-primary-container);
+        flex-shrink: 0;
       }
 
-      @media (max-width: 768px) {
+      .provider-info-text span {
+        font: var(--mat-sys-body-medium);
+        color: var(--mat-sys-on-primary-container);
+      }
+
+      /* ===== Section Highlight Animation ===== */
+      .highlight-section {
+        animation: highlight-pulse 2s ease-out;
+      }
+
+      @keyframes highlight-pulse {
+        0% {
+          box-shadow: 0 0 0 4px var(--mat-sys-primary);
+        }
+        100% {
+          box-shadow: var(--mat-sys-level1);
+        }
+      }
+
+      /* ===== Responsive ===== */
+      @media (max-width: 600px) {
         .restaurant-info-admin {
           padding: 16px;
+        }
+
+        .header h2 {
+          font: var(--mat-sys-headline-small);
         }
 
         .day-row {
@@ -843,17 +1047,45 @@ export interface PaymentProviderStatus {
           gap: 12px;
         }
 
+        .day-info {
+          min-width: unset;
+        }
+
         .time-controls {
           justify-content: space-between;
         }
 
+        .time-field {
+          flex: 1;
+          min-width: 0;
+        }
+
         .address-row {
           flex-direction: column;
-          gap: 16px;
+          gap: 0;
+        }
+
+        .postal-code {
+          flex: 1;
+        }
+
+        .header {
+          padding: 16px;
+          margin: -16px -16px 24px -16px;
+          border-radius: 0;
         }
 
         .actions {
           flex-direction: column;
+          gap: 12px;
+          margin: 8px -16px 0 -16px;
+          padding: 16px;
+          border-radius: 0;
+          bottom: 0;
+        }
+
+        .actions button {
+          width: 100%;
         }
 
         .provider-row {
@@ -867,14 +1099,23 @@ export interface PaymentProviderStatus {
         .provider-info {
           order: 2;
           flex: 1;
-          min-width: 200px;
+          min-width: 180px;
         }
 
         .provider-actions {
           order: 3;
           width: 100%;
-          justify-content: flex-end;
-          margin-top: 8px;
+          margin-top: 12px;
+        }
+
+        .provider-actions button {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .provider-description {
+          padding-left: 0;
+          margin-top: 4px;
         }
       }
     `,
@@ -913,6 +1154,35 @@ export class RestaurantInfoAdminComponent implements OnInit {
     this.loadRestaurantInfo();
     this.loadPaymentProvidersStatus();
     this.checkStripeOnboardingReturn();
+    this.handleFragmentNavigation();
+  }
+
+  private handleFragmentNavigation(): void {
+    // Handle initial fragment from snapshot
+    const fragment = this.route.snapshot.fragment;
+    if (fragment) {
+      this.scrollToFragment(fragment);
+    }
+
+    // Also subscribe to fragment changes
+    this.route.fragment.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((frag) => {
+      if (frag) {
+        this.scrollToFragment(frag);
+      }
+    });
+  }
+
+  private scrollToFragment(fragment: string): void {
+    // Delay to ensure the DOM is rendered
+    setTimeout(() => {
+      const element = document.getElementById(fragment);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a brief highlight effect
+        element.classList.add('highlight-section');
+        setTimeout(() => element.classList.remove('highlight-section'), 2000);
+      }
+    }, 500);
   }
 
   private checkStripeOnboardingReturn() {
@@ -955,8 +1225,8 @@ export class RestaurantInfoAdminComponent implements OnInit {
             duration: 5000,
             panelClass: ['success-snackbar'],
           });
-          // Reload payment providers status to reflect the change
-          this.loadPaymentProvidersStatus();
+          // Reload payment providers status and auto-select Stripe
+          this.loadPaymentProvidersStatusAndSelectStripe();
         } else {
           const pendingRequirements = status.requirements?.currently_due?.length || 0;
           this.snackBar.open(
@@ -982,6 +1252,28 @@ export class RestaurantInfoAdminComponent implements OnInit {
     try {
       const status = await this.vendorService.getPaymentProvidersStatus();
       this.paymentProvidersStatus.set(status);
+    } catch (error) {
+      console.error('Error loading payment providers status:', error);
+      this.snackBar.open('Erreur lors du chargement des fournisseurs de paiement', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.isLoadingPaymentProviders.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  private async loadPaymentProvidersStatusAndSelectStripe() {
+    this.isLoadingPaymentProviders.set(true);
+    try {
+      const status = await this.vendorService.getPaymentProvidersStatus();
+      this.paymentProvidersStatus.set(status);
+
+      // Auto-select Stripe if it's now configured
+      if (status.stripe.configured) {
+        await this.onProviderSelect('STRIPE');
+      }
     } catch (error) {
       console.error('Error loading payment providers status:', error);
       this.snackBar.open('Erreur lors du chargement des fournisseurs de paiement', 'Fermer', {
@@ -1085,10 +1377,18 @@ export class RestaurantInfoAdminComponent implements OnInit {
 
   private async loadRestaurantInfo() {
     try {
-      this.vendorService.getRestaurantInfo().subscribe((info) => {
+      this.vendorService.getRestaurantInfo().subscribe(async (info) => {
         console.log('Received info:', info);
         if (info) {
-          this.initializeForm(info);
+          // Load banner from banners table
+          let bannerUrl = '';
+          try {
+            const banner = await this.vendorService.getVendorBanner(info.vendor.id);
+            bannerUrl = banner?.image_url || '';
+          } catch (error) {
+            console.warn('Could not load vendor banner:', error);
+          }
+          this.initializeForm(info, bannerUrl);
         } else {
           this.initializeEmptyForm();
         }
@@ -1102,9 +1402,11 @@ export class RestaurantInfoAdminComponent implements OnInit {
     }
   }
 
-  private initializeForm(info: RestaurantInfo) {
+  private initializeForm(info: RestaurantInfo, bannerUrl: string = '') {
     const enabledTypes = info.vendor.enabled_order_types;
     this.restaurantForm = this.fb.group({
+      bannerUrl: [bannerUrl],
+      logoUrl: [info.vendor.logo_url || ''],
       businessHours: this.fb.array(
         this.createBusinessHoursControls(info.businessHours)
       ),
@@ -1129,10 +1431,10 @@ export class RestaurantInfoAdminComponent implements OnInit {
         website: [info.contact.website || '', []],
       }),
       address: this.fb.group({
-        street: [info.address.street || '', [Validators.required]],
-        city: [info.address.city || '', [Validators.required]],
-        postal_code: [info.address.postal_code || '', [Validators.required]],
-        country: [info.address.country || '', [Validators.required]],
+        street: [info.address.street || ''],
+        city: [info.address.city || ''],
+        postal_code: [info.address.postal_code || ''],
+        country: [info.address.country || ''],
       }),
     });
     console.log('Form initialized:', this.restaurantForm);
@@ -1141,6 +1443,8 @@ export class RestaurantInfoAdminComponent implements OnInit {
 
   private initializeEmptyForm() {
     this.restaurantForm = this.fb.group({
+      bannerUrl: [''],
+      logoUrl: [''],
       businessHours: this.fb.array(this.createEmptyBusinessHoursControls()),
       orderTypes: this.createOrderTypesGroup(['take-away', 'eat-in', 'delivery']),
       deliverySettings: this.fb.group({
@@ -1157,10 +1461,10 @@ export class RestaurantInfoAdminComponent implements OnInit {
         website: ['', []],
       }),
       address: this.fb.group({
-        street: ['', [Validators.required]],
-        city: ['', [Validators.required]],
-        postal_code: ['', [Validators.required]],
-        country: ['France', [Validators.required]],
+        street: [''],
+        city: [''],
+        postal_code: [''],
+        country: ['France'],
       }),
     });
     console.log('Empty form initialized:', this.restaurantForm);
@@ -1316,14 +1620,32 @@ export class RestaurantInfoAdminComponent implements OnInit {
 
     try {
       const formValue = this.restaurantForm.value as any;
+      const currentVendor = this.vendorService.getCurrentVendor();
+
+      if (!currentVendor) {
+        throw new Error('No vendor selected');
+      }
 
       const enabledOrderTypes: OrderType[] = [];
       if (formValue.orderTypes?.takeAway) enabledOrderTypes.push('take-away');
       if (formValue.orderTypes?.eatIn) enabledOrderTypes.push('eat-in');
       if (formValue.orderTypes?.delivery) enabledOrderTypes.push('delivery');
 
-      // Here we would call the service to save the data
-      // For now, we'll show a success message
+      // Save banner and logo URLs
+      const bannerUrl = formValue.bannerUrl || '';
+      const logoUrl = formValue.logoUrl || '';
+
+      // Update banner in banners table if provided
+      if (bannerUrl) {
+        await this.vendorService.upsertVendorBanner(currentVendor.id, bannerUrl);
+      }
+
+      // Update logo if changed
+      if (logoUrl !== currentVendor.logo_url) {
+        await this.vendorService.updateVendorLogo(currentVendor.id, logoUrl);
+      }
+
+      // Save other restaurant info
       await this.saveRestaurantInfo({
         businessHours: formValue.businessHours,
         contact: formValue.contact,

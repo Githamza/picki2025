@@ -26,16 +26,17 @@ export class SupabaseAuthService implements OnDestroy {
         {
           auth: {
             autoRefreshToken: true,
-            // Persist session in localStorage
+            // Persist session in localStorage for cross-tab persistence
             persistSession: true,
             // Detect session in URL (for OAuth flows)
             detectSessionInUrl: true,
             // Storage key for session persistence - AUTHENTICATED USERS
             storageKey: 'supabase.admin.token',
-            // Storage implementation (uses localStorage by default)
+            // Use localStorage for persistent sessions across tabs and browser restarts
+            // (sessionStorage loses data on tab close, which is not desired)
             storage:
-              typeof window !== 'undefined' ? window.sessionStorage : undefined,
-            // Add flow type to prevent lock conflicts
+              typeof window !== 'undefined' ? window.localStorage : undefined,
+            // Use PKCE flow for enhanced security (recommended for SPAs)
             flowType: 'pkce',
           },
         }
@@ -373,6 +374,56 @@ export class SupabaseAuthService implements OnDestroy {
 
     if (error) throw error;
     return data;
+  }
+
+  async getVendorBanner(vendorId: string) {
+    const { data, error } = await this.supabaseAuth
+      .from('banners')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('display_order', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async upsertVendorBanner(vendorId: string, imageUrl: string) {
+    // First check if a banner already exists for this vendor
+    const existing = await this.getVendorBanner(vendorId);
+
+    if (existing) {
+      // Update existing banner
+      const { data, error } = await this.supabaseAuth
+        .from('banners')
+        .update({
+          image_url: imageUrl,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } else {
+      // Create new banner
+      const { data, error } = await this.supabaseAuth
+        .from('banners')
+        .insert({
+          vendor_id: vendorId,
+          image_url: imageUrl,
+          is_active: true,
+          display_order: 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
   }
 
   async updateVendorEnabledOrderTypes(

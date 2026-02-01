@@ -67,6 +67,11 @@ import { Customisation } from '../../models/customisation.interface';
         [selectedIndex]="selectedTabIndex()"
         (selectedIndexChange)="onTabIndexChange($event)"
       >
+      <mat-tab label="Catégories">
+          <div class="tab-content">
+            <app-category-list></app-category-list>
+          </div>
+        </mat-tab>
         <mat-tab label="Mes produits">
           <div class="tab-content">
             <app-product-list></app-product-list>
@@ -318,11 +323,7 @@ import { Customisation } from '../../models/customisation.interface';
           </div>
         </mat-tab>
 
-        <mat-tab label="Catégories">
-          <div class="tab-content">
-            <app-category-list></app-category-list>
-          </div>
-        </mat-tab>
+
       </mat-tab-group>
 
       <!-- Router outlet for child components like MenuEditComponent -->
@@ -717,14 +718,17 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
 
   private tabIndexFromKey(tab: string): number {
     switch (tab) {
-      case 'menus':
-      case 'formules':
-        return 1;
-      case 'customisations':
-      case 'customisation':
-        return 2;
+      case 'categories':
+        return 0;
       case 'products':
       case 'produits':
+        return 1;
+      case 'menus':
+      case 'formules':
+        return 2;
+      case 'customisations':
+      case 'customisation':
+        return 3;
       default:
         return 0;
     }
@@ -732,12 +736,16 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
 
   private tabKeyFromIndex(index: number): string {
     switch (index) {
+      case 0:
+        return 'categories';
       case 1:
-        return 'menus';
+        return 'products';
       case 2:
+        return 'menus';
+      case 3:
         return 'customisations';
       default:
-        return 'products';
+        return 'categories';
     }
   }
 

@@ -1228,6 +1228,9 @@ export type Database = {
           active: boolean
           created_at: string
           public_key: string
+          sandbox_public_key: string | null
+          sandbox_secret_key: string | null
+          sandbox_shop_id: string | null
           secret_key: string | null
           shop_id: string
           updated_at: string
@@ -1237,6 +1240,9 @@ export type Database = {
           active?: boolean
           created_at?: string
           public_key: string
+          sandbox_public_key?: string | null
+          sandbox_secret_key?: string | null
+          sandbox_shop_id?: string | null
           secret_key?: string | null
           shop_id: string
           updated_at?: string
@@ -1246,6 +1252,9 @@ export type Database = {
           active?: boolean
           created_at?: string
           public_key?: string
+          sandbox_public_key?: string | null
+          sandbox_secret_key?: string | null
+          sandbox_shop_id?: string | null
           secret_key?: string | null
           shop_id?: string
           updated_at?: string
@@ -1302,6 +1311,7 @@ export type Database = {
       vendors: {
         Row: {
           auth_user_id: string | null
+          banner_url: string | null
           business_name: string
           business_type: string | null
           country: string | null
@@ -1309,17 +1319,17 @@ export type Database = {
           currency: string
           customDomain: string | null
           daily_stock_reset_enabled: boolean | null
-          delivery_system: string
           delivery_dropoff_input_mode: string
-          own_delivery_price: number
+          delivery_system: string
           enabled_order_types: Database["public"]["Enums"]["order_type"][]
           id: string
           is_active: boolean | null
-          orders_suspended_at: string | null
           logo_url: string | null
           online_payments_enabled: boolean
-          paymentprovider: Database["public"]["Enums"]["payment_provider_choice"]
+          orders_suspended_at: string | null
+          own_delivery_price: number
           paygreen_merchant_id: string | null
+          paymentprovider: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed: number
           service_fee_rate_percent: number
           stripe_account_id: string | null
@@ -1329,6 +1339,7 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          banner_url?: string | null
           business_name: string
           business_type?: string | null
           country?: string | null
@@ -1336,17 +1347,17 @@ export type Database = {
           currency?: string
           customDomain?: string | null
           daily_stock_reset_enabled?: boolean | null
-          delivery_system?: string
           delivery_dropoff_input_mode?: string
-          own_delivery_price?: number
+          delivery_system?: string
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
-          orders_suspended_at?: string | null
           logo_url?: string | null
           online_payments_enabled?: boolean
-          paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
+          orders_suspended_at?: string | null
+          own_delivery_price?: number
           paygreen_merchant_id?: string | null
+          paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed?: number
           service_fee_rate_percent?: number
           stripe_account_id?: string | null
@@ -1356,6 +1367,7 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          banner_url?: string | null
           business_name?: string
           business_type?: string | null
           country?: string | null
@@ -1363,17 +1375,17 @@ export type Database = {
           currency?: string
           customDomain?: string | null
           daily_stock_reset_enabled?: boolean | null
-          delivery_system?: string
           delivery_dropoff_input_mode?: string
-          own_delivery_price?: number
+          delivery_system?: string
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
           is_active?: boolean | null
-          orders_suspended_at?: string | null
           logo_url?: string | null
           online_payments_enabled?: boolean
-          paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
+          orders_suspended_at?: string | null
+          own_delivery_price?: number
           paygreen_merchant_id?: string | null
+          paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed?: number
           service_fee_rate_percent?: number
           stripe_account_id?: string | null
@@ -1396,16 +1408,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrement_stock_for_order: { Args: { p_order_id: string }; Returns: Json }
       is_vendor_order: { Args: { order_id: string }; Returns: boolean }
       order_item_belongs_to_user: {
         Args: { item_order_id: string }
         Returns: boolean
       }
+      reserve_stock_for_order: { Args: { p_order_id: string }; Returns: Json }
+      reset_daily_product_stock: { Args: never; Returns: undefined }
+      restore_stock_for_order: { Args: { p_order_id: string }; Returns: Json }
       user_is_vendor_for_order_item: {
         Args: { item_vendor_id: string }
         Returns: boolean
       }
       user_owns_order: { Args: { order_id: string }; Returns: boolean }
+      validate_stock_for_cart: { Args: { p_items: Json }; Returns: Json }
       vendor_has_items_in_order: {
         Args: { order_id: string }
         Returns: boolean
@@ -1573,6 +1590,7 @@ export const Constants = {
       order_timing: ["asap", "later"],
       order_type: ["eat-in", "take-away", "delivery"],
       payment_provider: ["paygreen", "stripe"],
+      payment_provider_choice: ["PAYGREEN", "STRIPE"],
       payment_status: [
         "pending",
         "processing",
@@ -1585,4 +1603,3 @@ export const Constants = {
     },
   },
 } as const
-

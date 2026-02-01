@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { AuthUser, AuthState, AuthError, AUTH_CONFIG, DEFAULT_PERMISSIONS } from '../models/auth.models';
+import { AuthUser, AuthState, DEFAULT_PERMISSIONS } from '../models/auth.models';
 import { environment } from '../../environments/environment';
 
 /**
@@ -98,12 +98,14 @@ export class AuthStateService {
 
   /**
    * Check if persisted user data is still valid
+   * Note: We only check for data existence here. Actual session validity
+   * is handled by Supabase Auth which manages token expiration and refresh.
+   * This prevents conflicts between custom timeout logic and Supabase's native session management.
    */
   private isUserDataValid(userData: any): boolean {
-    if (!userData || !userData.lastLoginAt) return false;
-
-    const sessionAge = Date.now() - new Date(userData.lastLoginAt).getTime();
-    return sessionAge < AUTH_CONFIG.SESSION_TIMEOUT;
+    // Only check if essential user data exists
+    // Let Supabase Auth handle actual session expiration
+    return !!userData && !!userData.id && !!userData.email;
   }
 
   /**
@@ -218,41 +220,40 @@ export class AuthStateService {
   });
 
   /**
-   * Check if session is still valid based on last login time
+   * Check if user session data exists locally
+   * Note: This is a synchronous check for UI purposes only.
+   * For security-critical operations, use AuthService.isSessionValid()
+   * which validates with Supabase server using getUser().
    */
   isSessionValid = computed(() => {
     const user = this.user();
-    if (!user || !user.lastLoginAt) return false;
-
-    const sessionAge = Date.now() - new Date(user.lastLoginAt).getTime();
-    return sessionAge < AUTH_CONFIG.SESSION_TIMEOUT;
+    // Only check if user data exists and is active
+    // Actual session validity is managed by Supabase Auth
+    return !!user && user.isActive;
   });
 
   /**
-   * Get time until session expires (in milliseconds)
+   * Session expiry tracking
+   * Note: Supabase Auth handles session expiry automatically via token refresh.
+   * These computed values are kept for UI compatibility but return simplified values.
+   * The actual session lifetime is managed by Supabase Auth settings.
    */
   timeUntilExpiry = computed(() => {
     const user = this.user();
-    if (!user || !user.lastLoginAt) return 0;
-
-    const sessionAge = Date.now() - new Date(user.lastLoginAt).getTime();
-    return Math.max(0, AUTH_CONFIG.SESSION_TIMEOUT - sessionAge);
+    // Return a non-zero value if user exists (session is managed by Supabase)
+    // Actual expiry is handled by Supabase's auto-refresh mechanism
+    return user ? Infinity : 0;
   });
 
   /**
    * Format time until expiry as human-readable string
+   * Returns 'Active' when user is logged in since Supabase handles session refresh
    */
   timeUntilExpiryFormatted = computed(() => {
-    const timeLeft = this.timeUntilExpiry();
-    if (timeLeft <= 0) return 'Expired';
-
-    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
+    const user = this.user();
+    if (!user) return 'No session';
+    // Session is actively managed by Supabase Auth with auto-refresh
+    return 'Active';
   });
 
   /**

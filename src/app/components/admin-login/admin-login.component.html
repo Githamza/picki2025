@@ -112,20 +112,29 @@
               @if (isLoading()) {
               <div class="login-button-content">
                 <mat-spinner diameter="20" color="accent"></mat-spinner>
-                <span>Signing in...</span>
+                <span>Connexion en cours...</span>
               </div>
               } @else {
               <div class="login-button-content">
                 <mat-icon>login</mat-icon>
-                <span>Sign In</span>
+                <span>Se connecter</span>
               </div>
               }
             </button>
           </div>
 
           <div class="form-actions">
-            <button matButton="outlined" (click)="goToRegister()">
-              Créer ma boutique en ligne
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              class="register-button"
+              (click)="goToRegister()"
+            >
+              <div class="login-button-content">
+                <mat-icon>storefront</mat-icon>
+                <span>Créer ma boutique en ligne</span>
+              </div>
             </button>
           </div>
         </form>

@@ -1,10 +1,26 @@
+// =============================================================================
+// Register Page - Material Design 3 Surface & Color Token System
+// =============================================================================
+// Surface hierarchy (low to high emphasis):
+//   surface < surface-container-lowest < surface-container-low < surface-container < surface-container-high
+// Color roles:
+//   primary: key actions, highest emphasis
+//   secondary: supporting actions, moderate emphasis
+//   tertiary: accents, complementary emphasis
+// =============================================================================
+
 .register-container {
   min-height: 100vh;
-  background: var(--mat-sys-background);
+  background: var(--mat-sys-surface);
 }
 
+// -----------------------------------------------------------------------------
+// Header - Uses surface-container for elevated navigation
+// -----------------------------------------------------------------------------
 .register-header {
-  box-shadow: var(--mat-sys-elevation-level1);
+  background: var(--mat-sys-surface-container) !important;
+  color: var(--mat-sys-on-surface) !important;
+  box-shadow: var(--mat-sys-level1);
 }
 
 .brand {
@@ -20,6 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--mat-sys-primary);
 }
 
 .brand-text {
@@ -29,25 +46,31 @@
 }
 
 .brand-title {
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font: var(--mat-sys-title-medium);
+  color: var(--mat-sys-on-surface);
 }
 
 .brand-subtitle {
-  font-size: 11px;
-  opacity: 0.8;
-  font-weight: 400;
+  font: var(--mat-sys-label-small);
+  color: var(--mat-sys-on-surface-variant);
 }
 
+// -----------------------------------------------------------------------------
+// Content Area - Uses base surface
+// -----------------------------------------------------------------------------
 .register-content {
-  padding: 60px 24px;
+  padding: 48px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 64px);
+  background: var(--mat-sys-surface);
 }
 
+// -----------------------------------------------------------------------------
+// Intro Section - Hero typography with proper M3 type scale
+// -----------------------------------------------------------------------------
 .registration-intro {
   text-align: center;
   margin-bottom: 40px;
@@ -55,30 +78,53 @@
 }
 
 .main-title {
-  font-size: clamp(28px, 6vw, 42px);
-  font-weight: 800;
-  color: var(--mat-sys-on-background);
+  font: var(--mat-sys-display-small);
+  color: var(--mat-sys-on-surface);
   margin-bottom: 16px;
-  line-height: 1.1;
   letter-spacing: -0.5px;
 }
 
 .main-description {
-  font-size: clamp(16px, 2vw, 20px);
+  font: var(--mat-sys-body-large);
   color: var(--mat-sys-on-surface-variant);
   margin: 0;
-  line-height: 1.5;
 }
 
+// -----------------------------------------------------------------------------
+// Registration Card - Elevated surface-container-high for form prominence
+// -----------------------------------------------------------------------------
 .register-card {
   width: min(720px, 100%);
   margin-bottom: 24px;
+  background: var(--mat-sys-surface-container-low) !important;
+  border-radius: var(--mat-sys-corner-large) !important;
+  box-shadow: var(--mat-sys-level2) !important;
+
+  // Card header styling
+  mat-card-header {
+    padding: 24px 24px 0;
+  }
+
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    font: var(--mat-sys-headline-small);
+    color: var(--mat-sys-on-surface);
+  }
+
+  mat-card-content {
+    padding: 16px 24px 24px;
+  }
 }
 
 .register-icon {
   margin-right: 12px;
+  color: var(--mat-sys-primary);
 }
 
+// -----------------------------------------------------------------------------
+// Form Layout
+// -----------------------------------------------------------------------------
 .register-form {
   display: flex;
   flex-direction: column;
@@ -105,11 +151,16 @@
   width: 100%;
 }
 
+// -----------------------------------------------------------------------------
+// Actions - Button container with proper spacing
+// -----------------------------------------------------------------------------
 .actions {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
 }
 
 @media (min-width: 640px) {
@@ -130,19 +181,54 @@
   padding: 8px 24px;
 }
 
+// Secondary button uses on-surface-variant for lower emphasis
+.secondary {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// -----------------------------------------------------------------------------
+// Hint Box - Uses tertiary-container for informational content
+// Tertiary color role: accents that need to stand out but not compete with primary
+// -----------------------------------------------------------------------------
 .hint {
   width: min(720px, 100%);
   display: flex;
   gap: 12px;
-  align-items: center;
-  padding: 16px;
-  background: var(--mat-sys-surface-variant);
-  color: var(--mat-sys-on-surface-variant);
-  border-radius: 12px;
-  font-size: 14px;
-  opacity: 1;
+  align-items: flex-start;
+  padding: 16px 20px;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  border-radius: var(--mat-sys-corner-medium);
+  font: var(--mat-sys-body-medium);
+
+  mat-icon {
+    color: var(--mat-sys-on-tertiary-container);
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
 }
 
-.hint mat-icon {
-  color: var(--mat-sys-primary);
+// -----------------------------------------------------------------------------
+// Responsive adjustments
+// -----------------------------------------------------------------------------
+@media (max-width: 599px) {
+  .register-content {
+    padding: 32px 16px;
+  }
+
+  .main-title {
+    font: var(--mat-sys-headline-medium);
+  }
+
+  .register-card {
+    mat-card-header,
+    mat-card-content {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+  }
 }

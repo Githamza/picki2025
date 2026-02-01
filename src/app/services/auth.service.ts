@@ -10,7 +10,6 @@ import {
   CreateAdminUserData,
   AdminRole,
   AuthError,
-  AUTH_CONFIG,
   Permission,
 } from '../models/auth.models';
 import { User } from '@supabase/supabase-js';
@@ -352,22 +351,33 @@ export class AuthService {
   }
 
   /**
-   * Check if current session is valid
+   * Check if current session is valid by verifying with Supabase server
+   * Uses getUser() which always validates with the auth server,
+   * unlike getSession() which may return cached data.
+   * 
+   * This is the recommended approach per Supabase documentation:
+   * "The only way to ensure that a user has logged out or their session has ended
+   * is to get the user's details with getUser()."
    */
   async isSessionValid(user?: AuthUser): Promise<boolean> {
     try {
+      // Use getUser() for server-side validation (recommended by Supabase)
+      // This ensures the session is actually valid on the server, not just cached locally
       const {
-        data: { session },
+        data: { user: authUser },
         error,
-      } = await this.supabaseAuthService.getClient().auth.getSession();
+      } = await this.supabaseAuthService.getClient().auth.getUser();
 
-      if (error || !session || !session.user) {
+      if (error || !authUser) {
         return false;
       }
 
-      // Check if session is expired
-      const now = Math.floor(Date.now() / 1000);
-      return session.expires_at ? session.expires_at > now : false;
+      // Optionally verify the user ID matches if a specific user was provided
+      if (user && authUser.id !== user.id) {
+        return false;
+      }
+
+      return true;
     } catch (error) {
       console.error('Error validating session:', error);
       return false;
@@ -375,18 +385,16 @@ export class AuthService {
   }
 
   /**
-   * Synchronous version for backward compatibility
-   * This should be used carefully as it doesn't check actual session validity
+   * Synchronous version for UI purposes only
+   * WARNING: This does NOT validate with Supabase server.
+   * Use isSessionValid() for security-critical operations.
    */
   isSessionValidSync(user?: AuthUser): boolean {
+    // For sync check, we only verify local state exists
+    // Actual session validity must be checked async with isSessionValid()
     if (user) {
-      // If specific user provided, validate that user's session
-      if (!user.lastLoginAt) return false;
-      const sessionAge = Date.now() - new Date(user.lastLoginAt).getTime();
-      return sessionAge < AUTH_CONFIG.SESSION_TIMEOUT;
+      return user.isActive;
     }
-
-    // Otherwise use the AuthStateService's computed value
     return this.authStateService.isSessionValid();
   }
 

@@ -28,6 +28,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { AuthService } from '../../services/auth.service';
 import { VendorService } from '../../services/vendor.service';
 import { LoginFormData } from '../../models/auth.models';
+import { AdminNotificationService } from '../../services/admin-notification.service';
 
 @Component({
   selector: 'app-admin-login',
@@ -55,6 +56,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly adminNotificationService = inject(AdminNotificationService);
 
   // Reactive signals
   readonly authState = this.authService.authState;
@@ -126,6 +128,9 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
 
           // Navigate immediately since we have confirmed authentication
           this.redirectToAdmin();
+
+          // Check for payment provider configuration after navigation
+          this.adminNotificationService.checkPaymentProviderNotification();
         } else {
           throw new Error('Authentication verification failed');
         }

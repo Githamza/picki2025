@@ -320,6 +320,103 @@ export function isFirecrawlJsonModeEnabled(): boolean {
 // Firecrawl v2 JSON mode schema for RestaurantInfo.
 // Keep it reasonably permissive (many fields can be absent), but enforce that
 // each menu item includes an imageUrl, per project needs.
+const stepOptionSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    name: { type: 'string' },
+    priceAdjustment: { type: 'string' },
+    imageUrl: { type: 'string' },
+    description: { type: 'string' },
+    displayOrder: { type: 'number' },
+    optionType: { type: 'string', enum: ['component', 'product'] },
+  },
+  required: ['name', 'priceAdjustment', 'displayOrder', 'optionType'],
+} as const;
+
+const productStepSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    displayOrder: { type: 'number' },
+    stepType: { type: 'string' },
+    isRequired: { type: 'boolean' },
+    minSelections: { type: 'number' },
+    maxSelections: { type: 'number' },
+    options: { type: 'array', items: stepOptionSchema },
+  },
+  required: ['name', 'displayOrder', 'isRequired', 'minSelections', 'maxSelections', 'options'],
+} as const;
+
+const customisationOptionSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    name: { type: 'string' },
+    priceAdjustment: { type: 'string' },
+    imageUrl: { type: 'string' },
+    description: { type: 'string' },
+    displayOrder: { type: 'number' },
+    optionType: { type: 'string', enum: ['component', 'product'] },
+    productName: { type: 'string' },
+  },
+  required: ['name', 'priceAdjustment', 'displayOrder', 'optionType'],
+} as const;
+
+const customisationSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    selectionType: { type: 'string', enum: ['single-select', 'multi-select'] },
+    isRequired: { type: 'boolean' },
+    minSelections: { type: 'number' },
+    maxSelections: { type: 'number' },
+    displayOrder: { type: 'number' },
+    options: { type: 'array', items: customisationOptionSchema },
+  },
+  required: ['name', 'selectionType', 'isRequired', 'minSelections', 'maxSelections', 'displayOrder', 'options'],
+} as const;
+
+const productComplementSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    name: { type: 'string' },
+    price: { type: 'string' },
+    imageUrl: { type: 'string' },
+    description: { type: 'string' },
+    isRequired: { type: 'boolean' },
+    selectionType: { type: 'string', enum: ['single', 'multiple'] },
+    maxSelections: { type: 'number' },
+    displayOrder: { type: 'number' },
+    isFree: { type: 'boolean' },
+  },
+  required: ['name', 'price', 'isRequired', 'selectionType', 'maxSelections', 'displayOrder', 'isFree'],
+} as const;
+
+const productSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    name: { type: 'string' },
+    price: { type: 'string' },
+    imageUrl: { type: 'string' },
+    shortDescription: { type: 'string' },
+    longDescription: { type: 'string' },
+    displayOrder: { type: 'number' },
+    isMultiStep: { type: 'boolean' },
+    steps: { type: 'array', items: productStepSchema },
+    hasCustomisations: { type: 'boolean' },
+    customisations: { type: 'array', items: customisationSchema },
+    complements: { type: 'array', items: productComplementSchema },
+  },
+  required: ['name', 'price', 'displayOrder', 'isMultiStep', 'hasCustomisations'],
+} as const;
+
 export const restaurantInfoJsonSchema = {
   type: 'object',
   additionalProperties: true,
@@ -361,21 +458,12 @@ export const restaurantInfoJsonSchema = {
         additionalProperties: true,
         properties: {
           categoryName: { type: 'string' },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              additionalProperties: true,
-              properties: {
-                name: { type: 'string' },
-                price: { type: 'string' },
-                imageUrl: { type: 'string' },
-                description: { type: 'string' },
-              },
-              required: ['name', 'price', 'imageUrl'],
-            },
-          },
+          description: { type: 'string' },
+          icon: { type: 'string' },
+          displayOrder: { type: 'number' },
+          items: { type: 'array', items: productSchema },
         },
+        required: ['categoryName', 'displayOrder', 'items'],
       },
     },
   },
@@ -385,8 +473,13 @@ function buildFirecrawlRestaurantInfoPrompt(extraPrompt?: string): string {
   const base =
     `Extract the restaurant information from this Uber Eats restaurant page.\n` +
     `Return JSON that conforms to the following TypeScript interface (desired type: RestaurantInfo).\n\n` +
-    `Critical: Find ALL product/menu item images.\n` +
-    `- Use absolute URLs.\n` +
+    `Critical instructions:\n` +
+    `- Find ALL product/menu item images. Use absolute URLs.\n` +
+    `- Identify MULTI-STEP products (menus/formulas): Products where you choose multiple components (e.g., "Menu Big Mac" with drink + side choices). Set isMultiStep=true and populate steps array.\n` +
+    `- Identify CUSTOMISATIONS: Modification groups like "Choose your toppings", "Extra sauce", "Remove ingredients". These are shared across products. Set hasCustomisations=true and populate customisations array.\n` +
+    `- Identify COMPLEMENTS: Add-on products (actual menu items) that can be added, like extra sauces, sides. Populate complements array.\n` +
+    `- For simple products without configuration options, set isMultiStep=false and hasCustomisations=false.\n` +
+    `- displayOrder should be the position in the list (0-indexed).\n\n` +
     `Target Interface:\n${targetInterface}\n`;
 
   const extra = (extraPrompt ?? '').trim();
@@ -444,16 +537,201 @@ export async function firecrawlScrapeRestaurantInfoJson(params: {
 }
 
 export const targetInterface = `
-export interface MenuItem {
+/*
+ * =============================================================================
+ * PRODUCT CONFIGURATION MODEL
+ * =============================================================================
+ * 
+ * There are TWO ways a product can have configuration options:
+ * 
+ * 1. MULTI-STEP PRODUCTS (isMultiStep = true)
+ *    - Products that require MULTIPLE sequential configuration steps
+ *    - Displayed in the menu as a "formula" or "menu" (e.g., "Menu Big Mac")
+ *    - User must go through each step to build their order
+ *    - Example: "Menu Big Mac" → Step 1: Choose drink → Step 2: Choose side → Step 3: Choose sauce
+ *    - Uses: ProductStep[] with StepOption[]
+ * 
+ * 2. REGULAR PRODUCTS WITH CUSTOMISATIONS (isMultiStep = false, hasCustomisations = true)
+ *    - Products displayed as regular items in the catalog
+ *    - Have ONE or more optional/required modifier groups attached
+ *    - Conceptually: A customisation is like a SINGLE step from a multi-step product
+ *    - But represented as a regular product with modifier options
+ *    - Example: "Pad Thaï Poulet" → Customisation: "Choose your toppings" (Piment, Coriandre, etc.)
+ *    - Uses: Customisation[] with CustomisationOption[]
+ * 
+ * KEY DIFFERENCE:
+ *    - Multi-step: Product IS the configuration (you're building a meal from scratch)
+ *    - Customisation: Product is already defined, you're just modifying/adding to it
+ * 
+ * =============================================================================
+ */
+
+/**
+ * Option within a step for multi-step products.
+ * Maps to product_step_options table.
+ */
+export interface StepOption {
+  /** Name of the option (e.g., "Coca-Cola", "Extra Cheese") */
   name: string;
-  price: string;
-  imageUrl: string;
+  /** Price adjustment in string format (e.g., "2.50", "0") */
+  priceAdjustment: string;
+  /** Image URL for the option if available */
+  imageUrl?: string;
+  /** Description of the option */
   description?: string;
+  /** Order for display within the step */
+  displayOrder: number;
+  /** Type of option: 'component' for simple items, 'product' if it references another product */
+  optionType: 'component' | 'product';
 }
 
-export interface MenuCategory {
+/**
+ * A step in a multi-step product configuration.
+ * Maps to product_steps table.
+ * 
+ * MULTI-STEP products have MULTIPLE steps that the user goes through sequentially.
+ * Example: "Menu Big Mac" has 3 steps: Choose Drink → Choose Side → Choose Sauce
+ */
+export interface ProductStep {
+  /** Name of the step (e.g., "Choisissez votre boisson", "Choisissez vos sauces") */
+  name: string;
+  /** Description of the step */
+  description?: string;
+  /** Order for display */
+  displayOrder: number;
+  /** Type of step (e.g., "choice", "extras") */
+  stepType?: string;
+  /** Whether selection is required for this step */
+  isRequired: boolean;
+  /** Minimum number of selections required */
+  minSelections: number;
+  /** Maximum number of selections allowed */
+  maxSelections: number;
+  /** Available options for this step */
+  options: StepOption[];
+}
+
+/**
+ * Option within a customisation group.
+ * Maps to customisation_options table.
+ */
+export interface CustomisationOption {
+  /** Name of the option (e.g., "Piment", "Extra Cheese", "No onions") */
+  name: string;
+  /** Price adjustment in string format (e.g., "1.50", "0", "-0.50") */
+  priceAdjustment: string;
+  /** Image URL for the option if available */
+  imageUrl?: string;
+  /** Description of the option */
+  description?: string;
+  /** Order for display within the customisation */
+  displayOrder: number;
+  /** Type: 'component' for simple items, 'product' if referencing another product */
+  optionType: 'component' | 'product';
+  /** If optionType is 'product', the name of the referenced product */
+  productName?: string;
+}
+
+/**
+ * A customisation group attached to a regular product.
+ * Maps to customisations table.
+ * 
+ * CONCEPTUALLY: A Customisation is like a SINGLE ProductStep, but for regular products.
+ * - Multi-step product: Multiple ProductSteps (build a meal from scratch)
+ * - Regular product with customisation: One or more Customisations (modify an existing item)
+ * 
+ * Example: "Pad Thaï Poulet" (regular product) has a customisation "Choisissez votre garniture"
+ * with options: Piment, Coriandre, Oignons frits, Cacahuètes
+ */
+export interface Customisation {
+  /** Name of the customisation group (e.g., "Choisissez votre garniture") */
+  name: string;
+  /** Description of the customisation */
+  description?: string;
+  /** Selection type: 'single-select' or 'multi-select' */
+  selectionType: 'single-select' | 'multi-select';
+  /** Whether selection is required */
+  isRequired: boolean;
+  /** Minimum number of selections required (0 if not required) */
+  minSelections: number;
+  /** Maximum number of selections allowed */
+  maxSelections: number;
+  /** Order for display */
+  displayOrder: number;
+  /** Available options in this customisation */
+  options: CustomisationOption[];
+}
+
+/**
+ * A complement product that can be added to a main product.
+ * Maps to product_complements table.
+ * Example: sauces, sides, extras that are actual products.
+ */
+export interface ProductComplement {
+  /** Name of the complement product */
+  name: string;
+  /** Price of the complement (or custom price if overridden) */
+  price: string;
+  /** Image URL of the complement product */
+  imageUrl?: string;
+  /** Description of the complement */
+  description?: string;
+  /** Whether selecting a complement is required */
+  isRequired: boolean;
+  /** Selection type: 'single' or 'multiple' */
+  selectionType: 'single' | 'multiple';
+  /** Maximum number that can be selected */
+  maxSelections: number;
+  /** Order for display */
+  displayOrder: number;
+  /** Whether this complement is free when linked to this product */
+  isFree: boolean;
+}
+
+/**
+ * A menu item/product - can be simple or multi-step, with optional customisations and complements.
+ * Maps to products table.
+ */
+export interface Product {
+  /** Product name */
+  name: string;
+  /** Base price in string format (e.g., "12.50") */
+  price: string;
+  /** Product image URL */
+  imageUrl?: string;
+  /** Short description for display in listings */
+  shortDescription?: string;
+  /** Long/detailed description */
+  longDescription?: string;
+  /** Order for display within category */
+  displayOrder: number;
+  /** Whether this is a multi-step product (has configuration steps like menus/formulas) */
+  isMultiStep: boolean;
+  /** Configuration steps for multi-step products (formulas, menus) */
+  steps?: ProductStep[];
+  /** Whether this product has customisations */
+  hasCustomisations: boolean;
+  /** Customisation groups attached to this product (shared modifier groups) */
+  customisations?: Customisation[];
+  /** Complement products that can be added (actual products as add-ons) */
+  complements?: ProductComplement[];
+}
+
+/**
+ * A menu category containing products.
+ * Maps to categories table.
+ */
+export interface Category {
+  /** Category name (e.g., "Burgers", "Pizzas", "Menus") */
   categoryName: string;
-  items: MenuItem[];
+  /** Description of the category */
+  description?: string;
+  /** Icon identifier for the category */
+  icon?: string;
+  /** Order for display */
+  displayOrder: number;
+  /** Products within this category */
+  items: Product[];
 }
 
 export interface OperatingHoursPeriod {
@@ -468,6 +746,7 @@ export interface OperatingHoursDay {
 
 /**
  * Represents the structured information for a restaurant scraped from Uber Eats.
+ * This interface is designed to map directly to the database schema.
  */
 export interface RestaurantInfo {
   bannerImageUrl: string;
@@ -480,20 +759,111 @@ export interface RestaurantInfo {
   acceptedPaymentMethods?: string[];
   pickupTimeEstimate?: string;
   operatingHours: OperatingHoursDay[];
-  menu: MenuCategory[];
+  menu: Category[];
 }
 `;
 
-export interface MenuItem {
+/**
+ * Option within a step for multi-step products.
+ * Maps to product_step_options table.
+ */
+export interface StepOption {
   name: string;
-  price: string;
-  imageUrl: string;
+  priceAdjustment: string;
+  imageUrl?: string;
   description?: string;
+  displayOrder: number;
+  optionType: 'component' | 'product';
 }
 
+/**
+ * A step in a multi-step product configuration.
+ * Maps to product_steps table.
+ */
+export interface ProductStep {
+  name: string;
+  description?: string;
+  displayOrder: number;
+  stepType?: string;
+  isRequired: boolean;
+  minSelections: number;
+  maxSelections: number;
+  options: StepOption[];
+}
+
+/**
+ * Option within a customisation group.
+ * Maps to customisation_options table.
+ */
+export interface CustomisationOption {
+  name: string;
+  priceAdjustment: string;
+  imageUrl?: string;
+  description?: string;
+  displayOrder: number;
+  optionType: 'component' | 'product';
+  productName?: string;
+}
+
+/**
+ * A customisation group that can be shared across products.
+ * Maps to customisations table.
+ */
+export interface Customisation {
+  name: string;
+  description?: string;
+  selectionType: 'single-select' | 'multi-select';
+  isRequired: boolean;
+  minSelections: number;
+  maxSelections: number;
+  displayOrder: number;
+  options: CustomisationOption[];
+}
+
+/**
+ * A complement product that can be added to a main product.
+ * Maps to product_complements table.
+ */
+export interface ProductComplement {
+  name: string;
+  price: string;
+  imageUrl?: string;
+  description?: string;
+  isRequired: boolean;
+  selectionType: 'single' | 'multiple';
+  maxSelections: number;
+  displayOrder: number;
+  isFree: boolean;
+}
+
+/**
+ * A menu item/product - can be simple or multi-step, with optional customisations and complements.
+ * Maps to products table.
+ */
+export interface Product {
+  name: string;
+  price: string;
+  imageUrl?: string;
+  shortDescription?: string;
+  longDescription?: string;
+  displayOrder: number;
+  isMultiStep: boolean;
+  steps?: ProductStep[];
+  hasCustomisations: boolean;
+  customisations?: Customisation[];
+  complements?: ProductComplement[];
+}
+
+/**
+ * A menu category containing products.
+ * Maps to categories table.
+ */
 export interface MenuCategory {
   categoryName: string;
-  items: MenuItem[];
+  description?: string;
+  icon?: string;
+  displayOrder: number;
+  items: Product[];
 }
 
 export interface OperatingHoursPeriod {
@@ -508,6 +878,7 @@ export interface OperatingHoursDay {
 
 /**
  * Represents the structured information for a restaurant scraped from Uber Eats.
+ * This interface is designed to map directly to the database schema.
  */
 export interface RestaurantInfo {
   bannerImageUrl: string;

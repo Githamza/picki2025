@@ -368,6 +368,24 @@ export class VendorService {
     }
   }
 
+  async getVendorBanner(vendorId: string) {
+    try {
+      return await this.supabaseAuthService.getVendorBanner(vendorId);
+    } catch (error) {
+      console.error('Error getting vendor banner:', error);
+      throw error;
+    }
+  }
+
+  async upsertVendorBanner(vendorId: string, imageUrl: string): Promise<void> {
+    try {
+      await this.supabaseAuthService.upsertVendorBanner(vendorId, imageUrl);
+    } catch (error) {
+      console.error('Error updating vendor banner:', error);
+      throw error;
+    }
+  }
+
   getCurrentOrdersSuspendedStatus(): boolean {
     return this.ordersSuspendedSubject.value;
   }

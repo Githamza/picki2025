@@ -43,6 +43,10 @@ export interface Order {
   customer: Customer;
   items: OrderItem[];
   totalAmount: number;
+  /**
+   * Service fee charged for this order, calculated at time of order creation.
+   */
+  serviceFee?: number;
   status: OrderStatus;
   orderType: OrderType;
   timing: OrderTiming;

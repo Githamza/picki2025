@@ -566,6 +566,7 @@ export type Database = {
           ready_email_sent: boolean | null
           refuse_reason: string | null
           scheduled_time: string | null
+          service_fee: number
           status: Database["public"]["Enums"]["order_status"] | null
           table_number: string | null
           timing: Database["public"]["Enums"]["order_timing"] | null
@@ -589,6 +590,7 @@ export type Database = {
           ready_email_sent?: boolean | null
           refuse_reason?: string | null
           scheduled_time?: string | null
+          service_fee?: number
           status?: Database["public"]["Enums"]["order_status"] | null
           table_number?: string | null
           timing?: Database["public"]["Enums"]["order_timing"] | null
@@ -612,6 +614,7 @@ export type Database = {
           ready_email_sent?: boolean | null
           refuse_reason?: string | null
           scheduled_time?: string | null
+          service_fee?: number
           status?: Database["public"]["Enums"]["order_status"] | null
           table_number?: string | null
           timing?: Database["public"]["Enums"]["order_timing"] | null

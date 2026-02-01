@@ -327,6 +327,7 @@ export class OrdersService {
         customer_last_name: order.customer.lastName,
         customer_phone: order.customer.phone,
         total_amount: order.totalAmount,
+        service_fee: order.serviceFee ?? 0,
         status: order.status as Database['public']['Enums']['order_status'],
         order_type:
           order.orderType as Database['public']['Enums']['order_type'],
@@ -665,6 +666,7 @@ export class OrdersService {
           metadata: item.options?.[0] || undefined, // Extract multi-step metadata from options
         })) || [],
       totalAmount: Number(dbOrder.total_amount),
+      serviceFee: Number(dbOrder.service_fee) || 0,
       status: dbOrder.status as OrderStatus,
       orderType: dbOrder.order_type,
       timing: dbOrder.timing,

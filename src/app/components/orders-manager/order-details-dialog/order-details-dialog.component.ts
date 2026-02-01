@@ -147,6 +147,28 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
               </div>
             </div>
 
+            <!-- Order Totals Summary -->
+            <div class="order-totals">
+              <div class="totals-row subtotal-row">
+                <span class="totals-label">Sous-total articles</span>
+                <span class="totals-value">{{ getItemsSubtotal() | vendorCurrency }}</span>
+              </div>
+              @if (data.order.serviceFee && data.order.serviceFee > 0) {
+                <div class="totals-row service-fee-row">
+                  <span class="totals-label">
+                    <mat-icon class="fee-icon">payments</mat-icon>
+                    Frais de service
+                  </span>
+                  <span class="totals-value">{{ data.order.serviceFee | vendorCurrency }}</span>
+                </div>
+              }
+              <mat-divider></mat-divider>
+              <div class="totals-row total-row">
+                <span class="totals-label">Total</span>
+                <span class="totals-value total-amount">{{ data.order.totalAmount | vendorCurrency }}</span>
+              </div>
+            </div>
+
             @if (data.order.notes) {
             <div class="order-notes">
               <mat-icon>note</mat-icon>
@@ -736,6 +758,66 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
       }
 
 
+      .order-totals {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 12px;
+        background-color: var(--mat-sys-surface-container);
+        border-radius: 8px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+
+        mat-divider {
+          margin: 4px 0;
+        }
+
+        .totals-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13px;
+
+          .totals-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--mat-sys-on-surface-variant);
+
+            .fee-icon {
+              font-size: 14px;
+              width: 14px;
+              height: 14px;
+              color: var(--mat-sys-primary);
+            }
+          }
+
+          .totals-value {
+            font-weight: 500;
+            color: var(--mat-sys-on-surface);
+          }
+
+          &.total-row {
+            .totals-label {
+              font-weight: 600;
+              color: var(--mat-sys-on-surface);
+            }
+
+            .total-amount {
+              font-size: 15px;
+              font-weight: 600;
+              color: var(--mat-sys-primary);
+            }
+          }
+
+          &.service-fee-row {
+            .totals-value {
+              color: var(--mat-sys-tertiary);
+            }
+          }
+        }
+      }
+
       .order-notes {
         display: flex;
         align-items: flex-start;
@@ -1047,6 +1129,15 @@ export class OrderDetailsDialogComponent {
   getNextStatusLabel(currentStatus: OrderStatus): string {
     const nextStatus = this.getNextStatus(currentStatus);
     return nextStatus ? this.statusLabels[nextStatus] : '';
+  }
+
+  /**
+   * Calculate the subtotal of items (total - service fee).
+   * Used to display the breakdown in the order details.
+   */
+  getItemsSubtotal(): number {
+    const serviceFee = this.data.order.serviceFee ?? 0;
+    return this.data.order.totalAmount - serviceFee;
   }
 
   formatScheduledDate(date: Date | undefined): string {

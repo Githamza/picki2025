@@ -1329,6 +1329,7 @@ export type Database = {
           orders_suspended_at: string | null
           own_delivery_price: number
           paygreen_merchant_id: string | null
+          paygreen_onboarding_completed: boolean | null
           paymentprovider: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed: number
           service_fee_rate_percent: number
@@ -1357,6 +1358,7 @@ export type Database = {
           orders_suspended_at?: string | null
           own_delivery_price?: number
           paygreen_merchant_id?: string | null
+          paygreen_onboarding_completed?: boolean | null
           paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed?: number
           service_fee_rate_percent?: number
@@ -1385,6 +1387,7 @@ export type Database = {
           orders_suspended_at?: string | null
           own_delivery_price?: number
           paygreen_merchant_id?: string | null
+          paygreen_onboarding_completed?: boolean | null
           paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed?: number
           service_fee_rate_percent?: number

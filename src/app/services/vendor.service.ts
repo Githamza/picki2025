@@ -943,6 +943,7 @@ export class VendorService {
         vendorPaymentConfig?.stripe_onboarding_completed === true;
 
       const paygreenConfigured =
+        vendorPaymentConfig?.paygreen_onboarding_completed === true &&
         !!paygreenCredentials?.public_key &&
         !!paygreenCredentials?.shop_id &&
         paygreenCredentials?.active === true;

@@ -1061,11 +1061,12 @@ export class SupabaseAuthService implements OnDestroy {
   async getVendorPaymentConfig(vendorId: string): Promise<{
     stripe_account_id: string | null;
     stripe_onboarding_completed: boolean | null;
+    paygreen_onboarding_completed: boolean | null;
     paymentprovider: 'PAYGREEN' | 'STRIPE' | null;
   } | null> {
     const { data, error } = await this.supabaseAuth
       .from('vendors')
-      .select('stripe_account_id, stripe_onboarding_completed, paymentprovider')
+      .select('stripe_account_id, stripe_onboarding_completed, paygreen_onboarding_completed, paymentprovider')
       .eq('id', vendorId)
       .single();
 

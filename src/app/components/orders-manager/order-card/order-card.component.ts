@@ -84,5 +84,44 @@ export class OrderCardComponent {
         return 'Commande';
     }
   }
+
+  // Fee calculation methods
+  getSubtotal(): number {
+    return this.order().items
+      .filter(item => !this.isDeliveryFeeItem(item))
+      .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }
+
+  getDeliveryFee(): number {
+    const deliveryItem = this.order().items.find(item => this.isDeliveryFeeItem(item));
+    return deliveryItem ? deliveryItem.price * deliveryItem.quantity : 0;
+  }
+
+  getServiceFee(): number {
+    const subtotal = this.getSubtotal();
+    const deliveryFee = this.getDeliveryFee();
+    const serviceFee = this.order().totalAmount - subtotal - deliveryFee;
+    return serviceFee > 0 ? serviceFee : 0;
+  }
+
+  getTotalFees(): number {
+    return this.getServiceFee() + this.getDeliveryFee();
+  }
+
+  hasFees(): boolean {
+    return this.getTotalFees() > 0;
+  }
+
+  getProductItemsCount(): number {
+    return this.order().items.filter(item => !this.isDeliveryFeeItem(item)).length;
+  }
+
+  private isDeliveryFeeItem(item: any): boolean {
+    const productId = Number(item.productId);
+    const name = (item.productName || '').toLowerCase();
+    return productId === -9999 ||
+           name.includes('livraison') ||
+           name.includes('delivery');
+  }
 }
 

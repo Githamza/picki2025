@@ -1,21 +1,96 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// VAT rates for France (food service)
+const VAT_RATE_FOOD = 10; // 10% for restaurant food
+
+// Helper functions
+function formatDate(dateString: string | Date): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatTime(dateString: string | Date): string {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDateTime(dateString: string | Date): string {
+  return `${formatDate(dateString)} à ${formatTime(dateString)}`;
+}
+
+function formatCurrency(amount: number, currency: string = 'EUR'): string {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
+
+function calculateTaxFromTTC(amountTTC: number, vatRate: number): { ht: number; tva: number; ttc: number } {
+  const ht = amountTTC / (1 + vatRate / 100);
+  const tva = amountTTC - ht;
+  return {
+    ht: Math.round(ht * 100) / 100,
+    tva: Math.round(tva * 100) / 100,
+    ttc: amountTTC,
+  };
+}
+
+function getPaymentMethodLabel(paymentMethod: string, payAtCheckout: boolean): string {
+  if (payAtCheckout) {
+    return 'Paiement sur place';
+  }
+  switch (paymentMethod?.toLowerCase()) {
+    case 'stripe':
+      return 'Carte bancaire (Stripe)';
+    case 'paygreen':
+      return 'Carte bancaire (PayGreen)';
+    case 'card':
+      return 'Carte bancaire';
+    default:
+      return paymentMethod || 'Carte bancaire';
+  }
+}
+
+function getOrderTypeLabel(orderType: string): string {
+  switch (orderType) {
+    case 'eat-in':
+      return 'Sur place';
+    case 'take-away':
+      return 'À emporter';
+    case 'delivery':
+      return 'Livraison';
+    default:
+      return orderType;
+  }
+}
+
 serve(async (req) => {
   console.log('=== Edge function called ===');
   console.log('Method:', req.method);
   console.log('URL:', req.url);
   console.log('Headers:', Object.fromEntries(req.headers.entries()));
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: corsHeaders,
     });
   }
+
   try {
     // Clone the request to be able to read the body multiple times
     const reqClone = req.clone();
@@ -32,7 +107,7 @@ serve(async (req) => {
       try {
         const reader = reqClone.body?.getReader();
         if (reader) {
-          const chunks = [];
+          const chunks: Uint8Array[] = [];
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -53,8 +128,9 @@ serve(async (req) => {
         console.error('Error reading body via reader:', readerError);
       }
     }
+
     // Parse the body
-    let body = {};
+    let body: any = {};
     if (rawBody) {
       try {
         body = JSON.parse(rawBody);
@@ -69,13 +145,17 @@ serve(async (req) => {
     } else {
       console.log('No body received');
     }
-    const { to, orderDetails, trackingUrl } = body;
-    const emailType = (body as any).emailType || 'confirmation';
+
+    const { to, orderDetails, trackingUrl, vendorInfo } = body;
+    const emailType = body.emailType || 'confirmation';
+
     console.log('Extracted values:');
     console.log('- to:', to);
     console.log('- orderDetails:', orderDetails ? 'present' : 'missing');
+    console.log('- vendorInfo:', vendorInfo ? 'present' : 'missing');
     console.log('- trackingUrl:', trackingUrl);
     console.log('- emailType:', emailType);
+
     // Check if RESEND_API_KEY is set
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
@@ -90,6 +170,7 @@ serve(async (req) => {
             to: to || 'not provided',
             orderNumber: orderDetails?.orderNumber || 'not provided',
             hasOrderDetails: !!orderDetails,
+            hasVendorInfo: !!vendorInfo,
             bodyWasReceived: !!rawBody,
             bodyLength: rawBody.length,
           },
@@ -103,6 +184,7 @@ serve(async (req) => {
         }
       );
     }
+
     // Validate required fields
     if (!to || !orderDetails) {
       console.log('Missing required fields');
@@ -127,21 +209,33 @@ serve(async (req) => {
         }
       );
     }
+
     // Rest of the email sending logic...
     console.log('Would send email to:', to);
     console.log('Order number:', orderDetails.orderNumber);
 
     // Build email template based on type
     const isReadyEmail = emailType === 'ready';
-    const customerName = orderDetails.customer?.name || 'Client';
+    const customerName = orderDetails.customer?.name ||
+      `${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}`.trim() ||
+      'Client';
+    const currency = vendorInfo?.currency || orderDetails.currency || 'EUR';
+    const payAtCheckout = orderDetails.payAtCheckout || false;
+    const paymentMethod = getPaymentMethodLabel(vendorInfo?.paymentProvider || orderDetails.paymentMethod, payAtCheckout);
+    const orderDateTime = orderDetails.createdAt || new Date().toISOString();
+
+    // Calculate VAT breakdown (assuming all items are food at 10% VAT)
+    const totalTTC = orderDetails.totalAmount || 0;
+    const discount = orderDetails.discount || 0;
+    const taxBreakdown = calculateTaxFromTTC(totalTTC, VAT_RATE_FOOD);
 
     // Different content for confirmation vs ready emails
     const emailTitle = isReadyEmail
       ? 'Votre commande est prête !'
-      : 'Merci pour votre commande !';
+      : 'Confirmation de commande';
     const emailGreeting = isReadyEmail
-      ? `Bonjour ${customerName},\n\nBonne nouvelle ! Votre commande est maintenant prête et vous attend.`
-      : `Bonjour ${customerName},\n\nNous avons bien reçu votre commande. Voici un récapitulatif :`;
+      ? `Bonjour ${customerName},\n\nBonne nouvelle ! Votre commande est maintenant prête.`
+      : `Bonjour ${customerName},\n\nMerci pour votre commande. Voici votre ticket de caisse :`;
 
     const actionMessage = isReadyEmail
       ? getReadyActionMessage(orderDetails.orderType)
@@ -149,103 +243,214 @@ serve(async (req) => {
 
     const emailSubject = isReadyEmail
       ? `Commande prête - #${orderDetails.orderNumber}`
-      : `Order Confirmation - #${orderDetails.orderNumber}`;
+      : `Ticket de caisse - Commande #${orderDetails.orderNumber}`;
 
+    // Build items table with unit price, quantity, and line total
     const itemsHtml = Array.isArray(orderDetails.items)
       ? orderDetails.items
-          .map(
-            (item: any) => `
-        <tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">
-            ${item.name || item.title || item.productName || 'Article inconnu'}
-          </td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #eee; text-align: center;">
-            ${item.quantity}
-          </td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #eee; text-align: right;">
-            ${item.price} €
-          </td>
-        </tr>
-      `
-          )
+          .map((item: any) => {
+            const unitPrice = item.unitPrice || item.price / (item.quantity || 1);
+            const lineTotal = item.totalPrice || item.price || (unitPrice * (item.quantity || 1));
+            const itemName = item.name || item.title || item.productName || 'Article';
+            return `
+              <tr>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; font-size: 14px;">
+                  ${itemName}
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px;">
+                  ${formatCurrency(unitPrice, currency)}
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; text-align: center; font-size: 14px;">
+                  ${item.quantity || 1}
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px;">
+                  ${VAT_RATE_FOOD}%
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px; font-weight: 500;">
+                  ${formatCurrency(lineTotal, currency)}
+                </td>
+              </tr>
+            `;
+          })
           .join('')
       : '';
-    const trackingRow = trackingUrl
-      ? `<tr><td colspan="3" style="padding: 16px 0; text-align: center;">
-            <a href="${trackingUrl}" style="display: inline-block; background: #4f8cff; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Suivre ma commande</a>
-          </td></tr>`
+
+    const trackingButton = trackingUrl
+      ? `<div style="text-align: center; margin: 24px 0;">
+            <a href="${trackingUrl}" style="display: inline-block; background: #2563eb; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Suivre ma commande</a>
+          </div>`
       : '';
-    const notesRow = orderDetails.notes
-      ? `<tr><td colspan="3" style="padding: 8px 0; color: #555;"><strong>Notes :</strong> ${orderDetails.notes}</td></tr>`
+
+    const notesSection = orderDetails.notes
+      ? `<div style="background: #fef3c7; padding: 12px 16px; border-radius: 6px; margin-top: 16px; border-left: 4px solid #f59e0b;">
+            <strong style="color: #92400e;">Notes :</strong>
+            <span style="color: #78350f;">${orderDetails.notes}</span>
+          </div>`
       : '';
-    const scheduledTimeRow = orderDetails.scheduledTime
-      ? `<tr><td colspan="3" style="padding: 8px 0; color: #555;"><strong>Heure prévue :</strong> ${orderDetails.scheduledTime}</td></tr>`
+
+    const scheduledTimeSection = orderDetails.scheduledTime
+      ? `<div style="background: #dbeafe; padding: 12px 16px; border-radius: 6px; margin-top: 8px; border-left: 4px solid #3b82f6;">
+            <strong style="color: #1e40af;">Heure prévue :</strong>
+            <span style="color: #1e3a8a;">${typeof orderDetails.scheduledTime === 'string' ? orderDetails.scheduledTime : formatDateTime(orderDetails.scheduledTime)}</span>
+          </div>`
+      : '';
+
+    const discountRow = discount > 0
+      ? `<tr>
+            <td colspan="4" style="padding: 8px; text-align: right; color: #059669; font-size: 14px;">Remise appliquée :</td>
+            <td style="padding: 8px; text-align: right; color: #059669; font-size: 14px; font-weight: 600;">-${formatCurrency(discount, currency)}</td>
+          </tr>`
       : '';
 
     // Function to get action message based on order type
     function getReadyActionMessage(orderType: string): string {
       switch (orderType) {
         case 'eat-in':
-          return '<p style="background: #e8f5e8; padding: 16px; border-radius: 6px; border-left: 4px solid #4caf50;"><strong>Votre table vous attend !</strong> Rendez-vous au restaurant pour déguster votre commande.</p>';
+          return '<div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 16px 0;"><strong style="color: #166534;">Votre table vous attend !</strong><br><span style="color: #15803d;">Rendez-vous au restaurant pour déguster votre commande.</span></div>';
         case 'take-away':
-          return '<p style="background: #e8f5e8; padding: 16px; border-radius: 6px; border-left: 4px solid #4caf50;"><strong>Prêt à emporter !</strong> Votre commande vous attend au comptoir.</p>';
+          return '<div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 16px 0;"><strong style="color: #166534;">Prêt à emporter !</strong><br><span style="color: #15803d;">Votre commande vous attend au comptoir.</span></div>';
         case 'delivery':
-          return '<p style="background: #e8f5e8; padding: 16px; border-radius: 6px; border-left: 4px solid #4caf50;"><strong>En cours de livraison !</strong> Votre commande arrive chez vous.</p>';
+          return '<div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 16px 0;"><strong style="color: #166534;">En cours de livraison !</strong><br><span style="color: #15803d;">Votre commande arrive chez vous.</span></div>';
         default:
-          return '<p style="background: #e8f5e8; padding: 16px; border-radius: 6px; border-left: 4px solid #4caf50;"><strong>Commande prête !</strong> Venez récupérer votre commande.</p>';
+          return '<div style="background: #dcfce7; padding: 16px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 16px 0;"><strong style="color: #166534;">Commande prête !</strong><br><span style="color: #15803d;">Venez récupérer votre commande.</span></div>';
       }
     }
 
+    // Build vendor address string
+    const vendorAddress = vendorInfo?.address
+      ? `${vendorInfo.address.street || ''}, ${vendorInfo.address.postalCode || ''} ${vendorInfo.address.city || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '')
+      : '';
+
     const html = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; background: #f7f9fb; color: #222; padding: 0; margin: 0;">
-        <div style="background: #4f8cff; color: #fff; padding: 24px 0; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 2rem;">${emailTitle}</h1>
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+
+          <!-- Ticket Container -->
+          <div style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden;">
+
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 32px 24px; text-align: center;">
+              <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">${emailTitle}</h1>
+              <p style="margin: 0; font-size: 14px; opacity: 0.9;">Commande #${orderDetails.orderNumber}</p>
+            </div>
+
+            <!-- Greeting -->
+            <div style="padding: 24px; border-bottom: 1px dashed #e5e7eb;">
+              <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.6;">${emailGreeting.replace(/\n/g, '<br>')}</p>
+              ${actionMessage}
+            </div>
+
+            <!-- Restaurant Info Section -->
+            <div style="padding: 20px 24px; background: #f9fafb; border-bottom: 1px dashed #e5e7eb;">
+              <p style="margin: 0 0 4px 0; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">Émis par</p>
+              <p style="margin: 0; font-size: 16px; font-weight: 600; color: #111827;">${vendorInfo?.businessName || 'Restaurant'}</p>
+              ${vendorAddress ? `<p style="margin: 6px 0 0 0; font-size: 13px; color: #4b5563; line-height: 1.5;">${vendorAddress}</p>` : ''}
+              ${vendorInfo?.siret ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">SIRET: ${vendorInfo.siret}</p>` : ''}
+              ${vendorInfo?.tvaNumber ? `<p style="margin: 2px 0 0 0; font-size: 12px; color: #6b7280;">N° TVA: ${vendorInfo.tvaNumber}</p>` : ''}
+            </div>
+
+            <!-- Order Info Section -->
+            <div style="padding: 20px 24px; border-bottom: 1px dashed #e5e7eb;">
+              <div style="display: table; width: 100%;">
+                <div style="display: table-cell; width: 50%; padding: 8px 0;">
+                  <p style="margin: 0; font-size: 12px; color: #6b7280;">Date et heure</p>
+                  <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 500; color: #111827;">${formatDateTime(orderDateTime)}</p>
+                </div>
+                <div style="display: table-cell; width: 50%; padding: 8px 0;">
+                  <p style="margin: 0; font-size: 12px; color: #6b7280;">Type de commande</p>
+                  <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 500; color: #111827;">${getOrderTypeLabel(orderDetails.orderType)}</p>
+                </div>
+              </div>
+              <div style="display: table; width: 100%; margin-top: 8px;">
+                <div style="display: table-cell; width: 50%; padding: 8px 0;">
+                  <p style="margin: 0; font-size: 12px; color: #6b7280;">Moyen de paiement</p>
+                  <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 500; color: #111827;">${paymentMethod}</p>
+                </div>
+                <div style="display: table-cell; width: 50%; padding: 8px 0;">
+                  <p style="margin: 0; font-size: 12px; color: #6b7280;">Client</p>
+                  <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 500; color: #111827;">${customerName}</p>
+                </div>
+              </div>
+              ${scheduledTimeSection}
+              ${notesSection}
+            </div>
+
+            <!-- Items Table -->
+            <div style="padding: 20px 24px;">
+              <h2 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #111827;">Détail des articles</h2>
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: #f3f4f6;">
+                    <th style="padding: 12px 8px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Article</th>
+                    <th style="padding: 12px 8px; text-align: right; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">P.U.</th>
+                    <th style="padding: 12px 8px; text-align: center; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Qté</th>
+                    <th style="padding: 12px 8px; text-align: right; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">TVA</th>
+                    <th style="padding: 12px 8px; text-align: right; font-size: 12px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Totals Section -->
+            <div style="padding: 0 24px 24px 24px;">
+              <table style="width: 100%; border-collapse: collapse; background: #f9fafb; border-radius: 8px;">
+                <tbody>
+                  ${discountRow}
+                  <tr>
+                    <td colspan="4" style="padding: 12px 16px; text-align: right; font-size: 14px; color: #4b5563;">Total HT :</td>
+                    <td style="padding: 12px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(taxBreakdown.ht, currency)}</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4" style="padding: 8px 16px; text-align: right; font-size: 14px; color: #4b5563;">TVA (${VAT_RATE_FOOD}%) :</td>
+                    <td style="padding: 8px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(taxBreakdown.tva, currency)}</td>
+                  </tr>
+                  <tr style="background: #2563eb;">
+                    <td colspan="4" style="padding: 16px; text-align: right; font-size: 16px; font-weight: 700; color: #ffffff; border-radius: 0 0 0 8px;">TOTAL TTC :</td>
+                    <td style="padding: 16px; text-align: right; font-size: 18px; font-weight: 700; color: #ffffff; border-radius: 0 0 8px 0;">${formatCurrency(taxBreakdown.ttc, currency)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Tracking Button -->
+            ${trackingButton}
+
+            <!-- Footer -->
+            <div style="padding: 24px; background: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">Merci pour votre confiance !</p>
+              ${vendorInfo?.contact?.email ? `
+              <p style="margin: 0; font-size: 12px; color: #6b7280;">
+                Pour toute question, contactez-nous à<br>
+                <a href="mailto:${vendorInfo.contact.email}" style="color: #2563eb; text-decoration: none;">${vendorInfo.contact.email}</a>
+              </p>
+              ` : ''}
+              ${vendorInfo?.contact?.phone ? `
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: #6b7280;">
+                Tél: ${vendorInfo.contact.phone}
+              </p>
+              ` : ''}
+              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0; font-size: 11px; color: #9ca3af;">
+                  ${vendorInfo?.businessName || 'Restaurant'}${vendorAddress ? ` - ${vendorAddress}` : ''}<br>
+                  ${vendorInfo?.siret ? `SIRET: ${vendorInfo.siret}` : ''}${vendorInfo?.siret && vendorInfo?.tvaNumber ? ' | ' : ''}${vendorInfo?.tvaNumber ? `N° TVA: ${vendorInfo.tvaNumber}` : ''}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
         </div>
-        <div style="background: #fff; max-width: 600px; margin: 24px auto; border-radius: 0 0 8px 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 32px 24px;">
-          <p style="font-size: 1.1rem;">${emailGreeting}</p>
-          ${actionMessage}
-          <table style="margin: 24px 0 16px 0; width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 6px 0;"><strong>Numéro de commande :</strong></td>
-              <td style="padding: 6px 0;">${orderDetails.orderNumber}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0;"><strong>Statut :</strong></td>
-              <td style="padding: 6px 0;">${orderDetails.status}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0;"><strong>Type :</strong></td>
-              <td style="padding: 6px 0;">${orderDetails.orderType}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0;"><strong>Timing :</strong></td>
-              <td style="padding: 6px 0;">${orderDetails.timing}</td>
-            </tr>
-            ${scheduledTimeRow}
-          </table>
-          <h2 style="margin-top: 32px; color: #4f8cff; font-size: 1.2rem;">Détails de la commande</h2>
-          <table style="width: 100%; border-collapse: collapse; background: #f7f9fb; border-radius: 6px; overflow: hidden;">
-            <thead>
-              <tr style="background: #eaf1fb;">
-                <th style="padding: 8px 12px; text-align: left;">Article</th>
-                <th style="padding: 8px 12px; text-align: center;">Quantité</th>
-                <th style="padding: 8px 12px; text-align: right;">Prix</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-              <tr style="background: #f0f4fa;">
-                <td colspan="2" style="padding: 8px 12px; text-align: right;"><strong>Total :</strong></td>
-                <td style="padding: 8px 12px; text-align: right;"><strong>${orderDetails.totalAmount} €</strong></td>
-              </tr>
-              ${trackingRow}
-              ${notesRow}
-            </tbody>
-          </table>
-          <p style="margin-top: 32px;">Si vous avez des questions ou besoin d'aide, il vous suffit de répondre à cet e-mail. Nous sommes là pour vous !</p>
-          <p style="margin-top: 24px; color: #4f8cff; font-weight: bold;">À très bientôt,<br>L'équipe Piki</p>
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     try {

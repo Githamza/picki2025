@@ -65,9 +65,16 @@
           }
 
           <div class="header-right">
-            <span class="total-amount header-price">{{
-              order().totalAmount | vendorCurrency
-            }}</span>
+            <div class="price-with-fees" [matTooltip]="hasFees() ? 'Sous-total: ' + (getSubtotal() | vendorCurrency) + (getServiceFee() > 0 ? ' + Frais: ' + (getServiceFee() | vendorCurrency) : '') + (getDeliveryFee() > 0 ? ' + Livraison: ' + (getDeliveryFee() | vendorCurrency) : '') : ''">
+              <span class="total-amount header-price">{{
+                order().totalAmount | vendorCurrency
+              }}</span>
+              @if (hasFees()) {
+              <span class="fee-indicator">
+                <mat-icon>info_outline</mat-icon>
+              </span>
+              }
+            </div>
 
             @if (isOrderLoading()(order().id)) {
             <mat-spinner diameter="20" class="order-spinner"></mat-spinner>
@@ -88,9 +95,16 @@
           </mat-chip>
           }
           <div class="header-right">
-            <span class="total-amount header-price">{{
-              order().totalAmount | vendorCurrency
-            }}</span>
+            <div class="price-with-fees" [matTooltip]="hasFees() ? 'Sous-total: ' + (getSubtotal() | vendorCurrency) + (getServiceFee() > 0 ? ' + Frais: ' + (getServiceFee() | vendorCurrency) : '') + (getDeliveryFee() > 0 ? ' + Livraison: ' + (getDeliveryFee() | vendorCurrency) : '') : ''">
+              <span class="total-amount header-price">{{
+                order().totalAmount | vendorCurrency
+              }}</span>
+              @if (hasFees()) {
+              <span class="fee-indicator">
+                <mat-icon>info_outline</mat-icon>
+              </span>
+              }
+            </div>
             @if (isOrderLoading()(order().id)) {
             <mat-spinner diameter="20" class="order-spinner"></mat-spinner>
             }
@@ -120,8 +134,8 @@
               {{ order().customer.lastName }}</span
             >
             <span class="item-count"
-              >{{ order().items.length }}
-              {{ order().items.length === 1 ? "article" : "articles" }}</span
+              >{{ getProductItemsCount() }}
+              {{ getProductItemsCount() === 1 ? "article" : "articles" }}</span
             >
           </div>
           <div class="customer-info-right">

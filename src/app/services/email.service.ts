@@ -3,6 +3,27 @@ import { SupabaseService } from './supabase.service';
 import { Order } from '../models/order.model';
 import { environment } from '../../environments/environment';
 import { DomainService } from './domain.service';
+import { VendorService } from './vendor.service';
+import { firstValueFrom } from 'rxjs';
+
+export interface VendorEmailInfo {
+  businessName: string;
+  currency: string;
+  paymentProvider: string;
+  siret?: string;
+  tvaNumber?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  contact?: {
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+}
 
 @Injectable({
   providedIn: 'root',
@@ -10,6 +31,48 @@ import { DomainService } from './domain.service';
 export class EmailService {
   private supabaseService = inject(SupabaseService);
   private domainService = inject(DomainService);
+  private vendorService = inject(VendorService);
+
+  /**
+   * Get vendor information for email
+   */
+  private async getVendorEmailInfo(vendorId?: string): Promise<VendorEmailInfo | null> {
+    try {
+      const vendor = this.vendorService.getCurrentVendor();
+      if (!vendor) {
+        console.warn('No current vendor found for email');
+        return null;
+      }
+
+      // Get restaurant info which includes address and contact
+      const restaurantInfo = await firstValueFrom(
+        this.vendorService.getRestaurantInfo(vendorId || vendor.id)
+      );
+
+      return {
+        businessName: vendor.business_name,
+        currency: vendor.currency || 'EUR',
+        paymentProvider: vendor.paymentprovider || 'STRIPE',
+        // SIRET and TVA number can be added to vendor_metadata table if needed
+        siret: (vendor as any).siret || undefined,
+        tvaNumber: (vendor as any).tva_number || undefined,
+        address: restaurantInfo?.address ? {
+          street: restaurantInfo.address.street,
+          city: restaurantInfo.address.city,
+          postalCode: restaurantInfo.address.postal_code,
+          country: restaurantInfo.address.country,
+        } : undefined,
+        contact: restaurantInfo?.contact ? {
+          phone: restaurantInfo.contact.phone,
+          email: restaurantInfo.contact.email,
+          website: restaurantInfo.contact.website,
+        } : undefined,
+      };
+    } catch (error) {
+      console.error('Error getting vendor email info:', error);
+      return null;
+    }
+  }
 
   async sendOrderConfirmationEmail(
     order: Order,
@@ -23,20 +86,38 @@ export class EmailService {
       console.log('Customer email:', order.customer.email);
       console.log('Tracking URL:', trackingUrl);
 
-      // Prepare the request body
+      // Get vendor information
+      const vendorInfo = await this.getVendorEmailInfo(order.vendorId);
+      console.log('Vendor info for email:', vendorInfo);
+
+      // Prepare the request body with enhanced data
       const requestBody = {
         to: order.customer.email,
         orderDetails: {
           orderNumber: order.orderNumber,
-          customer: order.customer,
-          items: order.items,
+          customer: {
+            ...order.customer,
+            name: `${order.customer.firstName} ${order.customer.lastName}`.trim(),
+          },
+          items: order.items.map(item => ({
+            name: item.productName,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.price / item.quantity,
+            totalPrice: item.price,
+            price: item.price,
+          })),
           totalAmount: order.totalAmount,
           status: order.status,
           orderType: order.orderType,
           timing: order.timing,
           scheduledTime: order.scheduledTime,
           notes: order.notes,
+          createdAt: order.createdAt,
+          payAtCheckout: order.payAtCheckout || false,
+          currency: vendorInfo?.currency || 'EUR',
         },
+        vendorInfo: vendorInfo,
         trackingUrl: trackingUrl,
         emailType: 'confirmation',
       };
@@ -125,20 +206,38 @@ export class EmailService {
       console.log('Customer email:', order.customer.email);
       console.log('Tracking URL:', trackingUrl);
 
-      // Prepare the request body
+      // Get vendor information
+      const vendorInfo = await this.getVendorEmailInfo(order.vendorId);
+      console.log('Vendor info for ready email:', vendorInfo);
+
+      // Prepare the request body with enhanced data
       const requestBody = {
         to: order.customer.email,
         orderDetails: {
           orderNumber: order.orderNumber,
-          customer: order.customer,
-          items: order.items,
+          customer: {
+            ...order.customer,
+            name: `${order.customer.firstName} ${order.customer.lastName}`.trim(),
+          },
+          items: order.items.map(item => ({
+            name: item.productName,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.price / item.quantity,
+            totalPrice: item.price,
+            price: item.price,
+          })),
           totalAmount: order.totalAmount,
           status: order.status,
           orderType: order.orderType,
           timing: order.timing,
           scheduledTime: order.scheduledTime,
           notes: order.notes,
+          createdAt: order.createdAt,
+          payAtCheckout: order.payAtCheckout || false,
+          currency: vendorInfo?.currency || 'EUR',
         },
+        vendorInfo: vendorInfo,
         trackingUrl: trackingUrl,
         emailType: 'ready',
       };

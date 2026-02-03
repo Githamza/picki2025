@@ -342,6 +342,25 @@
   }
 }
 
+.price-with-fees {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+
+  .fee-indicator {
+    display: flex;
+    align-items: center;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: var(--mat-sys-outline);
+    }
+  }
+}
+
 .order-meta-info {
   display: flex;
   flex-wrap: wrap;

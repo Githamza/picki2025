@@ -13,9 +13,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatListModule } from '@angular/material/list';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Order, OrderStatus } from '../../../models/order.model';
 import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reason-dialog.component';
 import { SupabaseAuthService } from '../../../services/supabase-auth.service';
+import { EmailService } from '../../../services/email.service';
 import { MapLocationViewerComponent } from '../../../shared/components/map-location-viewer/map-location-viewer.component';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
@@ -31,6 +34,8 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
     MatDividerModule,
     MatProgressSpinnerModule,
     MatListModule,
+    MatSnackBarModule,
+    MatTooltipModule,
     MapLocationViewerComponent,
     VendorCurrencyPipe,
   ],
@@ -71,10 +76,10 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
             <div class="items-section">
               <h3 class="section-title">
                 <mat-icon>restaurant</mat-icon>
-                Articles ({{ data.order.items.length }})
+                Articles ({{ getProductItems().length }})
               </h3>
               <div class="order-items">
-                @for (item of data.order.items; track item.productId + $index) {
+                @for (item of getProductItems(); track item.productId + $index) {
                 <div class="order-item">
                   <span class="item-quantity">{{ item.quantity }}x</span>
                   <div class="item-details">
@@ -153,6 +158,30 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
               <span>{{ data.order.notes }}</span>
             </div>
             }
+
+            <!-- Order Summary with Fees -->
+            <div class="order-summary">
+              <div class="summary-row">
+                <span>Sous-total</span>
+                <span>{{ getSubtotal() | vendorCurrency }}</span>
+              </div>
+              @if (getDeliveryFee() > 0) {
+              <div class="summary-row fee-row">
+                <span>Frais de livraison</span>
+                <span>{{ getDeliveryFee() | vendorCurrency }}</span>
+              </div>
+              }
+              @if (getServiceFee() > 0) {
+              <div class="summary-row fee-row">
+                <span>Frais de service</span>
+                <span>{{ getServiceFee() | vendorCurrency }}</span>
+              </div>
+              }
+              <div class="summary-row total-row">
+                <span>Total</span>
+                <span>{{ data.order.totalAmount | vendorCurrency }}</span>
+              </div>
+            </div>
           </div>
 
           <!-- Right Section: Status + Customer (1/4 width) -->
@@ -267,6 +296,20 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
                 </span>
                 }
               </div>
+              <button
+                mat-stroked-button
+                class="resend-ticket-button"
+                (click)="resendTicket()"
+                [disabled]="isSendingTicket()"
+                matTooltip="Renvoyer le ticket par email au client"
+              >
+                @if (isSendingTicket()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                  <mat-icon>receipt_long</mat-icon>
+                }
+                <span>Renvoyer le ticket</span>
+              </button>
             </div>
           </div>
         </div>
@@ -518,6 +561,27 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
         padding: 10px 12px;
         background-color: var(--mat-sys-surface-container);
         border-radius: 8px;
+
+        .resend-ticket-button {
+          margin-top: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-size: 12px;
+          height: 32px;
+          border-radius: 6px;
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+
+          mat-spinner {
+            margin: 0;
+          }
+        }
       }
 
       .customer-info {
@@ -759,7 +823,36 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
         }
       }
 
+      .order-summary {
+        margin-top: 12px;
+        padding: 10px 12px;
+        background-color: var(--mat-sys-surface-container);
+        border-radius: 8px;
+        border-top: 1px solid var(--mat-sys-outline-variant);
 
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 0;
+          font-size: 13px;
+          color: var(--mat-sys-on-surface);
+
+          &.fee-row {
+            color: var(--mat-sys-on-surface-variant);
+            font-size: 12px;
+          }
+
+          &.total-row {
+            margin-top: 6px;
+            padding-top: 8px;
+            border-top: 1px solid var(--mat-sys-outline-variant);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--mat-sys-primary);
+          }
+        }
+      }
 
       mat-dialog-actions {
         padding: 8px 14px;
@@ -827,22 +920,18 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
         .refuse-button {
           flex: 1;
-          --mat-fab-foreground-color: #ffffff;
-          --mat-fab-state-layer-color: #ffffff;
-          --mat-fab-ripple-color: rgba(255, 255, 255, 0.1);
+          --mat-fab-foreground-color: var(--mat-sys-on-error-container);
+          --mat-fab-state-layer-color: var(--mat-sys-on-error-container);
+          --mat-fab-ripple-color: var(--mat-sys-on-error-container);
           --mat-fab-hover-state-layer-opacity: 0.08;
           --mat-fab-focus-state-layer-opacity: 0.12;
           --mat-fab-pressed-state-layer-opacity: 0.12;
-          --mat-fab-container-color: #f44336;
-          --mat-fab-hover-container-elevation: 4;
-          --mat-fab-focus-container-elevation: 4;
-          --mat-fab-pressed-container-elevation: 8;
-          --mat-fab-disabled-container-color: rgba(0, 0, 0, 0.12);
-          --mat-fab-disabled-foreground-color: rgba(0, 0, 0, 0.38);
-
-          &:hover:not([disabled]) {
-            --mat-fab-container-color: #d32f2f;
-          }
+          --mat-fab-container-color: var(--mat-sys-error-container);
+          --mat-fab-hover-container-elevation: 1;
+          --mat-fab-focus-container-elevation: 1;
+          --mat-fab-pressed-container-elevation: 1;
+          --mat-fab-disabled-container-color: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
+          --mat-fab-disabled-foreground-color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
         }
       }
 
@@ -942,8 +1031,11 @@ export class OrderDetailsDialogComponent {
   dialog = inject(MatDialog);
   data = inject<{ order: Order; onAccept?: () => void; onRefuse?: (reason?: string) => void; onUpdateStatus?: (status: OrderStatus) => void }>(MAT_DIALOG_DATA);
   private supabaseAuth = inject(SupabaseAuthService);
+  private emailService = inject(EmailService);
+  private snackBar = inject(MatSnackBar);
 
   isProcessing = this.data.onAccept ? signal(false) : signal(false);
+  readonly isSendingTicket = signal<boolean>(false);
 
   readonly isLoadingDelivery = signal<boolean>(false);
   readonly deliveryInfo = signal<any | null>(null);
@@ -1020,6 +1112,37 @@ export class OrderDetailsDialogComponent {
     done: 'done_all',
     picked: '',
   };
+
+  // Fee calculation methods
+  getSubtotal(): number {
+    return this.data.order.items
+      .filter(item => !this.isDeliveryFeeItem(item))
+      .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }
+
+  getDeliveryFee(): number {
+    const deliveryItem = this.data.order.items.find(item => this.isDeliveryFeeItem(item));
+    return deliveryItem ? deliveryItem.price * deliveryItem.quantity : 0;
+  }
+
+  getServiceFee(): number {
+    const subtotal = this.getSubtotal();
+    const deliveryFee = this.getDeliveryFee();
+    const serviceFee = this.data.order.totalAmount - subtotal - deliveryFee;
+    return serviceFee > 0 ? serviceFee : 0;
+  }
+
+  private isDeliveryFeeItem(item: any): boolean {
+    const productId = Number(item.productId);
+    const name = (item.productName || '').toLowerCase();
+    return productId === -9999 ||
+           name.includes('livraison') ||
+           name.includes('delivery');
+  }
+
+  getProductItems() {
+    return this.data.order.items.filter(item => !this.isDeliveryFeeItem(item));
+  }
 
   canValidateOrder(order: Order): boolean {
     return order.status === 'initiated' || order.status === 'paid';
@@ -1158,5 +1281,42 @@ export class OrderDetailsDialogComponent {
 
   closeDialog() {
     this.dialogRef.close();
+  }
+
+  async resendTicket() {
+    if (this.isSendingTicket()) return;
+
+    this.isSendingTicket.set(true);
+    try {
+      const trackingUrl = this.emailService.generateTrackingUrl(this.data.order.id);
+      const result = await this.emailService.sendOrderConfirmationEmail(
+        this.data.order,
+        trackingUrl
+      );
+
+      if (result.success) {
+        this.snackBar.open('Ticket envoyé avec succès', 'OK', {
+          duration: 3000,
+          panelClass: ['success-snackbar'],
+        });
+      } else {
+        this.snackBar.open(
+          result.error || 'Erreur lors de l\'envoi du ticket',
+          'Fermer',
+          {
+            duration: 5000,
+            panelClass: ['error-snackbar'],
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Error resending ticket:', error);
+      this.snackBar.open('Erreur lors de l\'envoi du ticket', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.isSendingTicket.set(false);
+    }
   }
 }

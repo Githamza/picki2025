@@ -134,14 +134,17 @@ import { ImageUploadComponent } from '../../../shared/components';
                         "
                       ></div>
                     </div>
-                    <mat-chip class="chip-count">
-                      {{ category.product_count }}
-                    </mat-chip>
+
                   </div>
                 </div>
               </mat-panel-title>
               <mat-panel-description>
-                {{ category.description || 'Aucune description' }}
+                <div class="category-description">
+                  <p>{{ category.description || 'Aucune description' }}</p>
+                  <span class="chip-count">
+                      {{ category.product_count }} produit(s)
+                    </span>
+                </div>
               </mat-panel-description>
             </mat-expansion-panel-header>
 
@@ -397,7 +400,6 @@ import { ImageUploadComponent } from '../../../shared/components';
       .categories-accordion {
         display: flex;
         flex-direction: column;
-        gap: 12px;
       }
 
       /* ===== Category Panel ===== */
@@ -418,6 +420,12 @@ import { ImageUploadComponent } from '../../../shared/components';
       .category-title-row {
         display: flex;
         align-items: center;
+        gap: 8px;
+      }
+      .category-description {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
         gap: 8px;
       }
 
@@ -454,7 +462,6 @@ import { ImageUploadComponent } from '../../../shared/components';
       }
 
       .chip-count {
-        background: var(--mat-sys-secondary-container);
         color: var(--mat-sys-on-secondary-container);
         font: var(--mat-sys-label-small);
       }

@@ -168,6 +168,7 @@ export const cartReducer = createReducer(
         id: DELIVERY_FEE_PRODUCT_ID,
         name: 'Livraison',
         price: amount,
+        tvaRate: 20, // Delivery fees use standard 20% VAT in France
         imageUrl: '',
         categoryId: 0,
         description: '',

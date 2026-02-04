@@ -24,6 +24,8 @@ export interface ProductStepOption {
   description?: string; // New: Additional description for options
   vendorId: string; // Added vendor isolation
   stockQuantity?: number | null; // Stock quantity from linked product (null = unlimited)
+  alaCartePrice?: number; // Product's base price for pro-rata TVA calculation
+  tvaRate?: number; // Product's TVA rate for pro-rata TVA calculation
 }
 
 export interface StepSelection {
@@ -43,6 +45,8 @@ export interface MultiStepProductConfiguration {
 
 export interface CartMultiStepMetadata {
   baseProductId: number;
+  baseProductPrice: number;  // Base product's à la carte price for pro-rata TVA calculation
+  baseProductTvaRate: number;  // Base product's TVA rate
   stepSelections: {
     stepId: number;
     stepName: string;
@@ -51,6 +55,8 @@ export interface CartMultiStepMetadata {
       optionName: string;
       productId: number;
       priceAdjustment: number;
+      alaCartePrice: number;    // Product's base price for pro-rata TVA calculation
+      tvaRate: number;          // Product's TVA rate
       customisationSelections?: {
         customisationId: number;
         customisationName: string;

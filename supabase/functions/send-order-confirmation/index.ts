@@ -7,8 +7,91 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// VAT rates for France (food service)
-const VAT_RATE_FOOD = 10; // 10% for restaurant food
+// Default VAT rate for France (food service) - used as fallback
+const DEFAULT_VAT_RATE = 10; // 10% for restaurant food
+
+// Interface for TVA breakdown by rate
+interface TvaBreakdown {
+  rate: number;
+  totalHT: number;
+  totalTVA: number;
+  totalTTC: number;
+}
+
+// Calculate pro-rata TVA components for a single item
+// For multi-step products (menus/formulas), allocates the menu price proportionally
+// to each component based on their à la carte prices, then applies each component's TVA rate
+function calculateProRataTvaComponents(item: any): Array<{ttc: number; rate: number}> {
+  const metadata = item.options?.[0];
+  const itemPrice = (item.totalPrice || item.price || 0) * (item.quantity || 1);
+
+  // If not a multi-step product or no metadata, use simple calculation
+  if (!metadata?.stepSelections?.length) {
+    return [{ ttc: itemPrice, rate: item.tvaRate ?? DEFAULT_VAT_RATE }];
+  }
+
+  // Collect all components with their à la carte prices and TVA rates
+  const components: Array<{alaCartePrice: number; tvaRate: number; priceAdjustment: number}> = [];
+
+  for (const step of metadata.stepSelections) {
+    for (const opt of step.selectedOptions || []) {
+      components.push({
+        alaCartePrice: opt.alaCartePrice || 0,
+        tvaRate: opt.tvaRate ?? item.tvaRate ?? DEFAULT_VAT_RATE,
+        priceAdjustment: opt.priceAdjustment || 0,
+      });
+    }
+  }
+
+  // If no valid components found, fall back to simple calculation
+  if (components.length === 0) {
+    return [{ ttc: itemPrice, rate: item.tvaRate ?? DEFAULT_VAT_RATE }];
+  }
+
+  // Calculate total à la carte price (base prices only, not adjustments)
+  const totalAlaCarte = components.reduce((sum, c) => sum + c.alaCartePrice, 0);
+  // Calculate total supplements
+  const totalSupplements = components.reduce((sum, c) => sum + c.priceAdjustment, 0);
+  // Base price is total item price minus supplements
+  const basePrice = itemPrice - totalSupplements;
+
+  // If no à la carte prices available, fall back to simple calculation
+  if (totalAlaCarte <= 0) {
+    return [{ ttc: itemPrice, rate: item.tvaRate ?? DEFAULT_VAT_RATE }];
+  }
+
+  // Allocate base price proportionally, then add supplements to their respective components
+  return components.map(c => ({
+    ttc: (basePrice * c.alaCartePrice / totalAlaCarte) + c.priceAdjustment,
+    rate: c.tvaRate,
+  }));
+}
+
+// Calculate TVA breakdown grouped by rate (handles both simple and multi-step products)
+function calculateTvaBreakdownByRate(items: any[]): TvaBreakdown[] {
+  const groups = new Map<number, { ht: number; ttc: number }>();
+
+  for (const item of items) {
+    // Get pro-rata components (handles both simple and multi-step products)
+    const components = calculateProRataTvaComponents(item);
+
+    for (const comp of components) {
+      const ht = comp.ttc / (1 + comp.rate / 100);
+      const existing = groups.get(comp.rate) || { ht: 0, ttc: 0 };
+      groups.set(comp.rate, {
+        ht: existing.ht + ht,
+        ttc: existing.ttc + comp.ttc,
+      });
+    }
+  }
+
+  return Array.from(groups.entries()).map(([rate, { ht, ttc }]) => ({
+    rate,
+    totalHT: Math.round(ht * 100) / 100,
+    totalTVA: Math.round((ttc - ht) * 100) / 100,
+    totalTTC: Math.round(ttc * 100) / 100,
+  })).sort((a, b) => a.rate - b.rate);
+}
 
 // Helper functions
 function formatDate(dateString: string | Date): string {
@@ -224,10 +307,12 @@ serve(async (req) => {
     const paymentMethod = getPaymentMethodLabel(vendorInfo?.paymentProvider || orderDetails.paymentMethod, payAtCheckout);
     const orderDateTime = orderDetails.createdAt || new Date().toISOString();
 
-    // Calculate VAT breakdown (assuming all items are food at 10% VAT)
+    // Calculate VAT breakdown grouped by rate
     const totalTTC = orderDetails.totalAmount || 0;
     const discount = orderDetails.discount || 0;
-    const taxBreakdown = calculateTaxFromTTC(totalTTC, VAT_RATE_FOOD);
+    const tvaBreakdownByRate = calculateTvaBreakdownByRate(orderDetails.items || []);
+    const totalHT = tvaBreakdownByRate.reduce((sum, b) => sum + b.totalHT, 0);
+    const totalTVA = tvaBreakdownByRate.reduce((sum, b) => sum + b.totalTVA, 0);
 
     // Different content for confirmation vs ready emails
     const emailTitle = isReadyEmail
@@ -252,6 +337,7 @@ serve(async (req) => {
             const unitPrice = item.unitPrice || item.price / (item.quantity || 1);
             const lineTotal = item.totalPrice || item.price || (unitPrice * (item.quantity || 1));
             const itemName = item.name || item.title || item.productName || 'Article';
+            const itemTvaRate = item.tvaRate ?? DEFAULT_VAT_RATE;
             return `
               <tr>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; font-size: 14px;">
@@ -264,7 +350,7 @@ serve(async (req) => {
                   ${item.quantity || 1}
                 </td>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px;">
-                  ${VAT_RATE_FOOD}%
+                  ${itemTvaRate}%
                 </td>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px; font-weight: 500;">
                   ${formatCurrency(lineTotal, currency)}
@@ -407,15 +493,17 @@ serve(async (req) => {
                   ${discountRow}
                   <tr>
                     <td colspan="4" style="padding: 12px 16px; text-align: right; font-size: 14px; color: #4b5563;">Total HT :</td>
-                    <td style="padding: 12px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(taxBreakdown.ht, currency)}</td>
+                    <td style="padding: 12px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(totalHT, currency)}</td>
                   </tr>
+                  ${tvaBreakdownByRate.map(b => `
                   <tr>
-                    <td colspan="4" style="padding: 8px 16px; text-align: right; font-size: 14px; color: #4b5563;">TVA (${VAT_RATE_FOOD}%) :</td>
-                    <td style="padding: 8px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(taxBreakdown.tva, currency)}</td>
+                    <td colspan="4" style="padding: 8px 16px; text-align: right; font-size: 14px; color: #4b5563;">TVA (${b.rate}%) :</td>
+                    <td style="padding: 8px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(b.totalTVA, currency)}</td>
                   </tr>
+                  `).join('')}
                   <tr style="background: #2563eb;">
                     <td colspan="4" style="padding: 16px; text-align: right; font-size: 16px; font-weight: 700; color: #ffffff; border-radius: 0 0 0 8px;">TOTAL TTC :</td>
-                    <td style="padding: 16px; text-align: right; font-size: 18px; font-weight: 700; color: #ffffff; border-radius: 0 0 8px 0;">${formatCurrency(taxBreakdown.ttc, currency)}</td>
+                    <td style="padding: 16px; text-align: right; font-size: 18px; font-weight: 700; color: #ffffff; border-radius: 0 0 8px 0;">${formatCurrency(totalTTC, currency)}</td>
                   </tr>
                 </tbody>
               </table>

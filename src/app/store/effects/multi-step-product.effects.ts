@@ -42,6 +42,7 @@ export class MultiStepProductEffects {
               id: productData.id,
               name: productData.name,
               price: Number(productData.price),
+              tvaRate: Number(productData.tva_rate) || 10,
               imageUrl: productData.image_url || '',
               categoryId: productData.category_id || 0,
               description: productData.short_description || '',
@@ -211,6 +212,8 @@ export class MultiStepProductEffects {
               optionName: option.name,
               productId: option.productId,
               priceAdjustment: option.priceAdjustment,
+              alaCartePrice: option.alaCartePrice || 0,
+              tvaRate: option.tvaRate ?? 10,
               customisationSelections: customisationSelectionsForOption,
             };
           })
@@ -226,6 +229,8 @@ export class MultiStepProductEffects {
 
     return {
       baseProductId: configuration.baseProduct.id,
+      baseProductPrice: configuration.baseProduct.price || 0,
+      baseProductTvaRate: configuration.baseProduct.tvaRate ?? 10,
       stepSelections: stepSelections.filter(
         (stepSelection) => stepSelection.selectedOptions.length > 0
       ),
@@ -264,6 +269,9 @@ export class MultiStepProductEffects {
           // Image logic: use option's own image for components, or product's image for products
           imageUrl: this.getOptionImageUrl(option),
           stockQuantity: option.option_product?.stock_quantity ?? null,
+          // Pro-rata TVA calculation fields
+          alaCartePrice: option.option_product?.price ? Number(option.option_product.price) : 0,
+          tvaRate: option.option_product?.tva_rate ? Number(option.option_product.tva_rate) : 10,
         })),
       }))
       // Filter out steps that have no visible options

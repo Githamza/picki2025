@@ -16,6 +16,7 @@ export interface Product {
   id: number;
   name: string;
   price: number;
+  tvaRate: number;
   imageUrl: string;
   categoryId: number;
   description: string;
@@ -286,6 +287,7 @@ export class ProductService {
       id: dbProduct.id,
       name: dbProduct.name,
       price: Number(dbProduct.price),
+      tvaRate: Number(dbProduct.tva_rate) || 10,
       imageUrl: dbProduct.image_url || '',
       categoryId: dbProduct.category_id || 0,
       description: dbProduct.short_description || '',

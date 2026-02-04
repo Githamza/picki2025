@@ -106,6 +106,8 @@ export class EmailService {
             unitPrice: item.price / item.quantity,
             totalPrice: item.price,
             price: item.price,
+            tvaRate: item.tvaRate ?? 10,
+            options: item.options,  // Pass full metadata for pro-rata TVA calculation
           })),
           totalAmount: order.totalAmount,
           status: order.status,
@@ -226,6 +228,8 @@ export class EmailService {
             unitPrice: item.price / item.quantity,
             totalPrice: item.price,
             price: item.price,
+            tvaRate: item.tvaRate ?? 10,
+            options: item.options,  // Pass full metadata for pro-rata TVA calculation
           })),
           totalAmount: order.totalAmount,
           status: order.status,

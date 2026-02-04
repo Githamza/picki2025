@@ -22,6 +22,7 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
+  tvaRate: number;
   options?: any[]; // Change from string[] to any[] to support metadata
   vendorId?: string;
   comment?: string;

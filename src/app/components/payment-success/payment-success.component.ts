@@ -1148,6 +1148,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           productName: item.product.name,
           quantity: item.quantity,
           price: item.product.price,
+          tvaRate: item.product.tvaRate ?? 10,
           options: [],
           vendorId: item.product.vendorId,
         }));

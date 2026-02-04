@@ -2,6 +2,7 @@ export interface ProductAdmin {
   id: number;
   name: string;
   price: number;
+  tva_rate: number;
   image_url: string | null;
   short_description: string | null;
   long_description: string | null;
@@ -43,6 +44,7 @@ export interface Category {
 export interface ProductFormData {
   name: string;
   price: number;
+  tva_rate: number;
   image_url: string | null;
   short_description: string | null;
   long_description: string | null;
@@ -93,6 +95,7 @@ export interface MenuStepOption {
 export interface MenuFormData {
   name: string;
   price: number;
+  tva_rate: number;
   image_url: string | null;
   short_description: string | null;
   long_description: string | null;

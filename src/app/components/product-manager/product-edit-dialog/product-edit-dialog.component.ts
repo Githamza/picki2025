@@ -100,6 +100,16 @@ export interface DialogData {
           }
         </mat-form-field>
 
+        <!-- TVA Rate -->
+        <mat-form-field appearance="fill">
+          <mat-label>Taux de TVA</mat-label>
+          <mat-select formControlName="tva_rate">
+            <mat-option [value]="5.5">5,5% </mat-option>
+            <mat-option [value]="10">10% </mat-option>
+            <mat-option [value]="20">20%</mat-option>
+          </mat-select>
+        </mat-form-field>
+
         <!-- 3. Category -->
         <mat-form-field appearance="fill">
           <mat-label>Catégorie</mat-label>
@@ -452,6 +462,7 @@ export class ProductEditDialogComponent implements OnInit {
     return this.fb.group({
       name: ['', [Validators.required]],
       price: [0, [Validators.required, Validators.min(0)]],
+      tva_rate: [10, [Validators.required]],
       category_id: [null],
       display_order: [0, [Validators.min(0)]],
       image_url: [''],
@@ -535,6 +546,7 @@ export class ProductEditDialogComponent implements OnInit {
     this.productForm.patchValue({
       name: product.name,
       price: product.price,
+      tva_rate: product.tva_rate ?? 10,
       category_id: product.category_id,
       display_order: product.display_order ?? 0,
       image_url: product.image_url,
@@ -571,6 +583,7 @@ export class ProductEditDialogComponent implements OnInit {
     const formData: ProductFormData = {
       name: this.productForm.value.name,
       price: this.productForm.value.price,
+      tva_rate: this.productForm.value.tva_rate,
       image_url: this.productForm.value.image_url,
       short_description: this.productForm.value.short_description,
       long_description: this.productForm.value.long_description,

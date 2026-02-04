@@ -143,6 +143,15 @@ import {
                   <mat-error>Le prix est requis</mat-error>
                   }
                 </mat-form-field>
+
+                <mat-form-field appearance="fill" class="tva-field">
+                  <mat-label>TVA</mat-label>
+                  <mat-select formControlName="tva_rate">
+                    <mat-option [value]="5.5">5,5%</mat-option>
+                    <mat-option [value]="10">10%</mat-option>
+                    <mat-option [value]="20">20%</mat-option>
+                  </mat-select>
+                </mat-form-field>
               </div>
 
               <div class="form-row">
@@ -579,6 +588,10 @@ import {
 
       .price-field {
         min-width: 120px;
+      }
+
+      .tva-field {
+        min-width: 100px;
       }
 
       .step-type-field {
@@ -1071,6 +1084,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     return this.fb.group({
       name: ['', [Validators.required]],
       price: [0, [Validators.required, Validators.min(0)]],
+      tva_rate: [10, [Validators.required]],
       category_id: [null],
       image_url: [''],
       short_description: [''],
@@ -1157,6 +1171,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     this.menuForm.patchValue({
       name: menu.name,
       price: menu.price,
+      tva_rate: menu.tva_rate ?? 10,
       category_id: menu.category_id,
       image_url: menu.image_url,
       short_description: menu.short_description,
@@ -1652,6 +1667,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     const basicMenuData = {
       name: this.menuForm.get('name')?.value,
       price: this.menuForm.get('price')?.value,
+      tva_rate: this.menuForm.get('tva_rate')?.value,
       category_id: this.menuForm.get('category_id')?.value,
       image_url: this.menuForm.get('image_url')?.value,
       short_description: this.menuForm.get('short_description')?.value,

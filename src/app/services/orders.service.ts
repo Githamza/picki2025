@@ -361,6 +361,7 @@ export class OrdersService {
           quantity: item.quantity,
           unit_price: item.price, // This will now be the correct calculated price for multi-step products
           total_price: item.price * item.quantity,
+          tva_rate: item.tvaRate ?? 10, // Store TVA rate at time of purchase
           vendor_id: (item as any).vendorId || null, // Get vendor ID from item if available
           options: item.options || [], // Store multi-step metadata here
           comment: item.comment || null,
@@ -659,6 +660,7 @@ export class OrdersService {
           productName: item.product_name,
           quantity: item.quantity,
           price: Number(item.unit_price),
+          tvaRate: Number(item.tva_rate) || 10,
           options: item.options || [],
           comment: item.comment || undefined,
           vendorId: item.vendor_id || undefined,

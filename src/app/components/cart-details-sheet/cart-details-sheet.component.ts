@@ -612,6 +612,7 @@ export class CartDetailsSheetComponent {
           productName: item.product.name,
           quantity: item.quantity,
           price: itemPrice, // Use calculated price for multi-step products
+          tvaRate: item.product.tvaRate ?? 10, // Store TVA rate from product
           options: options, // Store multi-step metadata or complements
           vendorId: item.product.vendorId,
           comment: item.comment,

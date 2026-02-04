@@ -161,6 +161,7 @@ export class ProductAdminService {
 
     return {
       ...product,
+      tva_rate: (product as any).tva_rate ?? 10,
       category_name: (product as any).categories?.name || null,
       no_catalogable: (product as any).no_catalogable ?? false,
       display_order: (product as any).display_order ?? 0,
@@ -196,6 +197,7 @@ export class ProductAdminService {
 
     return {
       ...product,
+      tva_rate: (product as any).tva_rate ?? 10,
       category_name: (product as any).categories?.name || null,
       no_catalogable: (product as any).no_catalogable ?? false,
       display_order: (product as any).display_order ?? 0,
@@ -403,6 +405,7 @@ export class ProductAdminService {
 
     return {
       ...menu,
+      tva_rate: (menu as any).tva_rate ?? 10,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
       has_customisations: menu.has_customisations ?? undefined,
@@ -440,6 +443,7 @@ export class ProductAdminService {
 
     return {
       ...menu,
+      tva_rate: (menu as any).tva_rate ?? 10,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
       has_customisations: menu.has_customisations ?? undefined,
@@ -475,6 +479,7 @@ export class ProductAdminService {
 
     return {
       ...menu,
+      tva_rate: (menu as any).tva_rate ?? 10,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
       has_customisations: menu.has_customisations ?? undefined,

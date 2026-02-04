@@ -973,6 +973,7 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
           const duplicatedMenuData: MenuFormData = {
             name: `${completeMenu.name} (Copie)`,
             price: completeMenu.price,
+            tva_rate: completeMenu.tva_rate ?? 10,
             image_url: completeMenu.image_url,
             short_description: completeMenu.short_description,
             long_description: completeMenu.long_description,

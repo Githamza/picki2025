@@ -6,20 +6,22 @@ import {
   OnDestroy,
   AfterViewInit,
   signal,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SelectionModel } from '@angular/cdk/collections';
 import { Subject, takeUntil } from 'rxjs';
 import { ProductAdminService } from '../../../services/product-admin.service';
 import { VendorService } from '../../../services/vendor.service';
@@ -27,6 +29,10 @@ import { SupabaseService } from '../../../services/supabase.service';
 import { SupabaseAuthService } from '../../../services/supabase-auth.service';
 import { ProductAdmin } from '../../../models/product-admin.interface';
 import { ProductEditDialogComponent } from '../product-edit-dialog/product-edit-dialog.component';
+import {
+  ConfirmDeleteDialogComponent,
+  ConfirmDeleteDialogData,
+} from '../confirm-delete-dialog/confirm-delete-dialog.component';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placeholder';
 
 @Component({
@@ -37,16 +43,16 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
     MatTableModule,
     MatButtonModule,
     MatIconModule,
-    MatPaginatorModule,
     MatSortModule,
     MatInputModule,
     MatFormFieldModule,
     MatChipsModule,
     MatCheckboxModule,
     MatBadgeModule,
+    MatTooltipModule,
   ],
   template: `
-    <div class="product-list">
+    <div class="product-list" [class.has-selection]="hasSelection()">
       <!-- Header with search and add button -->
       <div class="list-header">
         <mat-form-field appearance="fill" class="search-field">
@@ -67,7 +73,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           Afficher les produits indisponibles
         </mat-checkbox>
 
-        <button matButton="filled" color="primary" (click)="openProductDialog()">
+        <button mat-flat-button color="primary" (click)="openProductDialog()">
           <mat-icon>add</mat-icon>
           Ajouter un produit
         </button>
@@ -81,6 +87,27 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           matSort
           class="product-table"
         >
+          <!-- Checkbox Column -->
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox
+                (change)="$event ? toggleAllRows() : null"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+                color="primary"
+              >
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let row">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="$event ? selection.toggle(row) : null"
+                [checked]="selection.isSelected(row)"
+                color="primary"
+              >
+              </mat-checkbox>
+            </td>
+          </ng-container>
 
           <!-- Image Column -->
           <ng-container matColumnDef="image">
@@ -173,8 +200,8 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
               </div>
             </td>
           </ng-container>
-                  <!-- Actions Column -->
 
+          <!-- Actions Column -->
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let product">
@@ -198,13 +225,14 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
           <tr
             mat-row
             *matRowDef="let row; columns: displayedColumns"
             (click)="onRowClick(row)"
             [class.mobile-clickable]="isMobile()"
             [class.unavailable-row]="!row.is_available"
+            [class.selected-row]="selection.isSelected(row)"
           ></tr>
         </table>
 
@@ -217,13 +245,50 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
         }
       </div>
 
-      <!-- Paginator -->
-      <mat-paginator
-        [pageSizeOptions]="[10, 25, 50]"
-        [showFirstLastButtons]="true"
-        aria-label="Sélectionner une page de produits"
-      >
-      </mat-paginator>
+      <!-- Selection Action Bar (bottom toolbar) -->
+      @if (hasSelection()) {
+        <div class="selection-bar">
+          <div class="selection-info">
+            <button mat-icon-button (click)="clearSelection()" class="close-btn">
+              <mat-icon>close</mat-icon>
+            </button>
+            <span class="selection-count">{{ selection.selected.length }} sélectionné(s)</span>
+          </div>
+
+          <div class="selection-actions">
+            <button
+              mat-button
+              (click)="bulkSetAvailability(true)"
+              [disabled]="isBulkLoading()"
+              class="action-btn available-btn"
+            >
+              <mat-icon>check_circle</mat-icon>
+              <span class="btn-text">Disponible</span>
+            </button>
+
+            <button
+              mat-button
+              (click)="bulkSetAvailability(false)"
+              [disabled]="isBulkLoading()"
+              class="action-btn unavailable-btn"
+            >
+              <mat-icon>remove_circle</mat-icon>
+              <span class="btn-text">Indisponible</span>
+            </button>
+
+            <button
+              mat-button
+              color="warn"
+              (click)="bulkDelete()"
+              [disabled]="isBulkLoading()"
+              class="action-btn delete-btn"
+            >
+              <mat-icon>delete</mat-icon>
+              <span class="btn-text">Supprimer</span>
+            </button>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [
@@ -240,6 +305,12 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
         display: flex;
         flex-direction: column;
         padding: 24px;
+        padding-bottom: 24px;
+        transition: padding-bottom 0.3s ease;
+      }
+
+      .product-list.has-selection {
+        padding-bottom: 88px;
       }
 
       /* ===== Header ===== */
@@ -472,17 +543,117 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
         background: var(--mat-sys-surface-container-highest);
       }
 
-      /* ===== Paginator ===== */
-      :host ::ng-deep .mat-mdc-paginator {
-        background: var(--mat-sys-surface-container-low);
-        border-radius: 0 0 var(--mat-sys-corner-large) var(--mat-sys-corner-large);
-        margin-top: -1px;
+      .selected-row {
+        background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent) !important;
+      }
+
+      .selected-row:hover {
+        background: color-mix(in srgb, var(--mat-sys-primary) 18%, transparent) !important;
+      }
+
+      /* ===== Selection Bar ===== */
+      .selection-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--mat-sys-surface-container-high);
+        border-top: 1px solid var(--mat-sys-outline-variant);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        z-index: 100;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideUp 0.2s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .selection-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .close-btn {
+          color: var(--mat-sys-on-surface-variant);
+        }
+
+        .selection-count {
+          font: var(--mat-sys-title-medium);
+          color: var(--mat-sys-on-surface);
+          white-space: nowrap;
+        }
+      }
+
+      .selection-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: var(--mat-sys-corner-full);
+        padding: 8px 16px;
+        font: var(--mat-sys-label-large);
+        transition: all 0.15s ease;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .available-btn {
+        background: var(--mat-sys-tertiary-container);
+        color: var(--mat-sys-on-tertiary-container);
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--mat-sys-tertiary-container) 85%, var(--mat-sys-on-tertiary-container));
+        }
+      }
+
+      .unavailable-btn {
+        background: var(--mat-sys-surface-container-highest);
+        color: var(--mat-sys-on-surface);
+
+        &:hover:not(:disabled) {
+          background: var(--mat-sys-outline-variant);
+        }
+      }
+
+      .delete-btn {
+        background: var(--mat-sys-error-container);
+        color: var(--mat-sys-on-error-container);
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--mat-sys-error-container) 85%, var(--mat-sys-on-error-container));
+        }
       }
 
       /* ===== Responsive ===== */
       @media (max-width: 600px) {
         .product-list {
           padding: 16px;
+        }
+
+        .product-list.has-selection {
+          padding-bottom: 140px;
         }
 
         .list-header {
@@ -510,10 +681,6 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           border-radius: 0;
         }
 
-        :host ::ng-deep .mat-mdc-paginator {
-          border-radius: 0;
-        }
-
         .product-image {
           width: 48px;
           height: 48px;
@@ -524,12 +691,52 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           border-radius: 0;
           padding: 48px 16px;
         }
+
+        /* Selection bar mobile */
+        .selection-bar {
+          flex-direction: column;
+          align-items: stretch;
+          padding: 12px 16px;
+          gap: 12px;
+        }
+
+        .selection-info {
+          justify-content: flex-start;
+        }
+
+        .selection-actions {
+          justify-content: stretch;
+          gap: 8px;
+        }
+
+        .action-btn {
+          flex: 1;
+          justify-content: center;
+          padding: 12px 8px;
+          min-width: 0;
+        }
+
+        .btn-text {
+          font-size: 12px;
+        }
+
+        /* Hide some columns on mobile */
+        :host ::ng-deep .mat-column-category,
+        :host ::ng-deep .mat-column-price,
+        :host ::ng-deep .mat-column-actions {
+          display: none;
+        }
+      }
+
+      @media (min-width: 601px) and (max-width: 900px) {
+        :host ::ng-deep .mat-column-category {
+          display: none;
+        }
       }
     `,
   ],
 })
 export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
@@ -544,6 +751,7 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   dataSource = new MatTableDataSource<ProductAdmin>([]);
   displayedColumns: string[] = [
+    'select',
     'image',
     'name',
     'availability',
@@ -555,11 +763,23 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   showUnavailable = signal(true);
   private allProducts: ProductAdmin[] = [];
 
+  // Selection
+  selection = new SelectionModel<ProductAdmin>(true, []);
+  private bulkLoading = signal(false);
+  selectionCount = signal(0);
+
   // Track loading states for individual products
   private loadingProducts = new Set<number>();
 
+  // Computed signals
+  hasSelection = computed(() => this.selectionCount() > 0);
+
   ngOnInit() {
     this.loadCurrentVendor();
+    // Track selection changes
+    this.selection.changed.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.selectionCount.set(this.selection.selected.length);
+    });
   }
 
   ngOnDestroy() {
@@ -568,7 +788,6 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
   }
 
@@ -599,6 +818,8 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
             (product) => !product.is_multi_step
           );
           this.updateVisibleProducts();
+          // Clear selection after reload
+          this.selection.clear();
         },
         error: (error) => {
           console.error('Error loading products:', error);
@@ -634,9 +855,15 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.loadingProducts.has(productId);
   }
 
+  isBulkLoading(): boolean {
+    return this.bulkLoading();
+  }
+
   onToggleShowUnavailable(checked: boolean) {
     this.showUnavailable.set(checked);
     this.updateVisibleProducts();
+    // Clear selection when toggling visibility
+    this.selection.clear();
   }
 
   private updateVisibleProducts() {
@@ -647,9 +874,122 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
     this.dataSource.data = [...visible].sort((a, b) =>
       (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' })
     );
+  }
 
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
+  // Selection methods
+  isAllSelected(): boolean {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.dataSource.data.length;
+    return numSelected === numRows;
+  }
+
+  toggleAllRows() {
+    if (this.isAllSelected()) {
+      this.selection.clear();
+    } else {
+      this.dataSource.data.forEach((row) => this.selection.select(row));
+    }
+  }
+
+  clearSelection() {
+    this.selection.clear();
+  }
+
+  // Bulk operations
+  async bulkSetAvailability(isAvailable: boolean) {
+    const selectedProducts = this.selection.selected;
+    if (selectedProducts.length === 0) return;
+
+    this.bulkLoading.set(true);
+    const productIds = selectedProducts.map((p) => p.id);
+
+    try {
+      // Optimistic update
+      this.allProducts = this.allProducts.map((p) =>
+        productIds.includes(p.id) ? { ...p, is_available: isAvailable } : p
+      );
+      this.updateVisibleProducts();
+
+      // Perform actual update
+      await this.supabaseAuthService.bulkUpdateProductAvailability(
+        productIds,
+        isAvailable
+      );
+
+      const statusText = isAvailable ? 'disponibles' : 'indisponibles';
+      this.snackBar.open(
+        `${selectedProducts.length} produit(s) sont maintenant ${statusText}`,
+        'OK',
+        { duration: 3000, panelClass: ['success-snackbar'] }
+      );
+
+      this.selection.clear();
+    } catch (error: any) {
+      console.error('Error in bulk availability update:', error);
+      // Revert optimistic update
+      this.loadProducts();
+      this.snackBar.open(
+        'Erreur lors de la mise à jour des produits',
+        'Fermer',
+        { duration: 5000, panelClass: ['error-snackbar'] }
+      );
+    } finally {
+      this.bulkLoading.set(false);
+    }
+  }
+
+  bulkDelete() {
+    const selectedProducts = this.selection.selected;
+    if (selectedProducts.length === 0) return;
+
+    const dialogData: ConfirmDeleteDialogData = {
+      title: 'Supprimer les produits',
+      message: `Êtes-vous sûr de vouloir supprimer ${selectedProducts.length} produit(s) ?`,
+      itemCount: selectedProducts.length,
+      itemNames: selectedProducts.map((p) => p.name),
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
+      width: '400px',
+      maxWidth: '90vw',
+      data: dialogData,
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed) => {
+      if (confirmed) {
+        await this.performBulkDelete(selectedProducts);
+      }
+    });
+  }
+
+  private async performBulkDelete(products: ProductAdmin[]) {
+    this.bulkLoading.set(true);
+    const productIds = products.map((p) => p.id);
+
+    try {
+      await this.supabaseAuthService.bulkDeleteProducts(productIds);
+
+      // Remove from local list
+      this.allProducts = this.allProducts.filter(
+        (p) => !productIds.includes(p.id)
+      );
+      this.updateVisibleProducts();
+
+      this.snackBar.open(
+        `${products.length} produit(s) supprimé(s) avec succès`,
+        'OK',
+        { duration: 3000, panelClass: ['success-snackbar'] }
+      );
+
+      this.selection.clear();
+    } catch (error: any) {
+      console.error('Error in bulk delete:', error);
+      this.snackBar.open('Erreur lors de la suppression des produits', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.bulkLoading.set(false);
     }
   }
 
@@ -703,10 +1043,8 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
-
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    // Clear selection when filtering
+    this.selection.clear();
   }
 
   openProductDialog(product?: ProductAdmin) {
@@ -741,27 +1079,42 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   deleteProduct(product: ProductAdmin) {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer "${product.name}" ?`)) {
-      this.productAdminService
-        .deleteProduct(product.id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            this.loadProducts();
-            this.snackBar.open('Produit supprimé avec succès', 'Fermer', {
-              duration: 3000,
-              panelClass: ['success-snackbar'],
-            });
-          },
-          error: (error) => {
-            console.error('Error deleting product:', error);
-            this.snackBar.open('Erreur lors de la suppression', 'Fermer', {
-              duration: 5000,
-              panelClass: ['error-snackbar'],
-            });
-          },
-        });
-    }
+    const dialogData: ConfirmDeleteDialogData = {
+      title: 'Supprimer le produit',
+      message: `Êtes-vous sûr de vouloir supprimer "${product.name}" ?`,
+      itemCount: 1,
+      itemNames: [product.name],
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
+      width: '400px',
+      maxWidth: '90vw',
+      data: dialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (confirmed) {
+        this.productAdminService
+          .deleteProduct(product.id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.loadProducts();
+              this.snackBar.open('Produit supprimé avec succès', 'Fermer', {
+                duration: 3000,
+                panelClass: ['success-snackbar'],
+              });
+            },
+            error: (error) => {
+              console.error('Error deleting product:', error);
+              this.snackBar.open('Erreur lors de la suppression', 'Fermer', {
+                duration: 5000,
+                panelClass: ['error-snackbar'],
+              });
+            },
+          });
+      }
+    });
   }
 
   isMobile(): boolean {

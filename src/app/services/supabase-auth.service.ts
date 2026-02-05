@@ -763,6 +763,30 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async bulkUpdateProductAvailability(productIds: number[], isAvailable: boolean) {
+    const { data, error } = await this.supabaseAuth
+      .from('products')
+      .update({
+        is_available: isAvailable,
+        updated_at: new Date().toISOString(),
+      })
+      .in('id', productIds)
+      .select();
+
+    if (error) throw error;
+
+    return data;
+  }
+
+  async bulkDeleteProducts(productIds: number[]) {
+    const { error } = await this.supabaseAuth
+      .from('products')
+      .delete()
+      .in('id', productIds);
+
+    if (error) throw error;
+  }
+
   // Banner management (admin operations)
   async getBanners(vendorId?: string) {
     let query = this.supabaseAuth

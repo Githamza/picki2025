@@ -59,10 +59,23 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
           <mat-label>Rechercher un produit</mat-label>
           <input
             matInput
-            (keyup)="applyFilter($event)"
+            #searchInput
+            [value]="searchValue()"
+            (input)="applyFilter($event)"
             placeholder="Nom, catégorie, statut... (produits réguliers uniquement)"
           />
-          <mat-icon matSuffix>search</mat-icon>
+          @if (searchValue()) {
+            <button
+              matSuffix
+              mat-icon-button
+              aria-label="Effacer la recherche"
+              (click)="clearSearch(searchInput)"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <mat-icon matSuffix>search</mat-icon>
+          }
         </mat-form-field>
 
         <mat-checkbox
@@ -761,6 +774,7 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   ];
   currentVendorId: string | null = null;
   showUnavailable = signal(true);
+  searchValue = signal('');
   private allProducts: ProductAdmin[] = [];
 
   // Selection
@@ -1042,8 +1056,18 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
+    this.searchValue.set(filterValue);
     this.dataSource.filter = filterValue.trim().toLowerCase();
     // Clear selection when filtering
+    this.selection.clear();
+  }
+
+  clearSearch(inputElement: HTMLInputElement) {
+    this.searchValue.set('');
+    this.dataSource.filter = '';
+    inputElement.value = '';
+    inputElement.focus();
+    // Clear selection when clearing search
     this.selection.clear();
   }
 

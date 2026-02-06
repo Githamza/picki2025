@@ -120,6 +120,18 @@ export interface DialogData {
           </mat-select>
         </mat-form-field>
 
+        <!-- Stock Quantity -->
+        <mat-form-field appearance="fill">
+          <mat-label>Quantité en stock (optionnel)</mat-label>
+          <input
+            matInput
+            type="number"
+            formControlName="stock_quantity"
+            placeholder="Illimité si vide"
+            min="0"
+          />
+        </mat-form-field>
+
         <!-- 4. Image URL -->
         <app-image-upload
           formControlName="image_url"
@@ -192,18 +204,6 @@ export interface DialogData {
               </mat-option>
             </mat-select>
             <mat-hint>Sélectionnez les customisations à attacher à ce produit</mat-hint>
-          </mat-form-field>
-
-          <!-- Stock Quantity -->
-          <mat-form-field appearance="fill">
-            <mat-label>Quantité en stock (optionnel)</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="stock_quantity"
-              placeholder="Illimité si vide"
-              min="0"
-            />
           </mat-form-field>
 
           <!-- Toggles -->
@@ -564,7 +564,6 @@ export class ProductEditDialogComponent implements OnInit {
       product.long_description ||
       product.display_order ||
       customisationIds.length > 0 ||
-      product.stock_quantity !== null ||
       product.is_available === false ||
       product.no_catalogable ||
       product.is_multi_step

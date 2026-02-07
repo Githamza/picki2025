@@ -31,10 +31,12 @@ import {
 import { Customisation } from '../../../models/customisation.interface';
 import { ImageUploadComponent } from '../../../shared/components';
 import { VendorCurrencySymbolPipe } from '../../../shared/pipes/vendor-currency-symbol.pipe';
+import { VendorService } from '../../../services/vendor.service';
 
 export interface DialogData {
   product?: ProductAdmin;
   vendorId: string;
+  isAccessory?: boolean;
 }
 
 @Component({
@@ -59,7 +61,7 @@ export interface DialogData {
     <div class="dialog-header">
       <h2 mat-dialog-title>
         <mat-icon>{{ data.product ? 'edit' : 'add' }}</mat-icon>
-        {{ data.product ? 'Modifier le produit' : 'Ajouter un produit' }}
+        {{ getDialogTitle() }}
       </h2>
       <button mat-icon-button mat-dialog-close>
         <mat-icon>close</mat-icon>
@@ -70,11 +72,11 @@ export interface DialogData {
       <form [formGroup]="productForm" class="product-form">
         <!-- 1. Product Name -->
         <mat-form-field appearance="fill">
-          <mat-label>Nom du produit</mat-label>
+          <mat-label>{{ getNameLabel() }}</mat-label>
           <input
             matInput
             formControlName="name"
-            placeholder="Ex: Pizza Margherita"
+            [placeholder]="getNamePlaceholder()"
           />
           @if (productForm.get('name')?.hasError('required')) {
           <mat-error>Le nom est requis</mat-error>
@@ -93,6 +95,9 @@ export interface DialogData {
             min="0"
           />
           <span matTextPrefix>{{ null | vendorCurrencySymbol }}&nbsp;</span>
+          @if (isAccessoryMode) {
+            <mat-hint>0 pour un accessoire gratuit</mat-hint>
+          }
           @if (productForm.get('price')?.hasError('required')) {
           <mat-error>Le prix est requis</mat-error>
           } @if (productForm.get('price')?.hasError('min')) {
@@ -110,68 +115,54 @@ export interface DialogData {
           </mat-select>
         </mat-form-field>
 
-        <!-- 3. Category -->
-        <mat-form-field appearance="fill">
-          <mat-label>Catégorie</mat-label>
-          <mat-select formControlName="category_id">
-            @for (category of categories; track category.id) {
-            <mat-option [value]="category.id">{{ category.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <!-- Stock Quantity -->
-        <mat-form-field appearance="fill">
-          <mat-label>Quantité en stock (optionnel)</mat-label>
-          <input
-            matInput
-            type="number"
-            formControlName="stock_quantity"
-            placeholder="Illimité si vide"
-            min="0"
-          />
-        </mat-form-field>
-
-        <!-- 4. Image URL -->
-        <app-image-upload
-          formControlName="image_url"
-          label="URL de l'image"
-          placeholder="https://..."
-        ></app-image-upload>
-
-        <!-- 5. Short Description -->
-        <mat-form-field appearance="fill">
-          <mat-label>Description</mat-label>
-          <input
-            matInput
-            formControlName="short_description"
-            placeholder="Description courte"
-          />
-        </mat-form-field>
-
-        <!-- More Options Toggle -->
-        <button
-          type="button"
-          mat-button
-          class="more-options-button"
-          (click)="showMoreOptions = !showMoreOptions"
-        >
-          <mat-icon>{{ showMoreOptions ? 'expand_less' : 'expand_more' }}</mat-icon>
-          Plus d'options (facultatif)
-        </button>
-
-        <!-- Optional Fields Section -->
-        @if (showMoreOptions) {
-        <div class="more-options-section">
-          <!-- Long Description -->
+        @if (isAccessoryMode) {
+          <!-- Icon/Emoji for accessory -->
           <mat-form-field appearance="fill">
-            <mat-label>Description détaillée</mat-label>
-            <textarea
+            <mat-label>Icône (emoji)</mat-label>
+            <input
               matInput
-              formControlName="long_description"
-              rows="3"
-              placeholder="Description détaillée"
-            ></textarea>
+              formControlName="icon_emoji"
+              placeholder="🍴"
+            />
+            <mat-hint>Un emoji pour représenter l'accessoire</mat-hint>
+          </mat-form-field>
+
+          <!-- Applicable Order Types (only if vendor has 2+ types) -->
+          @if (vendorOrderTypes.length > 1) {
+            <mat-form-field appearance="fill">
+              <mat-label>Types de commande applicables</mat-label>
+              <mat-select formControlName="applicable_order_types" multiple>
+                @for (type of vendorOrderTypes; track type) {
+                  <mat-option [value]="type">{{ getOrderTypeLabel(type) }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>Sélectionnez pour quels types de commande cet accessoire est proposé</mat-hint>
+            </mat-form-field>
+          }
+
+          <!-- Stock Quantity -->
+          <mat-form-field appearance="fill">
+            <mat-label>Quantité en stock (optionnel)</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="stock_quantity"
+              placeholder="Illimité si vide"
+              min="0"
+            />
+          </mat-form-field>
+
+          <!-- Max Quantity Per Order -->
+          <mat-form-field appearance="fill">
+            <mat-label>Quantité max par commande (optionnel)</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="max_quantity_per_order"
+              placeholder="Illimité si vide"
+              min="1"
+            />
+            <mat-hint>Limite le nombre de cet accessoire par commande</mat-hint>
           </mat-form-field>
 
           <!-- Display Order -->
@@ -185,75 +176,163 @@ export interface DialogData {
               min="0"
               step="10"
             />
-            <mat-hint>Ordre d'affichage dans la catégorie (0 = premier)</mat-hint>
+            <mat-hint>Ordre d'affichage parmi les accessoires (0 = premier)</mat-hint>
           </mat-form-field>
 
-          <!-- Customisations -->
-          <mat-form-field appearance="fill">
-            <mat-label>Customisations</mat-label>
-            <mat-select formControlName="customisations" multiple (selectionChange)="onCustomisationSelectionChange($event)">
-              @for (customisation of availableCustomisations; track customisation.id) {
-                <mat-option [value]="customisation.id">
-                  {{ customisation.name }}
-                  <span class="option-hint"> ({{ customisation.options?.length || 0 }} options)</span>
-                </mat-option>
-              }
-              <mat-option [value]="'CREATE_NEW'" class="create-new-option">
-                <mat-icon>add</mat-icon>
-                Créer une nouvelle customisation
-              </mat-option>
-            </mat-select>
-            <mat-hint>Sélectionnez les customisations à attacher à ce produit</mat-hint>
-          </mat-form-field>
-
-          <!-- Toggles -->
+          <!-- Availability toggle -->
           <div class="toggle-section">
             <mat-slide-toggle formControlName="is_available">
-              Produit disponible
-            </mat-slide-toggle>
-
-            <mat-slide-toggle formControlName="no_catalogable">
-              Exclure du catalogue
-            </mat-slide-toggle>
-
-            <mat-slide-toggle formControlName="is_multi_step">
-              Formules
+              Accessoire disponible
             </mat-slide-toggle>
           </div>
+        } @else {
+          <!-- Regular product fields -->
 
-          @if (productForm.get('no_catalogable')?.value) {
-          <div class="catalog-notice">
-            <mat-icon>info</mat-icon>
-            <span
-              >Ce produit sera masqué du catalogue public mais restera accessible
-              pour les commandes directes.</span
-            >
-          </div>
-          } @if (productForm.get('is_multi_step')?.value) {
-          <div class="multi-step-notice">
-            <mat-icon>info</mat-icon>
-            <span
-              >Vous pourrez configurer les étapes du menu après la création du
-              produit.</span
-            >
-          </div>
-          }
+          <!-- 3. Category -->
+          <mat-form-field appearance="fill">
+            <mat-label>Catégorie</mat-label>
+            <mat-select formControlName="category_id">
+              @for (category of categories; track category.id) {
+              <mat-option [value]="category.id">{{ category.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-          @if (showAutoAssociateCheckbox) {
-          <div class="auto-associate-notice">
-            <mat-checkbox
-              [(ngModel)]="autoAssociateToFormules"
-              [ngModelOptions]="{standalone: true}"
-            >
-              Associer automatiquement aux formules
-            </mat-checkbox>
-            <div class="auto-associate-hint">
-              <mat-icon>info</mat-icon>
-              <span>Ce produit sera ajouté aux formules contenant des produits de la même catégorie.</span>
+          <!-- Stock Quantity -->
+          <mat-form-field appearance="fill">
+            <mat-label>Quantité en stock (optionnel)</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="stock_quantity"
+              placeholder="Illimité si vide"
+              min="0"
+            />
+          </mat-form-field>
+
+          <!-- 4. Image URL -->
+          <app-image-upload
+            formControlName="image_url"
+            label="URL de l'image"
+            placeholder="https://..."
+          ></app-image-upload>
+
+          <!-- 5. Short Description -->
+          <mat-form-field appearance="fill">
+            <mat-label>Description</mat-label>
+            <input
+              matInput
+              formControlName="short_description"
+              placeholder="Description courte"
+            />
+          </mat-form-field>
+
+          <!-- More Options Toggle -->
+          <button
+            type="button"
+            mat-button
+            class="more-options-button"
+            (click)="showMoreOptions = !showMoreOptions"
+          >
+            <mat-icon>{{ showMoreOptions ? 'expand_less' : 'expand_more' }}</mat-icon>
+            Plus d'options (facultatif)
+          </button>
+
+          <!-- Optional Fields Section -->
+          @if (showMoreOptions) {
+          <div class="more-options-section">
+            <!-- Long Description -->
+            <mat-form-field appearance="fill">
+              <mat-label>Description détaillée</mat-label>
+              <textarea
+                matInput
+                formControlName="long_description"
+                rows="3"
+                placeholder="Description détaillée"
+              ></textarea>
+            </mat-form-field>
+
+            <!-- Display Order -->
+            <mat-form-field appearance="fill">
+              <mat-label>Ordre d'affichage</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="display_order"
+                placeholder="0"
+                min="0"
+                step="10"
+              />
+              <mat-hint>Ordre d'affichage dans la catégorie (0 = premier)</mat-hint>
+            </mat-form-field>
+
+            <!-- Customisations -->
+            <mat-form-field appearance="fill">
+              <mat-label>Customisations</mat-label>
+              <mat-select formControlName="customisations" multiple (selectionChange)="onCustomisationSelectionChange($event)">
+                @for (customisation of availableCustomisations; track customisation.id) {
+                  <mat-option [value]="customisation.id">
+                    {{ customisation.name }}
+                    <span class="option-hint"> ({{ customisation.options?.length || 0 }} options)</span>
+                  </mat-option>
+                }
+                <mat-option [value]="'CREATE_NEW'" class="create-new-option">
+                  <mat-icon>add</mat-icon>
+                  Créer une nouvelle customisation
+                </mat-option>
+              </mat-select>
+              <mat-hint>Sélectionnez les customisations à attacher à ce produit</mat-hint>
+            </mat-form-field>
+
+            <!-- Toggles -->
+            <div class="toggle-section">
+              <mat-slide-toggle formControlName="is_available">
+                Produit disponible
+              </mat-slide-toggle>
+
+              <mat-slide-toggle formControlName="no_catalogable">
+                Exclure du catalogue
+              </mat-slide-toggle>
+
+              <mat-slide-toggle formControlName="is_multi_step">
+                Formules
+              </mat-slide-toggle>
             </div>
+
+            @if (productForm.get('no_catalogable')?.value) {
+            <div class="catalog-notice">
+              <mat-icon>info</mat-icon>
+              <span
+                >Ce produit sera masqué du catalogue public mais restera accessible
+                pour les commandes directes.</span
+              >
+            </div>
+            } @if (productForm.get('is_multi_step')?.value) {
+            <div class="multi-step-notice">
+              <mat-icon>info</mat-icon>
+              <span
+                >Vous pourrez configurer les étapes du menu après la création du
+                produit.</span
+              >
+            </div>
+            }
+
+            @if (showAutoAssociateCheckbox) {
+            <div class="auto-associate-notice">
+              <mat-checkbox
+                [(ngModel)]="autoAssociateToFormules"
+                [ngModelOptions]="{standalone: true}"
+              >
+                Associer automatiquement aux formules
+              </mat-checkbox>
+              <div class="auto-associate-hint">
+                <mat-icon>info</mat-icon>
+                <span>Ce produit sera ajouté aux formules contenant des produits de la même catégorie.</span>
+              </div>
+            </div>
+            }
           </div>
           }
-        </div>
         }
       </form>
     </div>
@@ -425,6 +504,7 @@ export class ProductEditDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private productAdminService = inject(ProductAdminService);
   private customisationService = inject(CustomisationService);
+  private vendorService = inject(VendorService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private dialogRef = inject(MatDialogRef<ProductEditDialogComponent>);
@@ -436,6 +516,9 @@ export class ProductEditDialogComponent implements OnInit {
   autoAssociateToFormules = true;
   showMoreOptions = false;
 
+  isAccessoryMode = false;
+  vendorOrderTypes: string[] = [];
+
   get isCreateMode(): boolean {
     return !this.data.product;
   }
@@ -446,7 +529,37 @@ export class ProductEditDialogComponent implements OnInit {
       && !this.productForm?.get('is_multi_step')?.value;
   }
 
+  getDialogTitle(): string {
+    if (this.isAccessoryMode) {
+      return this.data.product ? "Modifier l'accessoire" : 'Ajouter un accessoire';
+    }
+    return this.data.product ? 'Modifier le produit' : 'Ajouter un produit';
+  }
+
+  getNameLabel(): string {
+    return this.isAccessoryMode ? "Nom de l'accessoire" : 'Nom du produit';
+  }
+
+  getNamePlaceholder(): string {
+    return this.isAccessoryMode ? 'Ex: Couverts, Sac en papier' : 'Ex: Pizza Margherita';
+  }
+
+  getOrderTypeLabel(type: string): string {
+    switch (type) {
+      case 'eat-in': return 'Sur place';
+      case 'take-away': return 'À emporter';
+      case 'delivery': return 'Livraison';
+      default: return type;
+    }
+  }
+
   constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {
+    this.isAccessoryMode = !!data.isAccessory || !!data.product?.is_accessory;
+    // Get vendor's enabled order types
+    const currentVendor = this.vendorService.getCurrentVendor();
+    this.vendorOrderTypes = currentVendor?.enabled_order_types?.length
+      ? currentVendor.enabled_order_types
+      : ['eat-in', 'take-away', 'delivery'];
     this.productForm = this.createForm();
   }
 
@@ -473,6 +586,10 @@ export class ProductEditDialogComponent implements OnInit {
       is_available: [true],
       is_multi_step: [false],
       no_catalogable: [false],
+      icon_emoji: [''],
+      applicable_order_types: [this.vendorOrderTypes],
+      max_quantity_per_order: [null],
+      is_accessory: [false],
     });
   }
 
@@ -557,6 +674,12 @@ export class ProductEditDialogComponent implements OnInit {
       is_available: product.is_available ?? true,
       is_multi_step: product.is_multi_step ?? false,
       no_catalogable: product.no_catalogable ?? false,
+      icon_emoji: product.icon_emoji || '',
+      applicable_order_types: product.applicable_order_types?.length
+        ? product.applicable_order_types
+        : this.vendorOrderTypes,
+      max_quantity_per_order: product.max_quantity_per_order ?? null,
+      is_accessory: product.is_accessory ?? false,
     });
 
     // Auto-expand more options if any optional field has a value
@@ -592,9 +715,27 @@ export class ProductEditDialogComponent implements OnInit {
       is_multi_step: this.productForm.value.is_multi_step,
       no_catalogable: this.productForm.value.no_catalogable,
       display_order: this.productForm.value.display_order,
+      icon_emoji: this.productForm.value.icon_emoji || null,
+      applicable_order_types: this.productForm.value.applicable_order_types,
+      max_quantity_per_order: this.productForm.value.max_quantity_per_order || null,
+      is_accessory: this.productForm.value.is_accessory,
     };
 
-    const customisationIds: number[] = this.productForm.value.customisations || [];
+    // In accessory mode, force certain fields
+    if (this.isAccessoryMode) {
+      formData.is_accessory = true;
+      formData.no_catalogable = true;
+      formData.category_id = null;
+      formData.is_multi_step = false;
+      // If vendor has only 1 order type, auto-set it
+      if (this.vendorOrderTypes.length === 1) {
+        formData.applicable_order_types = [...this.vendorOrderTypes];
+      }
+    }
+
+    const customisationIds: number[] = this.isAccessoryMode
+      ? []
+      : (this.productForm.value.customisations || []);
 
     const operation = this.data.product
       ? this.productAdminService.updateProduct(this.data.product.id, formData)
@@ -602,6 +743,12 @@ export class ProductEditDialogComponent implements OnInit {
 
     operation.subscribe({
       next: (product) => {
+        // Skip customisation attachment and auto-associate for accessories
+        if (this.isAccessoryMode) {
+          this.dialogRef.close(product);
+          return;
+        }
+
         const afterSave = () => {
           if (this.isCreateMode && this.autoAssociateToFormules && formData.category_id) {
             this.productAdminService

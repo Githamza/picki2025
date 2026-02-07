@@ -15,6 +15,10 @@ export interface ProductAdmin {
   no_catalogable: boolean | null;
   has_customisations?: boolean;
   display_order?: number;
+  is_accessory?: boolean;
+  icon_emoji?: string | null;
+  applicable_order_types?: string[];
+  max_quantity_per_order?: number | null;
   created_at: string | null;
   updated_at: string | null;
   steps?: ProductStep[];
@@ -54,6 +58,10 @@ export interface ProductFormData {
   is_multi_step: boolean;
   no_catalogable: boolean;
   display_order: number;
+  is_accessory?: boolean;
+  icon_emoji?: string | null;
+  applicable_order_types?: string[];
+  max_quantity_per_order?: number | null;
 }
 
 // Menu-specific interfaces (corrected based on actual DB schema)

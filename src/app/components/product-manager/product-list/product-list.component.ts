@@ -19,6 +19,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -50,47 +51,60 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
     MatCheckboxModule,
     MatBadgeModule,
     MatTooltipModule,
+    MatTabsModule,
   ],
   template: `
     <div class="product-list" [class.has-selection]="hasSelection()">
       <!-- Header with search and add button -->
       <div class="list-header">
-        <mat-form-field appearance="fill" class="search-field">
-          <mat-label>Rechercher un produit</mat-label>
-          <input
-            matInput
-            #searchInput
-            [value]="searchValue()"
-            (input)="applyFilter($event)"
-            placeholder="Nom, catégorie, statut... (produits réguliers uniquement)"
-          />
-          @if (searchValue()) {
-            <button
-              matSuffix
-              mat-icon-button
-              aria-label="Effacer la recherche"
-              (click)="clearSearch(searchInput)"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          } @else {
-            <mat-icon matSuffix>search</mat-icon>
-          }
-        </mat-form-field>
+        @if (activeSubTab() === 0) {
+          <mat-form-field appearance="fill" class="search-field">
+            <mat-label>Rechercher un produit</mat-label>
+            <input
+              matInput
+              #searchInput
+              [value]="searchValue()"
+              (input)="applyFilter($event)"
+              placeholder="Nom, catégorie, statut... (produits réguliers uniquement)"
+            />
+            @if (searchValue()) {
+              <button
+                matSuffix
+                mat-icon-button
+                aria-label="Effacer la recherche"
+                (click)="clearSearch(searchInput)"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            } @else {
+              <mat-icon matSuffix>search</mat-icon>
+            }
+          </mat-form-field>
+        }
 
         <mat-checkbox
           [checked]="showUnavailable()"
           (change)="onToggleShowUnavailable($event.checked)"
           class="unavailable-checkbox"
         >
-          Afficher les produits indisponibles
+          {{ activeSubTab() === 0 ? 'Afficher les produits indisponibles' : 'Afficher les accessoires indisponibles' }}
         </mat-checkbox>
 
         <button mat-flat-button color="primary" (click)="openProductDialog()">
           <mat-icon>add</mat-icon>
-          Ajouter un produit
+          {{ activeSubTab() === 0 ? 'Ajouter un produit' : 'Ajouter un accessoire' }}
         </button>
       </div>
+
+      <!-- Sub-tabs: Produits / Accessoires -->
+      <mat-tab-group
+        class="sub-tabs"
+        [selectedIndex]="activeSubTab()"
+        (selectedIndexChange)="onSubTabChange($event)"
+      >
+        <mat-tab label="Produits"></mat-tab>
+        <mat-tab label="Accessoires"></mat-tab>
+      </mat-tab-group>
 
       <!-- Product table -->
       <div class="table-container">
@@ -124,15 +138,19 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
 
           <!-- Image Column -->
           <ng-container matColumnDef="image">
-            <th mat-header-cell *matHeaderCellDef>Image</th>
+            <th mat-header-cell *matHeaderCellDef>{{ activeSubTab() === 1 ? 'Icône' : 'Image' }}</th>
             <td mat-cell *matCellDef="let product">
-              <div class="product-image">
-                <img
-                  [src]="product.image_url || placeholderImage"
-                  [alt]="product.name"
-                  loading="lazy"
-                />
-              </div>
+              @if (product.is_accessory && product.icon_emoji) {
+                <div class="accessory-emoji">{{ product.icon_emoji }}</div>
+              } @else {
+                <div class="product-image">
+                  <img
+                    [src]="product.image_url || placeholderImage"
+                    [alt]="product.name"
+                    loading="lazy"
+                  />
+                </div>
+              }
             </td>
           </ng-container>
 
@@ -251,9 +269,9 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
 
         @if (dataSource.data.length === 0) {
         <div class="empty-state">
-          <mat-icon>restaurant_menu</mat-icon>
-          <h3>Aucun produit régulier trouvé</h3>
-          <p>Commencez par ajouter vos premiers produits (hors menus)</p>
+          <mat-icon>{{ activeSubTab() === 0 ? 'restaurant_menu' : 'shopping_bag' }}</mat-icon>
+          <h3>{{ activeSubTab() === 0 ? 'Aucun produit régulier trouvé' : 'Aucun accessoire trouvé' }}</h3>
+          <p>{{ activeSubTab() === 0 ? 'Commencez par ajouter vos premiers produits (hors menus)' : 'Ajoutez des accessoires (couverts, sacs, serviettes...)' }}</p>
         </div>
         }
       </div>
@@ -324,6 +342,24 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
 
       .product-list.has-selection {
         padding-bottom: 88px;
+      }
+
+      /* ===== Sub-tabs ===== */
+      .sub-tabs {
+        margin-bottom: 16px;
+        margin-top: 0;
+      }
+
+      /* ===== Accessory emoji ===== */
+      .accessory-emoji {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        background: var(--mat-sys-surface-container-highest);
+        border-radius: var(--mat-sys-corner-medium);
       }
 
       /* ===== Header ===== */
@@ -775,6 +811,7 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
   currentVendorId: string | null = null;
   showUnavailable = signal(true);
   searchValue = signal('');
+  activeSubTab = signal(0); // 0 = Produits, 1 = Accessoires
   private allProducts: ProductAdmin[] = [];
 
   // Selection
@@ -827,10 +864,18 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe({
         next: (products) => {
           console.log('Products loaded successfully:', products.length);
-          // Filter to show only regular products (not multi-step products/menus)
-          this.allProducts = products.filter(
-            (product) => !product.is_multi_step
-          );
+          // Filter based on active sub-tab
+          if (this.activeSubTab() === 1) {
+            // Accessoires tab: show only accessories
+            this.allProducts = products.filter(
+              (product) => product.is_accessory === true
+            );
+          } else {
+            // Produits tab: regular products (not multi-step, not accessories)
+            this.allProducts = products.filter(
+              (product) => !product.is_multi_step && !product.is_accessory
+            );
+          }
           this.updateVisibleProducts();
           // Clear selection after reload
           this.selection.clear();
@@ -871,6 +916,13 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   isBulkLoading(): boolean {
     return this.bulkLoading();
+  }
+
+  onSubTabChange(index: number) {
+    this.activeSubTab.set(index);
+    this.selection.clear();
+    this.dataSource.filter = '';
+    this.loadProducts();
   }
 
   onToggleShowUnavailable(checked: boolean) {
@@ -931,8 +983,9 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
       );
 
       const statusText = isAvailable ? 'disponibles' : 'indisponibles';
+      const itemLabel = this.activeSubTab() === 1 ? 'accessoire(s)' : 'produit(s)';
       this.snackBar.open(
-        `${selectedProducts.length} produit(s) sont maintenant ${statusText}`,
+        `${selectedProducts.length} ${itemLabel} sont maintenant ${statusText}`,
         'OK',
         { duration: 3000, panelClass: ['success-snackbar'] }
       );
@@ -1080,17 +1133,19 @@ export class ProductListComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
+    const isAccessory = this.activeSubTab() === 1;
     const dialogRef = this.dialog.open(ProductEditDialogComponent, {
       width: '600px',
       maxWidth: '90vw',
-      data: { product, vendorId: this.currentVendorId },
+      data: { product, vendorId: this.currentVendorId, isAccessory },
     });
 
+    const itemLabel = isAccessory ? 'Accessoire' : 'Produit';
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.loadProducts();
         this.snackBar.open(
-          product ? 'Produit modifié avec succès' : 'Produit créé avec succès',
+          product ? `${itemLabel} modifié avec succès` : `${itemLabel} créé avec succès`,
           'Fermer',
           { duration: 3000, panelClass: ['success-snackbar'] }
         );

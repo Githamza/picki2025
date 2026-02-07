@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, effect, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subscription, firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
   MatBottomSheetRef,
@@ -13,7 +13,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
-import { selectCartItems } from '../../store/selectors/cart.selectors';
+import { AccessoriesStripComponent } from '../accessories-strip/accessories-strip.component';
+import {
+  selectCartItems,
+  selectFoodItems,
+  selectAccessoryItems,
+} from '../../store/selectors/cart.selectors';
 import { CartItem, AppState } from '../../store/models/app.state';
 import { Router } from '@angular/router';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
@@ -29,8 +34,15 @@ import { Order, OrderItem } from '../../models/order.model';
 import { RestaurantStatusService } from '../../services/restaurant-status.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
+import { Product, ProductService } from '../../services/product.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
-import { clearCart } from '../../store/actions/cart.actions';
+import {
+  addToCart,
+  incrementCartItem,
+  decrementCartItem,
+  removeCartItem,
+  clearCart,
+} from '../../store/actions/cart.actions';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 
 @Component({
@@ -42,6 +54,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     MatButtonModule,
     MatDividerModule,
     CartItemStepsTreeComponent,
+    AccessoriesStripComponent,
     VendorCurrencyPipe,
   ],
   template: `
@@ -86,7 +99,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       <div class="sheet-scroll">
         @if (cartItems$ | async; as items) {
           <div class="cart-list">
-            @for (item of items; track item.product.id) {
+            @for (item of (foodItems$ | async) || []; track item.product.id) {
               <div class="cart-item">
                 <mat-icon class="item-icon">shopping_bag</mat-icon>
                 <div class="item-content">
@@ -135,6 +148,37 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
               </div>
             }
           </div>
+
+          <!-- Accessories strip -->
+          @if (availableAccessories().length > 0) {
+            <app-accessories-strip
+              [accessories]="availableAccessories()"
+              [cartAccessories]="(accessoryItems$ | async) || []"
+              (add)="onAccessoryAdded($event)"
+              (increment)="onAccessoryIncrement($event)"
+              (decrement)="onAccessoryDecrement($event)"
+              (remove)="onAccessoryRemove($event)"
+            />
+          }
+
+          <!-- Selected accessories -->
+          @for (item of (accessoryItems$ | async) || []; track item.product.id) {
+            <div class="cart-item accessory-cart-item">
+              <span class="accessory-item-emoji">{{ item.product.iconEmoji || '📦' }}</span>
+              <div class="item-content">
+                <div class="item-title-row">
+                  <span class="item-title">{{ item.product.name }}</span>
+                  <span
+                    class="item-price price-value"
+                    [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+                  >
+                    {{ getItemPrice(item) | vendorCurrency }}
+                  </span>
+                </div>
+                <div class="item-line">Quantité: {{ item.quantity }}</div>
+              </div>
+            </div>
+          }
         } @else {
           <div class="empty-cart">Votre panier est vide.</div>
         }
@@ -394,16 +438,29 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         font-size: 0.85em;
         padding: 4px 0 0 0;
       }
+      .accessory-cart-item {
+        background: var(--mat-sys-surface-container-low);
+        border-radius: 8px;
+        padding: 8px 12px;
+      }
+      .accessory-item-emoji {
+        font-size: 20px;
+        width: 24px;
+        text-align: center;
+      }
       /* delivery-summary removed: delivery fee is shown as a cart item */
     `,
   ],
 })
-export class CartDetailsSheetComponent {
+export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   cartItems$: Observable<CartItem[]>;
+  foodItems$: Observable<CartItem[]>;
+  accessoryItems$: Observable<CartItem[]>;
   readonly diningPreferenceService = inject(DiningPreferenceService);
   private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
   private paymentService = inject(PaymentService);
+  private productService = inject(ProductService);
   private snackBar = inject(MatSnackBar);
   private bottomSheetRef = inject(MatBottomSheetRef<CartDetailsSheetComponent>);
   private dialog = inject(MatDialog);
@@ -416,8 +473,61 @@ export class CartDetailsSheetComponent {
   // Track products with insufficient stock by product ID
   insufficientStockItems = signal<Map<number, { available: number; required: number }>>(new Map());
 
+  // Accessories
+  availableAccessories = signal<Product[]>([]);
+  private accessoriesSub?: Subscription;
+
   constructor(private store: Store<AppState>) {
     this.cartItems$ = this.store.select(selectCartItems);
+    this.foodItems$ = this.store.select(selectFoodItems);
+    this.accessoryItems$ = this.store.select(selectAccessoryItems);
+
+    effect(() => {
+      const pref = this.diningPreferenceService.diningPreference();
+      if (pref) {
+        this.loadAccessories(pref);
+      }
+    });
+  }
+
+  ngOnInit() {
+    const pref = this.diningPreferenceService.diningPreference();
+    if (pref) {
+      this.loadAccessories(pref);
+    }
+  }
+
+  ngOnDestroy() {
+    this.accessoriesSub?.unsubscribe();
+  }
+
+  private loadAccessories(orderType: string) {
+    const vendorId = this.vendorService.getCurrentVendor()?.id;
+    if (!vendorId) return;
+
+    this.accessoriesSub?.unsubscribe();
+    this.accessoriesSub = this.productService
+      .getAccessories(vendorId, orderType)
+      .subscribe({
+        next: (accessories) => this.availableAccessories.set(accessories),
+        error: () => this.availableAccessories.set([]),
+      });
+  }
+
+  onAccessoryAdded(product: Product) {
+    this.store.dispatch(addToCart({ product, quantity: 1 }));
+  }
+
+  onAccessoryIncrement(productId: number) {
+    this.store.dispatch(incrementCartItem({ productId }));
+  }
+
+  onAccessoryDecrement(productId: number) {
+    this.store.dispatch(decrementCartItem({ productId }));
+  }
+
+  onAccessoryRemove(productId: number) {
+    this.store.dispatch(removeCartItem({ productId }));
   }
 
   getSubtotal(items: CartItem[]): number {

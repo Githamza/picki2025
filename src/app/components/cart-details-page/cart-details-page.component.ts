@@ -1,11 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, effect, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom, Subscription } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { Location } from '@angular/common';
 import { PaymentService } from '../../services/payment.service';
@@ -19,8 +19,13 @@ import {
   UserInfo,
 } from '../user-info-dialog/user-info-dialog.component';
 import { AppState, CartItem } from '../../store/models/app.state';
-import { selectCartItems } from '../../store/selectors/cart.selectors';
 import {
+  selectCartItems,
+  selectFoodItems,
+  selectAccessoryItems,
+} from '../../store/selectors/cart.selectors';
+import {
+  addToCart,
   decrementCartItem,
   incrementCartItem,
   removeCartItem,
@@ -28,8 +33,9 @@ import {
 } from '../../store/actions/cart.actions';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
-import { Product } from '../../services/product.service';
+import { Product, ProductService } from '../../services/product.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
+import { AccessoriesStripComponent } from '../accessories-strip/accessories-strip.component';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
 import { SupabaseService } from '../../services/supabase.service';
@@ -43,6 +49,7 @@ import { SupabaseService } from '../../services/supabase.service';
     MatSnackBarModule,
     CartItemStepsTreeComponent,
     VendorCurrencyPipe,
+    AccessoriesStripComponent,
   ],
   template: `
     <button
@@ -81,7 +88,8 @@ import { SupabaseService } from '../../services/supabase.service';
       }
 
       @if (cartItems$ | async; as items) {
-        @for (item of items; track item.product.id) {
+        <!-- Food items -->
+        @for (item of (foodItems$ | async) || []; track item.product.id) {
           <div class="cart-item-row">
             <div class="cart-item-info">
               @if (item.metadata?.stepSelections?.length) {
@@ -132,6 +140,57 @@ import { SupabaseService } from '../../services/supabase.service';
             </div>
           }
         }
+
+        <!-- Accessories strip -->
+        @if (availableAccessories().length > 0) {
+          <app-accessories-strip
+            [accessories]="availableAccessories()"
+            [cartAccessories]="(accessoryItems$ | async) || []"
+            (add)="onAccessoryAdded($event)"
+            (increment)="increment($event)"
+            (decrement)="decrement($event)"
+            (remove)="remove($event)"
+          />
+        }
+
+        <!-- Selected accessories as cart items -->
+        @for (item of (accessoryItems$ | async) || []; track item.product.id) {
+          <div class="cart-item-row accessory-item-row">
+            <div class="cart-item-info">
+              <span class="cart-item-name">
+                @if (item.product.iconEmoji) {
+                  <span class="accessory-item-emoji">{{ item.product.iconEmoji }}</span>
+                }
+                {{ item.product.name }}
+              </span>
+            </div>
+            <div class="cart-item-controls">
+              <button
+                mat-mini-fab
+                [color]="item.quantity === 1 ? 'warn' : 'primary'"
+                (click)="item.quantity === 1 ? remove(item.product.id) : decrement(item.product.id)"
+              >
+                <mat-icon>{{ item.quantity === 1 ? 'delete' : 'remove' }}</mat-icon>
+              </button>
+              <span class="cart-item-qty">{{ item.quantity }}</span>
+              <button
+                mat-mini-fab
+                color="primary"
+                (click)="increment(item.product.id)"
+                [disabled]="isIncrementDisabled(items, item.product)"
+              >
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+            <span
+              class="cart-item-price"
+              [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+            >
+              {{ getItemPrice(item) | vendorCurrency }}
+            </span>
+          </div>
+        }
+
         @if (getServiceFee(items); as serviceFee) {
           <div class="cart-fee-row">
             <span>Frais de service:</span>
@@ -297,11 +356,22 @@ import { SupabaseService } from '../../services/supabase.service';
         padding: 4px 0 8px 0;
         border-bottom: 1px solid var(--mat-sys-outline-variant);
       }
+      .accessory-item-row {
+        background: var(--mat-sys-surface-container-low);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin: 4px 0;
+      }
+      .accessory-item-emoji {
+        margin-right: 4px;
+      }
     `,
   ],
 })
-export class CartDetailsPageComponent {
+export class CartDetailsPageComponent implements OnInit, OnDestroy {
   cartItems$: Observable<CartItem[]>;
+  foodItems$: Observable<CartItem[]>;
+  accessoryItems$: Observable<CartItem[]>;
   protected diningPreferenceService = inject(DiningPreferenceService);
   private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
@@ -311,6 +381,7 @@ export class CartDetailsPageComponent {
   private paymentService = inject(PaymentService);
   private restaurantStatusService = inject(RestaurantStatusService);
   private vendorService = inject(VendorService);
+  private productService = inject(ProductService);
   private deliverySelection = inject(DeliverySelectionService);
   private supabaseService = inject(SupabaseService);
   readonly ordersSuspended$ = this.vendorService.ordersSuspended$;
@@ -320,8 +391,88 @@ export class CartDetailsPageComponent {
   // Track products with insufficient stock by product ID
   insufficientStockItems = signal<Map<number, { available: number; required: number }>>(new Map());
 
+  // Accessories
+  availableAccessories = signal<Product[]>([]);
+  private accessoriesSub?: Subscription;
+  private previousDiningPref: string | null = null;
+
   constructor(private store: Store<AppState>, private location: Location) {
     this.cartItems$ = this.store.select(selectCartItems);
+    this.foodItems$ = this.store.select(selectFoodItems);
+    this.accessoryItems$ = this.store.select(selectAccessoryItems);
+
+    // React to dining preference changes
+    effect(() => {
+      const pref = this.diningPreferenceService.diningPreference();
+      if (pref) {
+        this.loadAccessories(pref);
+        this.removeInapplicableAccessories(pref);
+      }
+    });
+  }
+
+  ngOnInit() {
+    // Initial load if dining preference is already set
+    const pref = this.diningPreferenceService.diningPreference();
+    if (pref) {
+      this.loadAccessories(pref);
+    }
+  }
+
+  ngOnDestroy() {
+    this.accessoriesSub?.unsubscribe();
+  }
+
+  private loadAccessories(orderType: string) {
+    const vendorId = this.vendorService.getCurrentVendor()?.id;
+    if (!vendorId) return;
+
+    this.accessoriesSub?.unsubscribe();
+    this.accessoriesSub = this.productService
+      .getAccessories(vendorId, orderType)
+      .subscribe({
+        next: (accessories) => this.availableAccessories.set(accessories),
+        error: (err) => {
+          console.error('Error loading accessories:', err);
+          this.availableAccessories.set([]);
+        },
+      });
+  }
+
+  private async removeInapplicableAccessories(newPref: string) {
+    // Skip on first load (no previous preference to compare against)
+    if (!this.previousDiningPref) {
+      this.previousDiningPref = newPref;
+      return;
+    }
+    if (this.previousDiningPref === newPref) return;
+    this.previousDiningPref = newPref;
+
+    const accessoryItems = await firstValueFrom(this.accessoryItems$);
+    for (const item of accessoryItems) {
+      const applicable = item.product.applicableOrderTypes || [];
+      if (!applicable.includes(newPref)) {
+        this.store.dispatch(removeCartItem({ productId: item.product.id }));
+        this.snackBar.open(
+          `${item.product.name} retiré (non applicable pour ${this.getOrderTypeLabel(newPref)})`,
+          'OK',
+          { duration: 3000 }
+        );
+      }
+    }
+  }
+
+  private getOrderTypeLabel(type: string): string {
+    switch (type) {
+      case 'eat-in': return 'sur place';
+      case 'take-away': return 'à emporter';
+      case 'delivery': return 'livraison';
+      default: return type;
+    }
+  }
+
+  onAccessoryAdded(product: Product) {
+    this.store.dispatch(addToCart({ product, quantity: 1 }));
   }
 
   private isOnlinePaymentsEnabled(): boolean {
@@ -398,6 +549,12 @@ export class CartDetailsPageComponent {
   }
 
   isIncrementDisabled(items: CartItem[], product: Product): boolean {
+    if (product.maxQuantityPerOrder != null) {
+      const totalInCart = items
+        .filter((i) => i.product.id === product.id)
+        .reduce((sum, i) => sum + i.quantity, 0);
+      if (totalInCart >= product.maxQuantityPerOrder) return true;
+    }
     if (product.stockQuantity == null) return false;
     const totalInCart = items
       .filter((i) => i.product.id === product.id)

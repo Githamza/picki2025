@@ -384,6 +384,25 @@ export class SupabaseService implements OnDestroy {
     return data;
   }
 
+  // Accessories
+  async getAccessories(vendorId: string, orderType?: string) {
+    let query = this.supabase
+      .from('products')
+      .select('*')
+      .eq('is_accessory', true)
+      .eq('is_available', true)
+      .eq('vendor_id', vendorId);
+
+    if (orderType) {
+      query = query.contains('applicable_order_types', [orderType]);
+    }
+
+    const { data, error } = await query.order('display_order');
+
+    if (error) throw error;
+    return data;
+  }
+
   // Banners
   async getBanners(vendorId?: string) {
     let query = this.supabase.from('banners').select('*').eq('is_active', true);

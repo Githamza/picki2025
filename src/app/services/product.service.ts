@@ -28,6 +28,10 @@ export interface Product {
   stockQuantity?: number | null;
   hasCustomisations?: boolean;
   customisations?: import('../models/customisation.interface').Customisation[];
+  isAccessory?: boolean;
+  applicableOrderTypes?: string[];
+  iconEmoji?: string;
+  maxQuantityPerOrder?: number | null;
 }
 
 @Injectable({
@@ -37,6 +41,10 @@ export class ProductService {
   private supabaseService = inject(SupabaseService);
   private categoryService = inject(CategoryService);
   private customisationService = inject(CustomisationService);
+
+  // Accessories cache: key = vendorId_orderType, value = { data, timestamp }
+  private accessoriesCache = new Map<string, { data: Product[]; timestamp: number }>();
+  private readonly ACCESSORIES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
   getProducts(vendorId?: string): Observable<Product[]> {
     // Combine products and categories to sort by category displayOrder when no category filter is applied
@@ -264,6 +272,22 @@ export class ProductService {
     return { valid: errors.length === 0, errors };
   }
 
+  getAccessories(vendorId: string, orderType?: string): Observable<Product[]> {
+    const cacheKey = `${vendorId}_${orderType || 'all'}`;
+    const cached = this.accessoriesCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.ACCESSORIES_CACHE_TTL) {
+      return of(cached.data);
+    }
+
+    return from(this.supabaseService.getAccessories(vendorId, orderType)).pipe(
+      map((products) => {
+        const mapped = products?.map((p) => this.mapToProduct(p)) || [];
+        this.accessoriesCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
+        return mapped;
+      })
+    );
+  }
+
   private groupComplementsByType(complements: ProductComplement[]): any[] {
     // For now, we'll treat all complements as one group
     // In the future, this could be extended to support multiple complement groups
@@ -298,6 +322,10 @@ export class ProductService {
       displayOrder: dbProduct.display_order || 0,
       stockQuantity: dbProduct.stock_quantity,
       hasCustomisations: dbProduct.has_customisations || false,
+      isAccessory: dbProduct.is_accessory || false,
+      applicableOrderTypes: dbProduct.applicable_order_types || ['eat-in', 'take-away', 'delivery'],
+      iconEmoji: dbProduct.icon_emoji || '',
+      maxQuantityPerOrder: dbProduct.max_quantity_per_order ?? null,
     };
   }
 

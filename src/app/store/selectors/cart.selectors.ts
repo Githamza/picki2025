@@ -12,9 +12,22 @@ export const selectCartItems = createSelector(
 export const selectCartTotalCount = createSelector(selectCartItems, (items) =>
   items
     .filter(
-      (item) => item.product.id !== -9999 && (item.metadata as any)?.type !== 'delivery_fee'
+      (item) =>
+        item.product.id !== -9999 &&
+        (item.metadata as any)?.type !== 'delivery_fee' &&
+        !item.product.isAccessory
     )
     .reduce((total, item) => total + item.quantity, 0)
+);
+
+export const selectFoodItems = createSelector(selectCartItems, (items) =>
+  items.filter(
+    (item) => item.product.id !== -9999 && !item.product.isAccessory
+  )
+);
+
+export const selectAccessoryItems = createSelector(selectCartItems, (items) =>
+  items.filter((item) => item.product.isAccessory === true)
 );
 
 export const selectCartQuantityByProductId = (productId: number) =>

@@ -102,7 +102,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           <div class="cart-list">
             @for (item of (foodItems$ | async) || []; track item.product.id) {
               <div class="cart-item">
-                <mat-icon class="item-icon" [matBadge]="item.quantity" matBadgeSize="medium" matBadgeColor="primary">shopping_bag</mat-icon>
+                <mat-icon class="item-icon" [matBadge]="'x'+item.quantity" matBadgeSize="medium" matBadgeColor="primary">shopping_bag</mat-icon>
                 <div class="item-content">
                   @if (item.metadata?.stepSelections?.length) {
                     <app-cart-item-steps-tree
@@ -203,7 +203,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           </div>
         }
         <button
-          mat-stroked-button
+         matButton="tonal"
           color="primary"
           class="checkout-btn"
           (click)="goToCartDetails()"

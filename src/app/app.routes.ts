@@ -20,6 +20,7 @@ import { VendorCacheTestComponent } from './components/vendor-cache-test/vendor-
 import { CategoryGridComponent } from './components/category-grid/category-grid.component';
 import { PromotionalBannerComponent } from './components/promotional-banner/promotional-banner.component';
 import { customDomainVendorGuard } from './guards/custom-domain-vendor.guard';
+import { pikiappDomainGuard } from './guards/pikiapp-domain.guard';
 import { OrdersQueueComponent } from './components/orders-queue/orders-queue.component';
 
 // Shared vendor app route tree (mounted either at /vendor/:vendorSlug or at / on custom domains)
@@ -77,11 +78,13 @@ const vendorAppChildren: Routes = [
 ];
 
 export const routes: Routes = [
-  // Top-level routes that must always be reachable (even on custom domains)
+  // Redirect to admin dashboard only on pikiapp domains (localhost, piki-app.com)
+  // On custom vendor domains, this route is skipped and the vendor app handles root
   {
     path: '',
     redirectTo: 'admin/orders-manager',
-    pathMatch: 'full'
+    pathMatch: 'full',
+    canMatch: [pikiappDomainGuard],
   },
   // Centralized admin login
   {

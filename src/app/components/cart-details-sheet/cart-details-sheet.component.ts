@@ -7,7 +7,6 @@ import {
   MatBottomSheetRef,
   MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
-import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -290,14 +289,14 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .cart-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 4px;
       }
       .cart-item {
         align-items: center;
 
         display: flex;
         gap: 12px;
-        padding: 12px 0;
+        padding: 8px 0;
         border-bottom: 1px solid var(--mat-sys-outline-variant);
       }
       .cart-item:last-child {

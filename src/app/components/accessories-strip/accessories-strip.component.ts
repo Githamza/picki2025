@@ -11,7 +11,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
   standalone: true,
   imports: [CommonModule, MatIconModule, MatButtonModule, VendorCurrencyPipe],
   template: `
-    <div class="accessories-section">
+    <div>
       <h4 class="accessories-title">Accessoires</h4>
       <div class="accessories-scroll">
         @for (accessory of accessories(); track accessory.id) {
@@ -65,9 +65,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     </div>
   `,
   styles: [`
-    .accessories-section {
-      padding: 12px 0;
-    }
+
 
     .accessories-title {
       margin: 0 0 8px 0;

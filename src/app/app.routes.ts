@@ -20,6 +20,7 @@ import { VendorCacheTestComponent } from './components/vendor-cache-test/vendor-
 import { CategoryGridComponent } from './components/category-grid/category-grid.component';
 import { PromotionalBannerComponent } from './components/promotional-banner/promotional-banner.component';
 import { customDomainVendorGuard } from './guards/custom-domain-vendor.guard';
+import { OrdersQueueComponent } from './components/orders-queue/orders-queue.component';
 
 // Shared vendor app route tree (mounted either at /vendor/:vendorSlug or at / on custom domains)
 // Note: when mounted at / (custom domain), there is NO vendorSlug in the URL.
@@ -38,6 +39,12 @@ const vendorAppChildren: Routes = [
   {
     path: 'failedPayment',
     component: PaymentFailedComponent,
+  },
+
+  // Public orders queue display board
+  {
+    path: 'orders-queue',
+    component: OrdersQueueComponent,
   },
 
   // Main app routes for this vendor

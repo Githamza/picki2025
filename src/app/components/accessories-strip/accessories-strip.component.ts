@@ -67,7 +67,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
   styles: [`
     .accessories-section {
       padding: 12px 0;
-      border-top: 1px solid var(--mat-sys-outline-variant);
     }
 
     .accessories-title {

@@ -155,7 +155,7 @@ import { SupabaseService } from '../../services/supabase.service';
 
         <!-- Selected accessories as cart items -->
         @for (item of (accessoryItems$ | async) || []; track item.product.id) {
-          <div class="cart-item-row accessory-item-row">
+          <div class="cart-item-row">
             <div class="cart-item-info">
               <span class="cart-item-name">
                 @if (item.product.iconEmoji) {
@@ -163,24 +163,6 @@ import { SupabaseService } from '../../services/supabase.service';
                 }
                 {{ item.product.name }}
               </span>
-            </div>
-            <div class="cart-item-controls">
-              <button
-                mat-mini-fab
-                [color]="item.quantity === 1 ? 'warn' : 'primary'"
-                (click)="item.quantity === 1 ? remove(item.product.id) : decrement(item.product.id)"
-              >
-                <mat-icon>{{ item.quantity === 1 ? 'delete' : 'remove' }}</mat-icon>
-              </button>
-              <span class="cart-item-qty">{{ item.quantity }}</span>
-              <button
-                mat-mini-fab
-                color="primary"
-                (click)="increment(item.product.id)"
-                [disabled]="isIncrementDisabled(items, item.product)"
-              >
-                <mat-icon>add</mat-icon>
-              </button>
             </div>
             <span
               class="cart-item-price"
@@ -544,8 +526,8 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
   }
 
   getItemPrice(item: CartItem): number {
-    // Use stored totalPrice for multi-step products, otherwise use product price
-    return item.totalPrice || item.product.price;
+    // totalPrice already includes quantity for multi-step products
+    return item.totalPrice || item.product.price * item.quantity;
   }
 
   isIncrementDisabled(items: CartItem[], product: Product): boolean {

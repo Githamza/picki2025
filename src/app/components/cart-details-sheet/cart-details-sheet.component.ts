@@ -10,6 +10,7 @@ import {
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
@@ -53,6 +54,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     MatIconModule,
     MatButtonModule,
     MatDividerModule,
+    MatBadgeModule,
     CartItemStepsTreeComponent,
     AccessoriesStripComponent,
     VendorCurrencyPipe,
@@ -101,7 +103,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           <div class="cart-list">
             @for (item of (foodItems$ | async) || []; track item.product.id) {
               <div class="cart-item">
-                <mat-icon class="item-icon">shopping_bag</mat-icon>
+                <mat-icon class="item-icon" [matBadge]="item.quantity" matBadgeSize="medium" matBadgeColor="primary">shopping_bag</mat-icon>
                 <div class="item-content">
                   @if (item.metadata?.stepSelections?.length) {
                     <app-cart-item-steps-tree
@@ -132,7 +134,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                       </span>
                     </div>
                   }
-                  <div class="item-line">Quantité: {{ item.quantity }}</div>
                   @if (item.comment) {
                     <div class="item-comment">
                       <mat-icon>comment</mat-icon>
@@ -149,43 +150,38 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
             }
           </div>
 
-          <!-- Accessories strip -->
-          @if (availableAccessories().length > 0) {
-            <app-accessories-strip
-              [accessories]="availableAccessories()"
-              [cartAccessories]="(accessoryItems$ | async) || []"
-              (add)="onAccessoryAdded($event)"
-              (increment)="onAccessoryIncrement($event)"
-              (decrement)="onAccessoryDecrement($event)"
-              (remove)="onAccessoryRemove($event)"
-            />
-          }
-
-          <!-- Selected accessories -->
-          @for (item of (accessoryItems$ | async) || []; track item.product.id) {
-            <div class="cart-item accessory-cart-item">
-              <span class="accessory-item-emoji">{{ item.product.iconEmoji || '📦' }}</span>
-              <div class="item-content">
-                <div class="item-title-row">
-                  <span class="item-title">{{ item.product.name }}</span>
-                  <span
-                    class="item-price price-value"
-                    [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
-                  >
-                    {{ getItemPrice(item) | vendorCurrency }}
-                  </span>
-                </div>
-                <div class="item-line">Quantité: {{ item.quantity }}</div>
-              </div>
-            </div>
-          }
         } @else {
           <div class="empty-cart">Votre panier est vide.</div>
         }
       </div>
 
       <div class="sheet-actions">
+        <!-- Accessories strip - always visible -->
+        @if (availableAccessories().length > 0) {
+          <app-accessories-strip
+            [accessories]="availableAccessories()"
+            [cartAccessories]="(accessoryItems$ | async) || []"
+            (add)="onAccessoryAdded($event)"
+            (increment)="onAccessoryIncrement($event)"
+            (decrement)="onAccessoryDecrement($event)"
+            (remove)="onAccessoryRemove($event)"
+          />
+        }
+
         @if (cartItems$ | async; as items) {
+          <!-- Selected accessories - above service fee -->
+          @for (item of (accessoryItems$ | async) || []; track item.product.id) {
+            <div class="accessory-fee-item">
+              <div class="fee-row-content">
+                <span class="accessory-item-emoji-inline">{{ item.product.iconEmoji || '📦' }}</span>
+                <span>{{ item.product.name }}</span>
+              </div>
+              <span class="fee-price price-value"
+                [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+              >{{ getItemPrice(item) | vendorCurrency }}</span>
+            </div>
+          }
+
           @if (getServiceFee(items ?? []); as serviceFee) {
             <div class="fee-row">
               <div class="fee-row-content">
@@ -249,6 +245,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         flex-direction: column;
         gap: 8px;
         padding: 12px 0 0 0;
+        border-top: 1px solid var(--mat-sys-outline-variant);
       }
       .close-btn {
         position: absolute;
@@ -438,15 +435,20 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         font-size: 0.85em;
         padding: 4px 0 0 0;
       }
-      .accessory-cart-item {
-        background: var(--mat-sys-surface-container-low);
-        border-radius: 8px;
-        padding: 8px 12px;
+      .accessory-fee-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.95em;
+        padding: 4px 0;
+        color: var(--mat-sys-on-surface-variant);
       }
-      .accessory-item-emoji {
-        font-size: 20px;
-        width: 24px;
-        text-align: center;
+      .accessory-item-emoji-inline {
+        font-size: 18px;
+        margin-right: 4px;
+      }
+      .item-icon {
+        overflow: visible;
       }
       /* delivery-summary removed: delivery fee is shown as a cart item */
     `,
@@ -556,8 +558,8 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   }
 
   getItemPrice(item: CartItem): number {
-    // Use stored totalPrice for multi-step products, otherwise use product price
-    return item.totalPrice || item.product.price;
+    // totalPrice already includes quantity for multi-step products
+    return item.totalPrice || item.product.price * item.quantity;
   }
 
   goToCartDetails() {

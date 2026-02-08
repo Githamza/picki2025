@@ -80,12 +80,7 @@ const vendorAppChildren: Routes = [
 export const routes: Routes = [
   // Redirect to admin dashboard only on pikiapp domains (localhost, piki-app.com)
   // On custom vendor domains, this route is skipped and the vendor app handles root
-  {
-    path: '',
-    redirectTo: 'admin/orders-manager',
-    pathMatch: 'full',
-    canMatch: [pikiappDomainGuard],
-  },
+
   // Centralized admin login
   {
     path: 'admin/login',

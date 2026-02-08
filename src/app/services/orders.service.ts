@@ -679,6 +679,7 @@ export class OrdersService {
       updatedAt: new Date(dbOrder.updated_at),
       notes: dbOrder.notes || undefined,
       vendorId: dbOrder.vendor_id || undefined, // Include vendor ID from database
+      refuse_reason: dbOrder.refuse_reason || undefined,
     };
   }
 }

@@ -26,6 +26,7 @@ import { OrdersQueueComponent } from './components/orders-queue/orders-queue.com
 // Note: when mounted at / (custom domain), there is NO vendorSlug in the URL.
 const vendorAppChildren: Routes = [
   // Dining preference route for this vendor
+
   {
     path: 'dining-preference',
     component: WelcomeScreenComponent,
@@ -77,7 +78,11 @@ const vendorAppChildren: Routes = [
 
 export const routes: Routes = [
   // Top-level routes that must always be reachable (even on custom domains)
-
+  {
+    path: '',
+    redirectTo: 'admin/orders-manager',
+    pathMatch: 'full'
+  },
   // Centralized admin login
   {
     path: 'admin/login',

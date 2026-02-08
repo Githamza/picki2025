@@ -813,10 +813,21 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       } else {
         await this.updateOrderStatus(order, 'refused');
       }
-      
+
       this.snackBar.open('Commande refusée', 'Fermer', {
         duration: 3000,
       });
+
+      // Send refused email to customer (non-blocking)
+      if (order.customer.email) {
+        this.emailService.sendOrderRefusedEmail(order, refuseReason).then(result => {
+          if (result.success) {
+            console.log('Refused email sent to customer:', order.customer.email);
+          } else {
+            console.warn('Failed to send refused email:', result.error);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error refusing order:', error);
       this.snackBar.open('Erreur lors du refus de la commande', 'Fermer', {

@@ -101,6 +101,9 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                     >
                       {{ getStatusText(orderDetails.status) }}
                     </h1>
+                    <p class="refuse-reason-inline" *ngIf="orderDetails.status === 'refused' && orderDetails.refuse_reason">
+                      <strong>Motif:</strong> {{ orderDetails.refuse_reason }}
+                    </p>
                   </div>
                 </div>
   
@@ -511,6 +514,16 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         color: #c62828;
       }
 
+      .refuse-reason-inline {
+        margin: 8px 0 0 0;
+        padding: 8px 12px;
+        background-color: #ffebee;
+        border-radius: 6px;
+        color: #c62828;
+        font-size: 14px;
+        text-align: center;
+      }
+
       .order-info {
         font-size: 16px;
         font-weight: bold;
@@ -638,7 +651,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
   ],
 })
 export class PaymentSuccessComponent implements OnInit, OnDestroy {
-  private router = inject(Router);
   private route = inject(ActivatedRoute);
   private store = inject(Store<AppState>);
   private ordersService = inject(OrdersService);

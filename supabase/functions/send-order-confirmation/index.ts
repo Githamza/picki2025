@@ -299,6 +299,7 @@ serve(async (req) => {
 
     // Build email template based on type
     const isReadyEmail = emailType === 'ready';
+    const isRefusedEmail = emailType === 'refused';
     const customerName = orderDetails.customer?.name ||
       `${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}`.trim() ||
       'Client';
@@ -306,6 +307,7 @@ serve(async (req) => {
     const payAtCheckout = orderDetails.payAtCheckout || false;
     const paymentMethod = getPaymentMethodLabel(vendorInfo?.paymentProvider || orderDetails.paymentMethod, payAtCheckout);
     const orderDateTime = orderDetails.createdAt || new Date().toISOString();
+    const refuseReason = body.refuseReason || '';
 
     // Calculate VAT breakdown grouped by rate
     const totalTTC = orderDetails.totalAmount || 0;
@@ -314,21 +316,38 @@ serve(async (req) => {
     const totalHT = tvaBreakdownByRate.reduce((sum, b) => sum + b.totalHT, 0);
     const totalTVA = tvaBreakdownByRate.reduce((sum, b) => sum + b.totalTVA, 0);
 
-    // Different content for confirmation vs ready emails
-    const emailTitle = isReadyEmail
-      ? 'Votre commande est prête !'
-      : 'Confirmation de commande';
-    const emailGreeting = isReadyEmail
-      ? `Bonjour ${customerName},\n\nBonne nouvelle ! Votre commande est maintenant prête.`
-      : `Bonjour ${customerName},\n\nMerci pour votre commande. Voici votre ticket de caisse :`;
+    // Different content for confirmation vs ready vs refused emails
+    let emailTitle: string;
+    let emailGreeting: string;
+    let actionMessage: string;
+    let emailSubject: string;
 
-    const actionMessage = isReadyEmail
-      ? getReadyActionMessage(orderDetails.orderType)
-      : '';
-
-    const emailSubject = isReadyEmail
-      ? `Commande prête - #${orderDetails.orderNumber}`
-      : `Ticket de caisse - Commande #${orderDetails.orderNumber}`;
+    if (isRefusedEmail) {
+      emailTitle = 'Commande annulée';
+      emailGreeting = `Bonjour ${customerName},\n\nNous sommes sincèrement désolés de vous informer que votre commande n'a pas pu être prise en charge par le restaurant. Nous nous excusons pour la gêne occasionnée.`;
+      actionMessage = refuseReason
+        ? `<div style="background: #fef2f2; padding: 16px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 16px 0;">
+            <strong style="color: #991b1b;">Motif :</strong><br>
+            <span style="color: #7f1d1d;">${refuseReason}</span>
+          </div>
+          <div style="background: #f0fdf4; padding: 16px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 16px 0;">
+            <span style="color: #166534;">Si un paiement a été effectué, vous serez remboursé dans les plus brefs délais. N'hésitez pas à nous contacter pour toute question.</span>
+          </div>`
+        : `<div style="background: #f0fdf4; padding: 16px; border-radius: 8px; border-left: 4px solid #22c55e; margin: 16px 0;">
+            <span style="color: #166534;">Si un paiement a été effectué, vous serez remboursé dans les plus brefs délais. N'hésitez pas à nous contacter pour toute question.</span>
+          </div>`;
+      emailSubject = `Commande annulée - #${orderDetails.orderNumber}`;
+    } else if (isReadyEmail) {
+      emailTitle = 'Votre commande est prête !';
+      emailGreeting = `Bonjour ${customerName},\n\nBonne nouvelle ! Votre commande est maintenant prête.`;
+      actionMessage = getReadyActionMessage(orderDetails.orderType);
+      emailSubject = `Commande prête - #${orderDetails.orderNumber}`;
+    } else {
+      emailTitle = 'Confirmation de commande';
+      emailGreeting = `Bonjour ${customerName},\n\nMerci pour votre commande. Voici votre ticket de caisse :`;
+      actionMessage = '';
+      emailSubject = `Ticket de caisse - Commande #${orderDetails.orderNumber}`;
+    }
 
     // Build items table with unit price, quantity, and line total
     const itemsHtml = Array.isArray(orderDetails.items)
@@ -421,7 +440,7 @@ serve(async (req) => {
           <div style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden;">
 
             <!-- Header -->
-            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 32px 24px; text-align: center;">
+            <div style="background: linear-gradient(135deg, ${isRefusedEmail ? '#dc2626 0%, #b91c1c 100%' : '#2563eb 0%, #1d4ed8 100%'}); color: #ffffff; padding: 32px 24px; text-align: center;">
               <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">${emailTitle}</h1>
               <p style="margin: 0; font-size: 14px; opacity: 0.9;">Commande #${orderDetails.orderNumber}</p>
             </div>
@@ -501,7 +520,7 @@ serve(async (req) => {
                     <td style="padding: 8px 16px; text-align: right; font-size: 14px; color: #111827;">${formatCurrency(b.totalTVA, currency)}</td>
                   </tr>
                   `).join('')}
-                  <tr style="background: #2563eb;">
+                  <tr style="background: ${isRefusedEmail ? '#dc2626' : '#2563eb'};">
                     <td colspan="4" style="padding: 16px; text-align: right; font-size: 16px; font-weight: 700; color: #ffffff; border-radius: 0 0 0 8px;">TOTAL TTC :</td>
                     <td style="padding: 16px; text-align: right; font-size: 18px; font-weight: 700; color: #ffffff; border-radius: 0 0 8px 0;">${formatCurrency(totalTTC, currency)}</td>
                   </tr>
@@ -514,7 +533,7 @@ serve(async (req) => {
 
             <!-- Footer -->
             <div style="padding: 24px; background: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">Merci pour votre confiance !</p>
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">${isRefusedEmail ? 'Nous vous prions de nous excuser pour ce désagrément et espérons vous revoir très bientôt.' : 'Merci pour votre confiance !'}</p>
               ${vendorInfo?.contact?.email ? `
               <p style="margin: 0; font-size: 12px; color: #6b7280;">
                 Pour toute question, contactez-nous à<br>

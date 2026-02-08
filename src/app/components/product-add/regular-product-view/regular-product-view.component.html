@@ -124,7 +124,7 @@
   <!-- Comment Section -->
   <div class="comment-section">
     <mat-form-field class="comment-field">
-      <mat-label>Commentaires pour ce produit (optionnel)</mat-label>
+      <mat-label>Commentaires (optionnel)</mat-label>
       <textarea
         matInput
         [ngModel]="comment()"
@@ -165,7 +165,11 @@
           </button>
         </div>
         <div class="stock-limit-hint" *ngIf="isStockLimitReached()">
-          {{ product.stockQuantity }} disponible(s){{ cartQuantityForProduct > 0 ? ' (dont ' + cartQuantityForProduct + ' dans le panier)' : '' }}
+          {{ product.stockQuantity }} disponible(s){{
+            cartQuantityForProduct > 0
+              ? " (dont " + cartQuantityForProduct + " dans le panier)"
+              : ""
+          }}
         </div>
       </div>
       <button

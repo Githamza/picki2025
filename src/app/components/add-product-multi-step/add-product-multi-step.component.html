@@ -71,7 +71,9 @@
               [option]="option"
               [step]="step"
               [isSelected]="isOptionSelected(step, option.id)"
-              [isDisabled]="!option.isAvailable || isOptionEffectivelyOutOfStock(option)"
+              [isDisabled]="
+                !option.isAvailable || isOptionEffectivelyOutOfStock(option)
+              "
               [isOutOfStock]="isOptionEffectivelyOutOfStock(option)"
               (optionClicked)="onOptionClicked($event)"
               (imageClicked)="onImageClicked($event)"
@@ -96,7 +98,9 @@
               [option]="option"
               [step]="step"
               [isSelected]="isOptionSelected(step, option.id)"
-              [isDisabled]="!option.isAvailable || isOptionEffectivelyOutOfStock(option)"
+              [isDisabled]="
+                !option.isAvailable || isOptionEffectivelyOutOfStock(option)
+              "
               [isOutOfStock]="isOptionEffectivelyOutOfStock(option)"
               (optionClicked)="onOptionClicked($event)"
               (imageClicked)="onImageClicked($event)"
@@ -193,7 +197,7 @@
   <!-- Comment Section (when all steps are visited or configuration is complete) -->
   <div class="comment-section" *ngIf="showAddToCartSection$ | async">
     <mat-form-field class="comment-field">
-      <mat-label>Commentaires pour ce menu (optionnel)</mat-label>
+      <mat-label>Commentaires (optionnel)</mat-label>
       <textarea
         matInput
         [ngModel]="comment()"
@@ -265,7 +269,11 @@
         </button>
       </div>
       <div class="stock-limit-hint" *ngIf="isStockLimitReached()">
-        {{ baseProductStockQuantity }} disponible(s){{ cartQuantityForBaseProduct > 0 ? ' (dont ' + cartQuantityForBaseProduct + ' dans le panier)' : '' }}
+        {{ baseProductStockQuantity }} disponible(s){{
+          cartQuantityForBaseProduct > 0
+            ? " (dont " + cartQuantityForBaseProduct + " dans le panier)"
+            : ""
+        }}
       </div>
     </div>
 

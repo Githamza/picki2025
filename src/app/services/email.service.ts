@@ -321,6 +321,89 @@ export class EmailService {
     }
   }
 
+  async sendOrderRefusedEmail(
+    order: Order,
+    refuseReason?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('Sending order refused email for order:', order.orderNumber);
+      console.log('Customer email:', order.customer.email);
+      console.log('Refuse reason:', refuseReason);
+
+      const vendorInfo = await this.getVendorEmailInfo(order.vendorId);
+
+      const requestBody = {
+        to: order.customer.email,
+        orderDetails: {
+          orderNumber: order.orderNumber,
+          customer: {
+            ...order.customer,
+            name: `${order.customer.firstName} ${order.customer.lastName}`.trim(),
+          },
+          items: order.items.map(item => ({
+            name: item.productName,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.price / item.quantity,
+            totalPrice: item.price,
+            price: item.price,
+            tvaRate: item.tvaRate ?? 10,
+            options: item.options,
+          })),
+          totalAmount: order.totalAmount,
+          status: 'refused',
+          orderType: order.orderType,
+          timing: order.timing,
+          scheduledTime: order.scheduledTime,
+          notes: order.notes,
+          createdAt: order.createdAt,
+          payAtCheckout: order.payAtCheckout || false,
+          currency: vendorInfo?.currency || 'EUR',
+        },
+        vendorInfo: vendorInfo,
+        refuseReason: refuseReason || '',
+        emailType: 'refused',
+      };
+
+      const functionUrl = `${environment.supabase.url}/functions/v1/send-order-confirmation`;
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${environment.supabase.anonKey}`,
+          apikey: environment.supabase.anonKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        return { success: false, error: 'Invalid response from email service' };
+      }
+
+      if (!response.ok) {
+        return { success: false, error: data.error || `Email service error: ${response.status}` };
+      }
+
+      if (data?.success === false) {
+        return { success: false, error: data.error || 'Failed to send email' };
+      }
+
+      console.log('Refused email sent successfully:', data);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send refused email:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
   /**
    * Generate tracking URL for the order
    * @param orderId The order ID

@@ -42,14 +42,16 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
   template: `
     <div class="order-details-dialog">
       <div class="dialog-header">
+        <div class="header-content">
         <h2 mat-dialog-title>
           Commande #{{ data.order.orderNumber }}
         </h2>
-        <div class="header-total">
-          <span class="total-amount">{{
+        <div >
+          <span class="total-amount header-total">{{
             data.order.totalAmount
               | vendorCurrency
           }}</span>
+        </div>
         </div>
         <button
           mat-icon-button
@@ -382,13 +384,11 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
   `,
   styles: [
     `
-      ::ng-deep .mat-mdc-dialog-surface {
-        display: flex !important;
-        flex-direction: column !important;
-        max-height: 90vh !important;
-        overflow: hidden !important;
-      }
-
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
       .order-details-dialog {
         max-width: 800px;
         width: 100%;
@@ -429,6 +429,7 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
           }
 
           .total-amount {
+            margin: 24px 0px;
             font-size: 16px;
             font-weight: 600;
           }

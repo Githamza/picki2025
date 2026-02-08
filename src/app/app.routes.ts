@@ -20,7 +20,6 @@ import { VendorCacheTestComponent } from './components/vendor-cache-test/vendor-
 import { CategoryGridComponent } from './components/category-grid/category-grid.component';
 import { PromotionalBannerComponent } from './components/promotional-banner/promotional-banner.component';
 import { customDomainVendorGuard } from './guards/custom-domain-vendor.guard';
-import { pikiappDomainGuard } from './guards/pikiapp-domain.guard';
 import { OrdersQueueComponent } from './components/orders-queue/orders-queue.component';
 
 // Shared vendor app route tree (mounted either at /vendor/:vendorSlug or at / on custom domains)
@@ -78,9 +77,6 @@ const vendorAppChildren: Routes = [
 ];
 
 export const routes: Routes = [
-  // Redirect to admin dashboard only on pikiapp domains (localhost, piki-app.com)
-  // On custom vendor domains, this route is skipped and the vendor app handles root
-
   // Centralized admin login
   {
     path: 'admin/login',
@@ -139,14 +135,6 @@ export const routes: Routes = [
     component: VendorCacheTestComponent,
   },
 
-  // Vendor app mounted at root when using a vendor custom domain (e.g. granola.fr/...)
-  {
-    path: '',
-    canMatch: [customDomainVendorGuard],
-    component: VendorLayoutComponent,
-    children: vendorAppChildren,
-  },
-
   // Vendor-specific routes on pikiapp domains (e.g. pikiapp.com/vendor/granola/...)
   {
     path: 'vendor/:vendorSlug',
@@ -155,10 +143,21 @@ export const routes: Routes = [
     children: vendorAppChildren,
   },
 
-  // Vendor selection page (pikiapp domains only; on custom domains the root is the vendor app)
+  // Vendor app mounted at root when using a vendor custom domain (e.g. granola.fr/...)
+  // This guard returns false on pikiapp domains, so the next route (redirect) will be used
   {
     path: '',
-    component: VendorSelectionComponent,
+    canMatch: [customDomainVendorGuard],
+    component: VendorLayoutComponent,
+    children: vendorAppChildren,
+  },
+
+  // On pikiapp domains (localhost, piki-app.com), redirect root to admin dashboard
+  // This only runs if customDomainVendorGuard above returned false
+  {
+    path: '',
+    redirectTo: '/admin/orders-manager',
+    pathMatch: 'full',
   },
 
   // Legacy redirects

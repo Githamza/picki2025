@@ -77,8 +77,10 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
   private handleOrdersSuspended(isSuspended: boolean): void {
     if (isSuspended) {
       if (!this.ordersSuspendedSnackRef) {
+        const message = this.currentVendor?.orders_suspended_message
+          || 'les commandes en ligne sont actuellement suspendues';
         this.ordersSuspendedSnackRef = this.snackBar.open(
-          'les commandes en ligne sont actuellement suspendues',
+          message,
           undefined,
           {
             duration: 0,

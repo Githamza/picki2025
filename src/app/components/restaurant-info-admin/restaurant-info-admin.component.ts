@@ -393,6 +393,53 @@ export interface PaymentProviderStatus {
             </mat-card-content>
           </mat-card>
 
+          <!-- Custom Messages Section -->
+          <mat-card class="info-section">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>message</mat-icon>
+              <mat-card-title>Messages personnalisés</mat-card-title>
+              <mat-card-subtitle
+                >Personnalisez les messages affichés à vos clients</mat-card-subtitle
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <div class="contact-form" formGroupName="customMessages">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Message de fermeture (titre)</mat-label>
+                  <input
+                    matInput
+                    formControlName="closedMessage"
+                    placeholder="On est fermé actuellement"
+                  />
+                  <mat-icon matSuffix>store</mat-icon>
+                  <mat-hint>Titre affiché dans la popup quand le restaurant est fermé</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Description de fermeture</mat-label>
+                  <input
+                    matInput
+                    formControlName="closedDescription"
+                    placeholder="N'hésitez pas à revenir plus tard."
+                  />
+                  <mat-icon matSuffix>description</mat-icon>
+                  <mat-hint>Description affichée sous le titre de la popup de fermeture</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Message de suspension des commandes</mat-label>
+                  <input
+                    matInput
+                    formControlName="ordersSuspendedMessage"
+                    placeholder="les commandes en ligne sont actuellement suspendues"
+                  />
+                  <mat-icon matSuffix>pause_circle</mat-icon>
+                  <mat-hint>Message affiché dans la barre quand les commandes sont suspendues</mat-hint>
+                </mat-form-field>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
           <!-- Stock Management Section -->
           <mat-card class="info-section">
             <mat-card-header>
@@ -1424,6 +1471,11 @@ export class RestaurantInfoAdminComponent implements OnInit {
       payments: this.fb.group({
         onlinePaymentsEnabled: [info.vendor.online_payments_enabled ?? true],
       }),
+      customMessages: this.fb.group({
+        closedMessage: [info.vendor.closed_message || ''],
+        closedDescription: [info.vendor.closed_description || ''],
+        ordersSuspendedMessage: [info.vendor.orders_suspended_message || ''],
+      }),
       dailyStockResetEnabled: [(info.vendor as any).daily_stock_reset_enabled ?? true],
       contact: this.fb.group({
         phone: [info.contact.phone || '', []],
@@ -1453,6 +1505,11 @@ export class RestaurantInfoAdminComponent implements OnInit {
       }),
       payments: this.fb.group({
         onlinePaymentsEnabled: [true],
+      }),
+      customMessages: this.fb.group({
+        closedMessage: [''],
+        closedDescription: [''],
+        ordersSuspendedMessage: [''],
       }),
       dailyStockResetEnabled: [true],
       contact: this.fb.group({
@@ -1657,6 +1714,11 @@ export class RestaurantInfoAdminComponent implements OnInit {
           deliverySystem:
             formValue.deliverySettings?.deliverySystem === 'own' ? 'own' : 'picki',
           ownDeliveryPrice: Number(formValue.deliverySettings?.ownDeliveryPrice ?? 0),
+        },
+        customMessages: {
+          closed_message: formValue.customMessages?.closedMessage?.trim() || null,
+          closed_description: formValue.customMessages?.closedDescription?.trim() || null,
+          orders_suspended_message: formValue.customMessages?.ordersSuspendedMessage?.trim() || null,
         },
       });
 

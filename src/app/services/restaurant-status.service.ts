@@ -55,6 +55,8 @@ export class RestaurantStatusService {
 
       this.dialogShownSubject.next(true);
 
+      const currentVendor = this.vendorService.getCurrentVendor();
+
       const dialogRef = this.dialog.open(RestaurantClosedDialogComponent, {
         width: '90%',
         maxWidth: '450px',
@@ -62,6 +64,10 @@ export class RestaurantStatusService {
         panelClass: 'restaurant-closed-dialog-panel',
         autoFocus: true,
         restoreFocus: true,
+        data: {
+          closedMessage: currentVendor?.closed_message || undefined,
+          closedDescription: currentVendor?.closed_description || undefined,
+        },
       });
 
       dialogRef.afterClosed().subscribe(() => {

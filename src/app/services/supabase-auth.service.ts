@@ -518,6 +518,35 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async updateVendorCustomMessages(
+    vendorId: string,
+    messages: {
+      closed_message?: string | null;
+      closed_description?: string | null;
+      orders_suspended_message?: string | null;
+    }
+  ) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        closed_message: messages.closed_message ?? null,
+        closed_description: messages.closed_description ?? null,
+        orders_suspended_message: messages.orders_suspended_message ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
   // Business Hours (admin operations)
   async getBusinessHours(vendorId: string) {
     console.log(

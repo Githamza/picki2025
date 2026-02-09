@@ -8,6 +8,11 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
+export interface RestaurantClosedDialogData {
+  closedMessage?: string;
+  closedDescription?: string;
+}
+
 @Component({
   selector: 'app-restaurant-closed-dialog',
   standalone: true,
@@ -16,11 +21,11 @@ import { MatIconModule } from '@angular/material/icon';
     <div class="restaurant-closed-dialog">
       <div class="dialog-header">
         <mat-icon class="closed-icon">restaurant_menu</mat-icon>
-        <h2 mat-dialog-title>On est fermé actuellement</h2>
+        <h2 mat-dialog-title>{{ closedMessage }}</h2>
       </div>
 
       <div mat-dialog-content class="dialog-content">
-        <p class="description">N'hésitez pas à revenir plus tard.</p>
+        <p class="description">{{ closedDescription }}</p>
         <div class="illustration">
           <mat-icon class="clock-icon">schedule</mat-icon>
         </div>
@@ -200,10 +205,16 @@ import { MatIconModule } from '@angular/material/icon';
   ],
 })
 export class RestaurantClosedDialogComponent {
+  closedMessage: string;
+  closedDescription: string;
+
   constructor(
     public dialogRef: MatDialogRef<RestaurantClosedDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+    @Inject(MAT_DIALOG_DATA) public data: RestaurantClosedDialogData | null
+  ) {
+    this.closedMessage = data?.closedMessage || 'On est fermé actuellement';
+    this.closedDescription = data?.closedDescription || 'N\'hésitez pas à revenir plus tard.';
+  }
 
   closeDialog(): void {
     this.dialogRef.close();

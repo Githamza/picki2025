@@ -601,6 +601,11 @@ export class VendorService {
       deliverySystem: 'picki' | 'own';
       ownDeliveryPrice: number;
     };
+    customMessages?: {
+      closed_message?: string | null;
+      closed_description?: string | null;
+      orders_suspended_message?: string | null;
+    };
   }): Promise<void> {
     const currentVendor = this.getCurrentVendor();
     if (!currentVendor) {
@@ -648,6 +653,13 @@ export class VendorService {
         updatedVendor = await this.supabaseAuthService.updateVendorDailyStockReset(
           currentVendor.id,
           restaurantData.dailyStockResetEnabled
+        );
+      }
+
+      if (restaurantData.customMessages) {
+        updatedVendor = await this.supabaseAuthService.updateVendorCustomMessages(
+          currentVendor.id,
+          restaurantData.customMessages
         );
       }
 

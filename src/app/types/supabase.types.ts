@@ -1314,6 +1314,8 @@ export type Database = {
           banner_url: string | null
           business_name: string
           business_type: string | null
+          closed_description: string | null
+          closed_message: string | null
           country: string | null
           created_at: string | null
           currency: string
@@ -1327,6 +1329,7 @@ export type Database = {
           logo_url: string | null
           online_payments_enabled: boolean
           orders_suspended_at: string | null
+          orders_suspended_message: string | null
           own_delivery_price: number
           paygreen_merchant_id: string | null
           paygreen_onboarding_completed: boolean | null
@@ -1343,6 +1346,8 @@ export type Database = {
           banner_url?: string | null
           business_name: string
           business_type?: string | null
+          closed_description?: string | null
+          closed_message?: string | null
           country?: string | null
           created_at?: string | null
           currency?: string
@@ -1356,6 +1361,7 @@ export type Database = {
           logo_url?: string | null
           online_payments_enabled?: boolean
           orders_suspended_at?: string | null
+          orders_suspended_message?: string | null
           own_delivery_price?: number
           paygreen_merchant_id?: string | null
           paygreen_onboarding_completed?: boolean | null
@@ -1372,6 +1378,8 @@ export type Database = {
           banner_url?: string | null
           business_name?: string
           business_type?: string | null
+          closed_description?: string | null
+          closed_message?: string | null
           country?: string | null
           created_at?: string | null
           currency?: string
@@ -1385,6 +1393,7 @@ export type Database = {
           logo_url?: string | null
           online_payments_enabled?: boolean
           orders_suspended_at?: string | null
+          orders_suspended_message?: string | null
           own_delivery_price?: number
           paygreen_merchant_id?: string | null
           paygreen_onboarding_completed?: boolean | null

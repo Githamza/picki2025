@@ -186,7 +186,7 @@ import { SupabaseService } from '../../services/supabase.service';
 
         <!-- Checkout Button -->
         <button
-          matButton="filled"
+          mat-raised-button
           color="accent"
           class="checkout-button"
           (click)="checkout()"

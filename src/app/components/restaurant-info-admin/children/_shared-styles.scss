@@ -1,0 +1,79 @@
+@mixin child-section {
+  :host {
+    display: block;
+  }
+
+  .info-section {
+    background: var(--mat-sys-surface-container);
+    border-radius: var(--mat-sys-corner-large);
+    box-shadow: var(--mat-sys-level1);
+    margin: 10px 0;
+  }
+
+  .info-section mat-card-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--mat-sys-surface-variant);
+    margin-bottom: 16px;
+  }
+
+  .info-section mat-card-title {
+    font: var(--mat-sys-title-medium);
+  }
+
+  .info-section mat-card-subtitle {
+    font: var(--mat-sys-body-small);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .contact-form,
+  .address-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .order-types {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .hint-text {
+    margin: 12px 0 0 0;
+    font: var(--mat-sys-body-small);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    padding: 24px;
+    margin-top: 8px;
+    background: var(--mat-sys-surface-container-low);
+    border-radius: var(--mat-sys-corner-large);
+    position: sticky;
+    bottom: 16px;
+    box-shadow: var(--mat-sys-level2);
+  }
+
+  @media (max-width: 600px) {
+    .actions {
+      flex-direction: column;
+      gap: 12px;
+      margin: 8px -16px 0 -16px;
+      padding: 16px;
+      border-radius: 0;
+      bottom: 0;
+    }
+
+    .actions button {
+      width: 100%;
+    }
+  }
+}

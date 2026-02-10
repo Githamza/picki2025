@@ -50,17 +50,39 @@
       <span matListItemTitle>Live</span>
     </a>
 
+    <!-- Restaurant Info: expandable parent -->
     <a
       mat-list-item
       [class.active]="isCurrentRoute('restaurant-info')"
-      (click)="navigateToRestaurantInfo(); $event.preventDefault()"
-      class="nav-item"
+      (click)="toggleRestaurantInfo(); $event.preventDefault()"
+      class="nav-item restaurant-info-parent"
       role="button"
       tabindex="0"
     >
       <mat-icon matListItemIcon>info</mat-icon>
       <span matListItemTitle>Mes informations</span>
+      <span matListItemMeta>
+        <mat-icon class="expand-chevron" [class.expanded]="restaurantInfoExpanded">
+          expand_more
+        </mat-icon>
+      </span>
     </a>
+
+    <!-- Restaurant Info Children -->
+    <div class="restaurant-info-children" *ngIf="restaurantInfoExpanded">
+      <a
+        mat-list-item
+        *ngFor="let child of restaurantInfoChildren"
+        [class.active]="isRestaurantInfoChildActive(child.path)"
+        (click)="navigateToRestaurantInfoChild(child.path); $event.preventDefault()"
+        class="nav-item child-nav-item"
+        role="button"
+        tabindex="0"
+      >
+        <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
+        <span matListItemTitle>{{ child.label }}</span>
+      </a>
+    </div>
   </mat-nav-list>
 
   <mat-divider></mat-divider>
@@ -80,6 +102,4 @@
   </div>
 
   <mat-divider></mat-divider>
-
-  <!-- Logout Button -->
 </div>

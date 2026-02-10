@@ -11,7 +11,6 @@ import { PaymentFailedComponent } from './components/payment-failed/payment-fail
 import { OrdersManagerComponent } from './components/orders-manager/orders-manager.component';
 import { AdminLayoutComponent } from './components/admin-layout/admin-layout.component';
 import { ProductManagerComponent } from './components/product-manager/product-manager.component';
-import { RestaurantInfoAdminComponent } from './components/restaurant-info-admin/restaurant-info-admin.component';
 import { AdminLoginComponent } from './components/admin-login/admin-login.component';
 import { diningPreferenceGuard } from './guards/dining-preference.guard';
 import { VendorGuard } from './guards/vendor.guard';
@@ -106,7 +105,10 @@ export const routes: Routes = [
       },
       {
         path: 'restaurant-info',
-        component: RestaurantInfoAdminComponent,
+        loadChildren: () =>
+          import('./components/restaurant-info-admin/restaurant-info.routes').then(
+            (m) => m.restaurantInfoRoutes
+          ),
         data: { permission: { resource: 'vendor', action: 'read' } },
       },
       {

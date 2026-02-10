@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,6 +11,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { VendorService } from '../../../services/vendor.service';
 import { AuthService } from '../../../services/auth.service';
 import { VendorNavigationService } from '../../../services/vendor-navigation.service';
+import { filter } from 'rxjs/operators';
+import { DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-admin-sidenav',
@@ -28,21 +31,51 @@ import { VendorNavigationService } from '../../../services/vendor-navigation.ser
   templateUrl: './admin-sidenav.component.html',
   styleUrl: './admin-sidenav.component.scss',
 })
-export class AdminSidenavComponent {
+export class AdminSidenavComponent implements OnInit {
   private router = inject(Router);
   public vendorService = inject(VendorService);
   private authService = inject(AuthService);
   private vendorNavigation = inject(VendorNavigationService);
   private snackBar = inject(MatSnackBar);
+  private destroyRef = inject(DestroyRef);
 
   ordersSuspended = false;
   isToggling = false;
 
+  restaurantInfoExpanded = false;
+  restaurantInfoChildren = [
+    { path: 'apparence', label: 'Apparence', icon: 'image' },
+    { path: 'horaires', label: 'Horaires', icon: 'schedule' },
+    { path: 'commandes', label: 'Types de commande', icon: 'restaurant_menu' },
+    { path: 'paiement', label: 'Paiement', icon: 'payments' },
+    { path: 'messages', label: 'Messages', icon: 'message' },
+    { path: 'stocks', label: 'Stocks', icon: 'inventory_2' },
+    { path: 'contact', label: 'Contact', icon: 'contact_phone' },
+  ];
+
   constructor() {
-    // Subscribe to orders suspension status
     this.vendorService.ordersSuspended$.subscribe((suspended) => {
       this.ordersSuspended = suspended;
     });
+  }
+
+  ngOnInit() {
+    // Auto-expand if currently on a restaurant-info route
+    if (this.router.url.includes('restaurant-info')) {
+      this.restaurantInfoExpanded = true;
+    }
+
+    // Keep expand state synced with navigation
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((event) => {
+        if ((event as NavigationEnd).urlAfterRedirects?.includes('restaurant-info')) {
+          this.restaurantInfoExpanded = true;
+        }
+      });
   }
 
   navigateToOrders() {
@@ -71,8 +104,16 @@ export class AdminSidenavComponent {
     });
   }
 
-  navigateToRestaurantInfo() {
-    this.vendorNavigation.navigateWithVendor(['admin', 'restaurant-info']);
+  toggleRestaurantInfo() {
+    this.restaurantInfoExpanded = !this.restaurantInfoExpanded;
+  }
+
+  navigateToRestaurantInfoChild(path: string) {
+    this.router.navigate(['admin', 'restaurant-info', path]);
+  }
+
+  isRestaurantInfoChildActive(path: string): boolean {
+    return this.router.url.includes(`restaurant-info/${path}`);
   }
 
   isCurrentRoute(route: string): boolean {
@@ -136,4 +177,3 @@ export class AdminSidenavComponent {
     }
   }
 }
-

@@ -96,6 +96,43 @@
   }
 }
 
+// Expandable restaurant info
+.restaurant-info-parent {
+  .expand-chevron {
+    transition: transform 0.2s ease;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-right: 0;
+
+    &.expanded {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.restaurant-info-children {
+  .child-nav-item {
+    padding-left: 48px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.active {
+      background-color: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+
+      mat-icon {
+        color: var(--mat-sys-on-secondary-container);
+      }
+    }
+  }
+}
+
 .orders-toggle-section {
   padding: 16px;
 

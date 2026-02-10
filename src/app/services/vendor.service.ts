@@ -592,9 +592,9 @@ export class VendorService {
 
   // Save restaurant information (business hours + metadata)
   async saveRestaurantInfo(restaurantData: {
-    businessHours: any[];
-    contact: { phone?: string; email?: string; website?: string };
-    address: {
+    businessHours?: any[];
+    contact?: { phone?: string; email?: string; website?: string };
+    address?: {
       street: string;
       city: string;
       postal_code: string;
@@ -619,17 +619,21 @@ export class VendorService {
     }
 
     try {
-      // Save business hours
-      await this.saveBusinessHoursToDB(
-        currentVendor.id,
-        restaurantData.businessHours
-      );
+      // Save business hours (only if provided)
+      if (restaurantData.businessHours) {
+        await this.saveBusinessHoursToDB(
+          currentVendor.id,
+          restaurantData.businessHours
+        );
+      }
 
-      // Save vendor metadata
-      await this.saveVendorMetadataToDB(currentVendor.id, {
-        ...restaurantData.contact,
-        ...restaurantData.address,
-      });
+      // Save vendor metadata (only if contact or address provided)
+      if (restaurantData.contact || restaurantData.address) {
+        await this.saveVendorMetadataToDB(currentVendor.id, {
+          ...restaurantData.contact,
+          ...restaurantData.address,
+        });
+      }
 
       // Apply vendor-level settings updates (enabled order types, online payments toggle)
       let updatedVendor: Vendor | null = null;

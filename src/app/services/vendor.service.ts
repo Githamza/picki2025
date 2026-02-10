@@ -321,15 +321,21 @@ export class VendorService {
       // Clear cache since data has changed
       this.clearCache();
 
+      // When activating, also clear orders_suspended_at to match DB state
+      const vendorPatch: Partial<Vendor> = { is_active: newStatus };
+      if (newStatus) {
+        vendorPatch.orders_suspended_at = null;
+      }
+
       // Update the current vendor's local state
-      const updatedVendor = { ...currentVendor, is_active: newStatus };
+      const updatedVendor = { ...currentVendor, ...vendorPatch };
       this.currentVendorSubject.next(updatedVendor);
 
       // Update the vendor in the vendors list
       const vendors = this.vendorsSubject.value;
       const updatedVendors = vendors.map((vendor) =>
         vendor.id === currentVendor.id
-          ? { ...vendor, is_active: newStatus }
+          ? { ...vendor, ...vendorPatch }
           : vendor
       );
       this.vendorsSubject.next(updatedVendors);

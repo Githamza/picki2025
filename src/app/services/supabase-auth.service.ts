@@ -342,12 +342,20 @@ export class SupabaseAuthService implements OnDestroy {
 
   // Vendor management (admin operations)
   async updateVendorStatus(vendorId: string, isActive: boolean) {
+    const updatePayload: Record<string, unknown> = {
+      is_active: isActive,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Clear orders_suspended_at when activating to prevent
+    // isVendorOrdersSuspended from still reading it as suspended
+    if (isActive) {
+      updatePayload['orders_suspended_at'] = null;
+    }
+
     const { data, error } = await this.supabaseAuth
       .from('vendors')
-      .update({
-        is_active: isActive,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', vendorId)
       .select()
       .single();

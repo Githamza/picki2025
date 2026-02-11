@@ -72,6 +72,9 @@ export type Database = {
           id: string
           is_closed: boolean
           open_time: string | null
+          pickup_enabled: boolean
+          pickup_open_time: string | null
+          pickup_close_time: string | null
           updated_at: string | null
           vendor_id: string
         }
@@ -82,6 +85,9 @@ export type Database = {
           id?: string
           is_closed?: boolean
           open_time?: string | null
+          pickup_enabled?: boolean
+          pickup_open_time?: string | null
+          pickup_close_time?: string | null
           updated_at?: string | null
           vendor_id: string
         }
@@ -92,6 +98,9 @@ export type Database = {
           id?: string
           is_closed?: boolean
           open_time?: string | null
+          pickup_enabled?: boolean
+          pickup_open_time?: string | null
+          pickup_close_time?: string | null
           updated_at?: string | null
           vendor_id?: string
         }

@@ -26,6 +26,9 @@
           <mat-icon class="option-icon">{{ opt.icon }}</mat-icon>
           <span class="option-text">{{ opt.label }}</span>
           <p class="option-description">{{ opt.description }}</p>
+          @if (opt.type === 'take-away' && !isPickupCurrentlyOpen() && !isLoadingBusinessHours()) {
+            <span class="closed-badge">Fermé</span>
+          }
         </div>
       </button>
       }
@@ -45,7 +48,18 @@
         <mat-button-toggle value="later">Plus tard</mat-button-toggle>
       </mat-button-toggle-group>
 
-      <!-- Time Selection (Today only) -->
+      <!-- ASAP but pickup currently closed -->
+      @if (selectedTiming === 'asap' && !isPickupCurrentlyOpen() && !isLoadingBusinessHours()) {
+      <div class="pickup-closed-warning">
+        <mat-icon>schedule_off</mat-icon>
+        <span>Le Click & Collect est actuellement fermé.</span>
+        @if (getPickupHoursHint(); as hint) {
+          <span class="pickup-hours-detail">{{ hint }}</span>
+        }
+      </div>
+      }
+
+      <!-- Time Selection (Today only) - uses pickup hours -->
       @if (selectedTiming === 'later') {
       <div class="schedule-section" [formGroup]="orderForm">
         <mat-form-field class="time-field">
@@ -54,25 +68,25 @@
             formControlName="scheduledTime"
             placeholder="Choisir l'heure"
             [disabled]="
-              isLoadingBusinessHours() || availableTimeSlots().length === 0
+              isLoadingBusinessHours() || pickupTimeSlots().length === 0
             "
           >
-            @for (time of availableTimeSlots(); track time) {
+            @for (time of pickupTimeSlots(); track time) {
             <mat-option [value]="time">
               {{ time }}
             </mat-option>
             }
           </mat-select>
           <mat-icon matSuffix>schedule</mat-icon>
-          @if (!isLoadingBusinessHours() && availableTimeSlots().length === 0) {
+          @if (!isLoadingBusinessHours() && pickupTimeSlots().length === 0) {
           <mat-hint>Aucun créneau disponible aujourd'hui.</mat-hint>
           } @if (orderForm.get('scheduledTime')?.hasError('required')) {
           <mat-error>L'heure est requise</mat-error>
           }
         </mat-form-field>
 
-        <!-- Business Hours Hint -->
-        @if (getBusinessHoursHint(); as hint) {
+        <!-- Pickup Hours Hint -->
+        @if (getPickupHoursHint(); as hint) {
         <div class="business-hours-hint">
           <mat-icon>info</mat-icon>
           <span>{{ hint }}</span>
@@ -224,6 +238,7 @@
         color="primary"
         (click)="onValidate()"
         class="validate-button"
+        [disabled]="selectedPreference === 'take-away' && selectedTiming === 'asap' && !isPickupCurrentlyOpen() && !isLoadingBusinessHours()"
       >
         Aller à la boutique
       </button>

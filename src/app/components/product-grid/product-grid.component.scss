@@ -215,7 +215,7 @@
     min-width: 0; // Prevent flex item from growing beyond container
 
     .product-name {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 500;
       margin: 0 0 4px 0;
       color: var(--mat-on-surface);
@@ -223,7 +223,6 @@
       // Ensure text doesn't overflow
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .product-price {

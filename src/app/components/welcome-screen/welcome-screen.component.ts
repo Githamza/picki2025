@@ -133,6 +133,7 @@ export class WelcomeScreenComponent implements OnInit {
 
   // Business hours data
   businessHours = signal<BusinessHours[]>([]);
+  pickupHours = signal<BusinessHours[]>([]);
   isLoadingBusinessHours = signal<boolean>(false);
 
   orderForm: FormGroup = this.fb.group({
@@ -247,6 +248,48 @@ export class WelcomeScreenComponent implements OnInit {
     
     console.log('🎯 Generated slots:', slots);
     return slots;
+  });
+
+  // Computed signal for pickup time slots (today only, based on pickup hours)
+  pickupTimeSlots = computed<string[]>(() => {
+    if (this.pickupHours().length === 0) {
+      return [];
+    }
+
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const hours = this.pickupHours()[dayOfWeek];
+
+    if (!hours || hours.is_closed) {
+      return [];
+    }
+
+    return this.generateTimeSlots(
+      hours.open_time || '00:00',
+      hours.close_time || '23:59',
+      today
+    );
+  });
+
+  // Whether click & collect is currently open (for ASAP validation)
+  isPickupCurrentlyOpen = computed<boolean>(() => {
+    if (this.isLoadingBusinessHours()) return true; // Assume open while loading
+    const pickupHrs = this.pickupHours();
+    if (pickupHrs.length === 0) return false;
+
+    const now = new Date();
+    const hours = pickupHrs[now.getDay()];
+    if (!hours || hours.is_closed) return false;
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [openH, openM] = (hours.open_time || '00:00').split(':').map(Number);
+    const [closeH, closeM] = (hours.close_time || '23:59').split(':').map(Number);
+
+    const openMinutes = openH * 60 + openM;
+    let closeMinutes = closeH * 60 + closeM;
+    if (closeMinutes <= openMinutes) closeMinutes += 24 * 60;
+
+    return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
   });
 
   ngOnInit(): void {
@@ -467,6 +510,11 @@ export class WelcomeScreenComponent implements OnInit {
       return;
     }
 
+    // Block take-away ASAP when click & collect is currently closed
+    if (this.selectedPreference === 'take-away' && this.selectedTiming === 'asap' && !this.isPickupCurrentlyOpen()) {
+      return;
+    }
+
     const hasSlotsToday = this.availableTimeSlots().length > 0;
     let timing: 'asap' | 'later' = this.selectedTiming ?? 'asap';
     let scheduledDate: Date | undefined;
@@ -564,6 +612,10 @@ export class WelcomeScreenComponent implements OnInit {
           // Convert day names to indexed array (Sunday = 0, Monday = 1, etc.)
           const hours = this.mapBusinessHoursByDayIndex(restaurantInfo.businessHours);
           this.businessHours.set(hours);
+
+          // Compute pickup hours from business hours
+          const pickup = this.vendorService.getPickupHours(restaurantInfo.businessHours);
+          this.pickupHours.set(this.mapBusinessHoursByDayIndex(pickup));
         }
         this.isLoadingBusinessHours.set(false);
         // Try to set preselected time after business hours are loaded
@@ -700,17 +752,35 @@ export class WelcomeScreenComponent implements OnInit {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const hours = this.getDayBusinessHours(dayOfWeek);
-    
+
     if (!hours || hours.is_closed) {
       return 'Fermé aujourd\'hui';
     }
-    
+
     // Format time to remove seconds (HH:MM:SS -> HH:MM)
     const formatTime = (time: string | null) => {
       if (!time) return '';
       return time.substring(0, 5); // Take only HH:MM
     };
-    
+
     return `Horaires: ${formatTime(hours.open_time)} - ${formatTime(hours.close_time)}`;
+  }
+
+  // Get pickup hours hint text (for today)
+  getPickupHoursHint(): string | null {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const hours = this.pickupHours()[dayOfWeek];
+
+    if (!hours || hours.is_closed) {
+      return 'Click & Collect indisponible aujourd\'hui';
+    }
+
+    const formatTime = (time: string | null) => {
+      if (!time) return '';
+      return time.substring(0, 5);
+    };
+
+    return `Retrait: ${formatTime(hours.open_time)} - ${formatTime(hours.close_time)}`;
   }
 }

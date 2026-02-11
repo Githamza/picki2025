@@ -46,36 +46,67 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
             <div
               *ngFor="let dayControl of businessHoursArray.controls; let i = index"
               [formGroupName]="i"
-              class="day-row"
+              class="day-block"
+              [class.day-closed]="dayControl.get('is_closed')?.value"
             >
-              <div class="day-info">
-                <span class="day-name">{{ getDayName(i) }}</span>
+              <div class="day-row">
+                <div class="day-info">
+                  <span class="day-name">{{ getDayName(i) }}</span>
+                </div>
+
+                <mat-checkbox
+                  formControlName="is_closed"
+                  class="closed-checkbox"
+                  (change)="onClosedToggle(i)"
+                >
+                  Fermé
+                </mat-checkbox>
+
+                <div class="time-controls" *ngIf="!dayControl.get('is_closed')?.value">
+                  <mat-form-field appearance="outline" class="time-field" subscriptSizing="dynamic">
+                    <mat-label>Ouverture</mat-label>
+                    <input matInput type="time" formControlName="open_time" />
+                  </mat-form-field>
+
+                  <span class="time-separator">-</span>
+
+                  <mat-form-field appearance="outline" class="time-field" subscriptSizing="dynamic">
+                    <mat-label>Fermeture</mat-label>
+                    <input matInput type="time" formControlName="close_time" />
+                  </mat-form-field>
+                </div>
+
+                <div class="closed-indicator" *ngIf="dayControl.get('is_closed')?.value">
+                  <span class="closed-text">Fermé toute la journée</span>
+                </div>
               </div>
 
-              <mat-checkbox
-                formControlName="is_closed"
-                class="closed-checkbox"
-                (change)="onClosedToggle(i)"
-              >
-                Fermé
-              </mat-checkbox>
+              <!-- Pickup Hours Section -->
+              <div class="pickup-section" *ngIf="!dayControl.get('is_closed')?.value">
+                <button
+                  mat-button
+                  type="button"
+                  class="pickup-toggle-btn"
+                  [class.active]="dayControl.get('pickup_enabled')?.value"
+                  (click)="onTogglePickup(i)"
+                >
+                  <mat-icon>{{ dayControl.get('pickup_enabled')?.value ? 'check_circle' : 'add_circle_outline' }}</mat-icon>
+                  {{ dayControl.get('pickup_enabled')?.value ? 'Horaires Click&Collect actifs' : 'Définir horaires Click&Collect' }}
+                </button>
 
-              <div class="time-controls" *ngIf="!dayControl.get('is_closed')?.value">
-                <mat-form-field appearance="outline" class="time-field">
-                  <mat-label>Ouverture</mat-label>
-                  <input matInput type="time" formControlName="open_time" />
-                </mat-form-field>
+                <div class="pickup-hours" *ngIf="dayControl.get('pickup_enabled')?.value">
+                  <mat-form-field appearance="outline" class="time-field" subscriptSizing="dynamic">
+                    <mat-label>Début retrait</mat-label>
+                    <input matInput type="time" formControlName="pickup_open_time" />
+                  </mat-form-field>
 
-                <span class="time-separator">-</span>
+                  <span class="time-separator">-</span>
 
-                <mat-form-field appearance="outline" class="time-field">
-                  <mat-label>Fermeture</mat-label>
-                  <input matInput type="time" formControlName="close_time" />
-                </mat-form-field>
-              </div>
-
-              <div class="closed-indicator" *ngIf="dayControl.get('is_closed')?.value">
-                <span class="closed-text">Fermé toute la journée</span>
+                  <mat-form-field appearance="outline" class="time-field" subscriptSizing="dynamic">
+                    <mat-label>Fin retrait</mat-label>
+                    <input matInput type="time" formControlName="pickup_close_time" />
+                  </mat-form-field>
+                </div>
               </div>
             </div>
           </div>
@@ -113,7 +144,23 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
     .business-hours-form {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 4px;
+    }
+
+    .day-block {
+      border-radius: var(--mat-sys-corner-medium);
+      border: 1px solid var(--mat-sys-outline-variant);
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+      overflow: hidden;
+    }
+
+    .day-block:hover {
+      border-color: var(--mat-sys-outline);
+    }
+
+    .day-block.day-closed {
+      background: var(--mat-sys-surface-container-low);
+      border-style: dashed;
     }
 
     .day-row {
@@ -121,72 +168,115 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
       align-items: center;
       gap: 16px;
       padding: 12px 16px;
-      background: var(--mat-sys-surface-container-high);
-      border-radius: var(--mat-sys-corner-medium);
-      transition: background-color 0.15s ease;
-    }
-
-    .day-row:hover {
-      background: var(--mat-sys-surface-container-highest);
     }
 
     .day-info {
-      min-width: 100px;
+      min-width: 90px;
     }
 
     .day-name {
-      font: var(--mat-sys-label-large);
+      font: var(--mat-sys-title-small);
       color: var(--mat-sys-on-surface);
     }
 
+    .day-closed .day-name {
+      color: var(--mat-sys-on-surface-variant);
+    }
+
     .closed-checkbox {
-      min-width: 80px;
+      flex-shrink: 0;
     }
 
     .time-controls {
       display: flex;
       align-items: center;
-      gap: 12px;
-      flex: 1;
+      gap: 8px;
+      margin-left: auto;
     }
 
     .time-field {
-      width: 120px;
+      width: 130px;
     }
 
     .time-separator {
       font: var(--mat-sys-body-large);
       color: var(--mat-sys-on-surface-variant);
+      padding: 0 2px;
     }
 
     .closed-indicator {
-      flex: 1;
-      text-align: center;
+      margin-left: auto;
     }
 
     .closed-text {
       font: var(--mat-sys-body-medium);
-      color: var(--mat-sys-error);
+      color: var(--mat-sys-on-surface-variant);
       font-style: italic;
+    }
+
+    .pickup-section {
+      padding: 8px 16px 12px;
+      border-top: 1px solid var(--mat-sys-outline-variant);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .pickup-toggle-btn {
+      font: var(--mat-sys-label-medium);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .pickup-toggle-btn.active {
+      color: var(--mat-sys-tertiary);
+    }
+
+    .pickup-hours {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      padding-left: 8px;
+      align-self: end;
     }
 
     @media (max-width: 600px) {
       .day-row {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
+        flex-wrap: wrap;
+        gap: 8px 16px;
       }
 
       .day-info {
-        min-width: unset;
+        min-width: 80px;
       }
 
       .time-controls {
-        justify-content: space-between;
+        width: 100%;
+        margin-left: 0;
       }
 
       .time-field {
         flex: 1;
+        width: auto;
+        min-width: 0;
+      }
+
+      .closed-indicator {
+        margin-left: 0;
+      }
+
+      .pickup-section {
+        margin: 0;
+      }
+
+      .pickup-hours {
+        width: 100%;
+        padding-left: 0;
+      }
+
+      .pickup-hours .time-field {
+        flex: 1;
+        width: auto;
         min-width: 0;
       }
     }
@@ -234,6 +324,9 @@ export class HorairesComponent implements OnInit {
         is_closed: [h.is_closed],
         open_time: [h.open_time, h.is_closed ? [] : [Validators.required]],
         close_time: [h.close_time, h.is_closed ? [] : [Validators.required]],
+        pickup_enabled: [h.pickup_enabled ?? false],
+        pickup_open_time: [h.pickup_open_time ?? null],
+        pickup_close_time: [h.pickup_close_time ?? null],
       })
     );
   }
@@ -244,6 +337,9 @@ export class HorairesComponent implements OnInit {
         is_closed: [false],
         open_time: ['11:00', [Validators.required]],
         close_time: ['23:00', [Validators.required]],
+        pickup_enabled: [false],
+        pickup_open_time: [null],
+        pickup_close_time: [null],
       })
     );
   }
@@ -257,6 +353,10 @@ export class HorairesComponent implements OnInit {
       dayControl.get('close_time')?.setValue(null);
       dayControl.get('open_time')?.clearValidators();
       dayControl.get('close_time')?.clearValidators();
+      // Disable pickup when closing
+      dayControl.get('pickup_enabled')?.setValue(false);
+      dayControl.get('pickup_open_time')?.setValue(null);
+      dayControl.get('pickup_close_time')?.setValue(null);
     } else {
       dayControl.get('open_time')?.setValue('11:00');
       dayControl.get('close_time')?.setValue('23:00');
@@ -266,6 +366,25 @@ export class HorairesComponent implements OnInit {
 
     dayControl.get('open_time')?.updateValueAndValidity();
     dayControl.get('close_time')?.updateValueAndValidity();
+  }
+
+  onTogglePickup(dayIndex: number) {
+    const dayControl = this.businessHoursArray.at(dayIndex);
+    const currentValue = dayControl.get('pickup_enabled')?.value;
+
+    if (!currentValue) {
+      // Enabling: copy opening hours as defaults
+      const openTime = dayControl.get('open_time')?.value;
+      const closeTime = dayControl.get('close_time')?.value;
+      dayControl.get('pickup_enabled')?.setValue(true);
+      dayControl.get('pickup_open_time')?.setValue(openTime);
+      dayControl.get('pickup_close_time')?.setValue(closeTime);
+    } else {
+      // Disabling: clear pickup times
+      dayControl.get('pickup_enabled')?.setValue(false);
+      dayControl.get('pickup_open_time')?.setValue(null);
+      dayControl.get('pickup_close_time')?.setValue(null);
+    }
   }
 
   async onSave() {

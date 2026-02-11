@@ -605,6 +605,9 @@ export class SupabaseAuthService implements OnDestroy {
       open_time?: string | null;
       close_time?: string | null;
       is_closed?: boolean;
+      pickup_enabled?: boolean;
+      pickup_open_time?: string | null;
+      pickup_close_time?: string | null;
     }
   ) {
     const { data, error } = await this.supabaseAuth
@@ -652,6 +655,9 @@ export class SupabaseAuthService implements OnDestroy {
         is_closed: true,
         open_time: null,
         close_time: null,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });

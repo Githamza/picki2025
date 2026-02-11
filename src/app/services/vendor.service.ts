@@ -13,6 +13,9 @@ export interface BusinessHours {
   open_time: string | null;
   close_time: string | null;
   is_closed: boolean;
+  pickup_enabled: boolean;
+  pickup_open_time: string | null;
+  pickup_close_time: string | null;
 }
 
 export interface RestaurantContact {
@@ -826,12 +829,20 @@ export class VendorService {
           is_closed: true,
           open_time: null,
           close_time: null,
+          pickup_enabled: false,
+          pickup_open_time: null,
+          pickup_close_time: null,
         };
+
+        const pickupEnabled = hours.is_closed ? false : (hours.pickup_enabled ?? false);
 
         await this.supabaseAuthService.updateBusinessHours(vendorId, i, {
           open_time: hours.is_closed ? null : hours.open_time,
           close_time: hours.is_closed ? null : hours.close_time,
           is_closed: hours.is_closed,
+          pickup_enabled: pickupEnabled,
+          pickup_open_time: pickupEnabled ? hours.pickup_open_time : null,
+          pickup_close_time: pickupEnabled ? hours.pickup_close_time : null,
         });
       }
     } catch (error) {
@@ -890,6 +901,9 @@ export class VendorService {
       open_time: hour.open_time,
       close_time: hour.close_time,
       is_closed: hour.is_closed,
+      pickup_enabled: hour.pickup_enabled ?? false,
+      pickup_open_time: hour.pickup_open_time ?? null,
+      pickup_close_time: hour.pickup_close_time ?? null,
     }));
   }
 
@@ -901,39 +915,83 @@ export class VendorService {
         open_time: '11:00',
         close_time: '23:00',
         is_closed: false,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
       },
       {
         day: 'Mardi',
         open_time: '11:00',
         close_time: '23:00',
         is_closed: false,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
       },
       {
         day: 'Mercredi',
         open_time: '11:00',
         close_time: '23:00',
         is_closed: false,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
       },
       {
         day: 'Jeudi',
         open_time: '11:00',
         close_time: '23:00',
         is_closed: false,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
       },
       {
         day: 'Vendredi',
         open_time: '11:00',
         close_time: '23:59',
         is_closed: false,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
       },
       {
         day: 'Samedi',
         open_time: '11:00',
         close_time: '23:59',
         is_closed: false,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
       },
-      { day: 'Dimanche', open_time: null, close_time: null, is_closed: true },
+      {
+        day: 'Dimanche',
+        open_time: null,
+        close_time: null,
+        is_closed: true,
+        pickup_enabled: false,
+        pickup_open_time: null,
+        pickup_close_time: null,
+      },
     ];
+  }
+
+  /**
+   * Returns business hours adapted for Click & Collect pickup.
+   * Days with pickup_enabled use pickup_open_time/pickup_close_time;
+   * days without pickup_enabled are marked is_closed.
+   */
+  getPickupHours(businessHours: BusinessHours[]): BusinessHours[] {
+    return businessHours.map((h) => {
+      if (h.is_closed || !h.pickup_enabled) {
+        return { ...h, is_closed: true, open_time: null, close_time: null };
+      }
+      return {
+        ...h,
+        open_time: h.pickup_open_time,
+        close_time: h.pickup_close_time,
+      };
+    });
   }
 
   // Payment Provider Configuration

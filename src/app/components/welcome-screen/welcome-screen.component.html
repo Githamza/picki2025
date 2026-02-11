@@ -26,9 +26,6 @@
           <mat-icon class="option-icon">{{ opt.icon }}</mat-icon>
           <span class="option-text">{{ opt.label }}</span>
           <p class="option-description">{{ opt.description }}</p>
-          @if (opt.type === 'take-away' && !isPickupCurrentlyOpen() && !isLoadingBusinessHours()) {
-            <span class="closed-badge">Fermé</span>
-          }
         </div>
       </button>
       }

@@ -186,7 +186,7 @@ import { SupabaseService } from '../../services/supabase.service';
 
         <!-- Checkout Button -->
         <button
-          mat-raised-button
+          matButton="filled"
           color="accent"
           class="checkout-button"
           (click)="checkout()"
@@ -558,15 +558,7 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
     this.isCheckingOut = true;
 
     try {
-      // First check if restaurant is open
-      const isOpen =
-        await this.restaurantStatusService.validateRestaurantOpen();
 
-      if (!isOpen) {
-        // Restaurant is closed, dialog was shown by the service
-        this.isCheckingOut = false;
-        return;
-      }
 
       // Restaurant is open, proceed with normal checkout
       const items = await firstValueFrom(this.cartItems$);

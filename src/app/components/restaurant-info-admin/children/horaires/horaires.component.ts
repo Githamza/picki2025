@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
   FormBuilder,
+  FormControl,
   FormGroup,
   FormArray,
   Validators,
@@ -14,6 +15,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { VendorService, type BusinessHours } from '../../../../services/vendor.service';
 import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
@@ -31,6 +33,7 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
+    MatSlideToggleModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -108,6 +111,44 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
                   </mat-form-field>
                 </div>
               </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="info-section">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>timer_off</mat-icon>
+          <mat-card-title>Suspension automatique des commandes</mat-card-title>
+          <mat-card-subtitle>Arrêter automatiquement les commandes à partir d'une heure précise chaque jour</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="suspend-section">
+            <mat-slide-toggle
+              [checked]="suspendEnabled()"
+              (change)="onSuspendToggle($event.checked)"
+              color="primary"
+            >
+              Activer la suspension automatique
+            </mat-slide-toggle>
+
+            <div class="suspend-time-row" *ngIf="suspendEnabled()">
+              <mat-form-field appearance="outline" class="time-field" subscriptSizing="dynamic">
+                <mat-label>Heure de suspension</mat-label>
+                <input
+                  matInput
+                  type="time"
+                  [formControl]="suspendTimeControl"
+                />
+              </mat-form-field>
+              <span class="suspend-hint">
+                Les commandes seront suspendues chaque jour à partir de cette heure.
+              </span>
+            </div>
+
+            <div class="suspend-status" *ngIf="suspendEnabled() && currentSuspendTime()">
+              <mat-icon class="status-icon">info</mat-icon>
+              <span>Actuellement configuré : suspension à <strong>{{ currentSuspendTime() }}</strong></span>
             </div>
           </div>
         </mat-card-content>
@@ -240,6 +281,45 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
       align-self: end;
     }
 
+    .suspend-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .suspend-time-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-left: 8px;
+    }
+
+    .suspend-hint {
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .suspend-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--mat-sys-surface-container-high);
+      border-radius: var(--mat-sys-corner-medium);
+    }
+
+    .suspend-status .status-icon {
+      color: var(--mat-sys-primary);
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .suspend-status span {
+      font: var(--mat-sys-body-medium);
+      color: var(--mat-sys-on-surface);
+    }
+
     @media (max-width: 600px) {
       .day-row {
         flex-wrap: wrap;
@@ -279,6 +359,16 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
         width: auto;
         min-width: 0;
       }
+
+      .suspend-time-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .suspend-time-row .time-field {
+        width: 100%;
+      }
     }
   `],
 })
@@ -290,6 +380,9 @@ export class HorairesComponent implements OnInit {
 
   form!: FormGroup;
   isSaving = signal(false);
+  suspendEnabled = signal(false);
+  currentSuspendTime = signal<string | null>(null);
+  suspendTimeControl = new FormControl<string | null>(null);
 
   private dayNames = [
     'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi',
@@ -313,6 +406,20 @@ export class HorairesComponent implements OnInit {
           : this.createEmptyBusinessHoursControls()
       ),
     });
+
+    // Initialize orders_suspended_at state
+    const suspendAt = info?.vendor?.orders_suspended_at;
+    if (suspendAt) {
+      const date = new Date(suspendAt);
+      if (!Number.isNaN(date.getTime())) {
+        const hh = date.getHours().toString().padStart(2, '0');
+        const mm = date.getMinutes().toString().padStart(2, '0');
+        const timeStr = `${hh}:${mm}`;
+        this.suspendEnabled.set(true);
+        this.suspendTimeControl.setValue(timeStr);
+        this.currentSuspendTime.set(timeStr);
+      }
+    }
   }
 
   private createBusinessHoursControls(businessHours: BusinessHours[]): FormGroup[] {
@@ -368,6 +475,13 @@ export class HorairesComponent implements OnInit {
     dayControl.get('close_time')?.updateValueAndValidity();
   }
 
+  onSuspendToggle(enabled: boolean) {
+    this.suspendEnabled.set(enabled);
+    if (!enabled) {
+      this.suspendTimeControl.setValue(null);
+    }
+  }
+
   onTogglePickup(dayIndex: number) {
     const dayControl = this.businessHoursArray.at(dayIndex);
     const currentValue = dayControl.get('pickup_enabled')?.value;
@@ -387,13 +501,26 @@ export class HorairesComponent implements OnInit {
     }
   }
 
+  private buildSuspendTimestamp(): string | null {
+    if (!this.suspendEnabled() || !this.suspendTimeControl.value) {
+      return null;
+    }
+    const [hh, mm] = this.suspendTimeControl.value.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hh, mm, 0, 0);
+    return date.toISOString();
+  }
+
   async onSave() {
     if (this.form.invalid) return;
     this.isSaving.set(true);
     try {
+      const ordersSuspendedAt = this.buildSuspendTimestamp();
       await this.vendorService.saveRestaurantInfo({
         businessHours: this.form.value.businessHours,
+        ordersSuspendedAt,
       });
+      this.currentSuspendTime.set(this.suspendEnabled() ? this.suspendTimeControl.value : null);
       await this.dataService.refreshVendor();
       this.snackBar.open('Horaires sauvegardés', 'Fermer', { duration: 3000, panelClass: ['success-snackbar'] });
     } catch {
@@ -414,6 +541,29 @@ export class HorairesComponent implements OnInit {
           : this.createEmptyBusinessHoursControls()
       )
     );
+
+    // Reset suspend state
+    const suspendAt = info?.vendor?.orders_suspended_at;
+    if (suspendAt) {
+      const date = new Date(suspendAt);
+      if (!Number.isNaN(date.getTime())) {
+        const hh = date.getHours().toString().padStart(2, '0');
+        const mm = date.getMinutes().toString().padStart(2, '0');
+        const timeStr = `${hh}:${mm}`;
+        this.suspendEnabled.set(true);
+        this.suspendTimeControl.setValue(timeStr);
+        this.currentSuspendTime.set(timeStr);
+      } else {
+        this.suspendEnabled.set(false);
+        this.suspendTimeControl.setValue(null);
+        this.currentSuspendTime.set(null);
+      }
+    } else {
+      this.suspendEnabled.set(false);
+      this.suspendTimeControl.setValue(null);
+      this.currentSuspendTime.set(null);
+    }
+
     this.snackBar.open('Modifications annulées', 'Fermer', { duration: 2000 });
   }
 }

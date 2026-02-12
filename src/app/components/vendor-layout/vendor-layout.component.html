@@ -1,4 +1,16 @@
 <div class="vendor-layout" *ngIf="currentVendor">
+  <!-- Info message banner (rendered in DOM to avoid MatSnackBar conflicts) -->
+  <div
+    class="info-message-banner"
+    *ngIf="showInfoMessage && !infoBannerDismissed"
+  >
+    <mat-icon>info</mat-icon>
+    <span>{{ currentVendor.info_message }}</span>
+    <button class="dismiss-btn" (click)="dismissInfoBanner()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
   <!-- Router outlet for vendor-specific content -->
   <router-outlet></router-outlet>
 </div>

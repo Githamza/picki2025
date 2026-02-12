@@ -582,13 +582,6 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
     if (this.vendorService.getCurrentOrdersSuspendedStatus()) {
       return;
     }
-    // First check if restaurant is open
-    const isOpen = await this.restaurantStatusService.validateRestaurantOpen();
-
-    if (!isOpen) {
-      // Restaurant is closed, dialog was shown by the service
-      return;
-    }
 
     // Restaurant is open, proceed with normal checkout
     // Subscribe to cart items to get the current state

@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { VendorService } from '../../../../services/vendor.service';
 import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
@@ -23,6 +24,7 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
+    MatSlideToggleModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -71,6 +73,41 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
         </mat-card-content>
       </mat-card>
 
+      <mat-card class="info-section">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>info</mat-icon>
+          <mat-card-title>Message d'information</mat-card-title>
+          <mat-card-subtitle>Affichez un bandeau d'information pour vos clients</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="contact-form" formGroupName="infoMessage">
+            <div class="toggle-row">
+              <mat-slide-toggle
+                formControlName="enabled"
+                color="primary"
+              >
+                Activer le bandeau d'information
+              </mat-slide-toggle>
+            </div>
+
+            <mat-form-field
+              appearance="outline"
+              class="full-width"
+              *ngIf="form.get('infoMessage.enabled')?.value"
+            >
+              <mat-label>Message d'information</mat-label>
+              <input
+                matInput
+                formControlName="message"
+                placeholder="Ex: Nouveau menu disponible dès lundi !"
+              />
+              <mat-icon matSuffix>campaign</mat-icon>
+              <mat-hint>Ce message sera affiché en haut de la page pour tous vos clients</mat-hint>
+            </mat-form-field>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
       <div class="actions">
         <button
           mat-raised-button
@@ -98,6 +135,10 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
   styles: [`
     @use '../../../restaurant-info-admin/children/shared-styles' as shared;
     @include shared.child-section;
+
+    .toggle-row {
+      margin-bottom: 16px;
+    }
   `],
 })
 export class MessagesComponent implements OnInit {
@@ -117,6 +158,10 @@ export class MessagesComponent implements OnInit {
         closedDescription: [info?.vendor.closed_description || ''],
         ordersSuspendedMessage: [info?.vendor.orders_suspended_message || ''],
       }),
+      infoMessage: this.fb.group({
+        enabled: [info?.vendor.info_message_enabled ?? false],
+        message: [info?.vendor.info_message || ''],
+      }),
     });
   }
 
@@ -124,11 +169,14 @@ export class MessagesComponent implements OnInit {
     this.isSaving.set(true);
     try {
       const val = this.form.value.customMessages;
+      const infoVal = this.form.value.infoMessage;
       await this.vendorService.saveRestaurantInfo({
         customMessages: {
           closed_message: val.closedMessage?.trim() || null,
           closed_description: val.closedDescription?.trim() || null,
           orders_suspended_message: val.ordersSuspendedMessage?.trim() || null,
+          info_message: infoVal.message?.trim() || null,
+          info_message_enabled: infoVal.enabled ?? false,
         },
       });
       await this.dataService.refreshVendor();
@@ -147,6 +195,10 @@ export class MessagesComponent implements OnInit {
         closedMessage: info?.vendor.closed_message || '',
         closedDescription: info?.vendor.closed_description || '',
         ordersSuspendedMessage: info?.vendor.orders_suspended_message || '',
+      },
+      infoMessage: {
+        enabled: info?.vendor.info_message_enabled ?? false,
+        message: info?.vendor.info_message || '',
       },
     });
     this.snackBar.open('Modifications annulées', 'Fermer', { duration: 2000 });

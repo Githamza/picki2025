@@ -1334,6 +1334,8 @@ export type Database = {
           delivery_system: string
           enabled_order_types: Database["public"]["Enums"]["order_type"][]
           id: string
+          info_message: string | null
+          info_message_enabled: boolean
           is_active: boolean | null
           logo_url: string | null
           online_payments_enabled: boolean
@@ -1366,6 +1368,8 @@ export type Database = {
           delivery_system?: string
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
+          info_message?: string | null
+          info_message_enabled?: boolean
           is_active?: boolean | null
           logo_url?: string | null
           online_payments_enabled?: boolean
@@ -1398,6 +1402,8 @@ export type Database = {
           delivery_system?: string
           enabled_order_types?: Database["public"]["Enums"]["order_type"][]
           id?: string
+          info_message?: string | null
+          info_message_enabled?: boolean
           is_active?: boolean | null
           logo_url?: string | null
           online_payments_enabled?: boolean

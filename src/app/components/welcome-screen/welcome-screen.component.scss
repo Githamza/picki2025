@@ -173,29 +173,23 @@
   }
 }
 
-.pickup-closed-warning {
+.pickup-closed-hint {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   padding: 12px 16px;
-  background: var(--mat-sys-error-container);
+  background-color: color-mix(in srgb, var(--mat-sys-error) 12%, transparent);
   border-radius: 8px;
-  color: var(--mat-sys-on-error-container);
+  color: var(--mat-sys-on-surface);
   font-size: 14px;
-  font-weight: 500;
-  margin-top: 8px;
+  width: 100%;
+  margin-bottom: 8px;
 
   mat-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
-  }
-
-  .pickup-hours-detail {
-    font-weight: 400;
-    font-size: 13px;
-    opacity: 0.85;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--mat-sys-error);
   }
 }
 

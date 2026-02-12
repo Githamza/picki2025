@@ -41,17 +41,17 @@
         (change)="selectTiming($event.value)"
         aria-label="Select pickup timing"
       >
-        <mat-button-toggle value="asap">Tout de suite</mat-button-toggle>
+        <mat-button-toggle value="asap" [disabled]="!isCurrentlyWithinPickupHours()">Tout de suite</mat-button-toggle>
         <mat-button-toggle value="later">Plus tard</mat-button-toggle>
       </mat-button-toggle-group>
 
-      <!-- ASAP but pickup currently closed -->
-      @if (selectedTiming === 'asap' && !isPickupCurrentlyOpen() && !isLoadingBusinessHours()) {
-      <div class="pickup-closed-warning">
-        <mat-icon>schedule_off</mat-icon>
-        <span>Le Click & Collect est actuellement fermé.</span>
+      @if (!isCurrentlyWithinPickupHours() && !isLoadingBusinessHours()) {
+      <div class="pickup-closed-hint">
+        <mat-icon>schedule</mat-icon>
         @if (getPickupHoursHint(); as hint) {
-          <span class="pickup-hours-detail">{{ hint }}</span>
+        <span>Le retrait immédiat n'est pas disponible. {{ hint }}</span>
+        } @else {
+        <span>Le retrait immédiat n'est pas disponible en dehors des horaires de retrait.</span>
         }
       </div>
       }
@@ -235,7 +235,7 @@
         color="primary"
         (click)="onValidate()"
         class="validate-button"
-        [disabled]="selectedPreference === 'take-away' && selectedTiming === 'asap' && !isPickupCurrentlyOpen() && !isLoadingBusinessHours()"
+        [disabled]="!canValidate"
       >
         Aller à la boutique
       </button>

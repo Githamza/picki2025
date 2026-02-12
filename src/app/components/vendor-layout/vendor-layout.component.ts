@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, ActivatedRoute } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
 import { materialComponents } from '../../material.components';
 import { VendorService, Vendor } from '../../services/vendor.service';
 import {
@@ -17,7 +18,7 @@ import * as CategoryActions from '../../store/actions/category.actions';
 @Component({
   selector: 'app-vendor-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, ...materialComponents],
+  imports: [CommonModule, RouterOutlet, MatIconModule, ...materialComponents],
   templateUrl: './vendor-layout.component.html',
   styleUrls: ['./vendor-layout.component.scss'],
 })
@@ -30,6 +31,19 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
   currentVendor: Vendor | null = null;
   private subscription = new Subscription();
   private ordersSuspendedSnackRef?: MatSnackBarRef<TextOnlySnackBar>;
+
+  infoBannerDismissed = false;
+
+  get showInfoMessage(): boolean {
+    return !!(
+      this.currentVendor?.info_message_enabled &&
+      this.currentVendor?.info_message
+    );
+  }
+
+  dismissInfoBanner(): void {
+    this.infoBannerDismissed = true;
+  }
 
   ngOnInit() {
     // Subscribe to current vendor changes

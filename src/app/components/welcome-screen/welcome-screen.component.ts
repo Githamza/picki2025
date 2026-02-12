@@ -212,6 +212,14 @@ export class WelcomeScreenComponent implements OnInit {
     }
   });
 
+  // Auto-switch from ASAP to Later when outside pickup hours for take-away
+  private readonly pickupHoursBlockAsapEffect = effect(() => {
+    const withinPickup = this.isCurrentlyWithinPickupHours();
+    if (!withinPickup && this.selectedPreference === 'take-away' && this.selectedTiming === 'asap') {
+      this.selectTiming('later');
+    }
+  });
+
   // Computed signal for available time slots (today only)
   availableTimeSlots = computed<string[]>(() => {
     console.log('🕐 Computing available time slots...');
@@ -271,23 +279,32 @@ export class WelcomeScreenComponent implements OnInit {
     );
   });
 
-  // Whether click & collect is currently open (for ASAP validation)
-  isPickupCurrentlyOpen = computed<boolean>(() => {
-    if (this.isLoadingBusinessHours()) return true; // Assume open while loading
-    const pickupHrs = this.pickupHours();
-    if (pickupHrs.length === 0) return false;
+  // Check if current time is within today's pickup hours (for ASAP availability)
+  readonly isCurrentlyWithinPickupHours = computed<boolean>(() => {
+    if (this.isLoadingBusinessHours()) return true;
+
+    const hours = this.pickupHours();
+    if (hours.length === 0) return true;
+
+    // If no day has pickup enabled, don't block ASAP
+    const hasAnyPickupDay = hours.some(h => h && !h.is_closed);
+    if (!hasAnyPickupDay) return true;
 
     const now = new Date();
-    const hours = pickupHrs[now.getDay()];
-    if (!hours || hours.is_closed) return false;
+    const dayOfWeek = now.getDay();
+    const todayHours = hours[dayOfWeek];
+
+    if (!todayHours || todayHours.is_closed) return false;
 
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const [openH, openM] = (hours.open_time || '00:00').split(':').map(Number);
-    const [closeH, closeM] = (hours.close_time || '23:59').split(':').map(Number);
+    const [openH, openM] = (todayHours.open_time || '00:00').split(':').map(Number);
+    const [closeH, closeM] = (todayHours.close_time || '23:59').split(':').map(Number);
 
     const openMinutes = openH * 60 + openM;
     let closeMinutes = closeH * 60 + closeM;
-    if (closeMinutes <= openMinutes) closeMinutes += 24 * 60;
+    if (closeMinutes <= openMinutes) {
+      closeMinutes += 24 * 60;
+    }
 
     return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
   });
@@ -510,11 +527,6 @@ export class WelcomeScreenComponent implements OnInit {
       return;
     }
 
-    // Block take-away ASAP when click & collect is currently closed
-    if (this.selectedPreference === 'take-away' && this.selectedTiming === 'asap' && !this.isPickupCurrentlyOpen()) {
-      return;
-    }
-
     const hasSlotsToday = this.availableTimeSlots().length > 0;
     let timing: 'asap' | 'later' = this.selectedTiming ?? 'asap';
     let scheduledDate: Date | undefined;
@@ -559,10 +571,14 @@ export class WelcomeScreenComponent implements OnInit {
       if (!hasDropoff) return false;
     }
 
-    if (
-      this.selectedPreference === 'eat-in' ||
-      this.selectedTiming === 'asap'
-    ) {
+    if (this.selectedPreference === 'eat-in') {
+      return true;
+    }
+
+    if (this.selectedTiming === 'asap') {
+      if (this.selectedPreference === 'take-away' && !this.isCurrentlyWithinPickupHours()) {
+        return false;
+      }
       return true;
     }
 

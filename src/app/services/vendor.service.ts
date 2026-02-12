@@ -424,12 +424,17 @@ export class VendorService {
       return false;
     }
 
-    const suspendAtMs = Date.parse(suspendAt);
-    if (Number.isNaN(suspendAtMs)) {
+    const suspendDate = new Date(suspendAt);
+    if (Number.isNaN(suspendDate.getTime())) {
       return false;
     }
 
-    return suspendAtMs <= nowMs;
+    // Compare only the time-of-day, ignoring the date
+    const now = new Date(nowMs);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const suspendMinutes = suspendDate.getHours() * 60 + suspendDate.getMinutes();
+
+    return currentMinutes >= suspendMinutes;
   }
 
   // Clear vendor cache (use after updates)
@@ -614,7 +619,10 @@ export class VendorService {
       closed_message?: string | null;
       closed_description?: string | null;
       orders_suspended_message?: string | null;
+      info_message?: string | null;
+      info_message_enabled?: boolean;
     };
+    ordersSuspendedAt?: string | null;
   }): Promise<void> {
     const currentVendor = this.getCurrentVendor();
     if (!currentVendor) {
@@ -673,6 +681,13 @@ export class VendorService {
         updatedVendor = await this.supabaseAuthService.updateVendorCustomMessages(
           currentVendor.id,
           restaurantData.customMessages
+        );
+      }
+
+      if (typeof restaurantData.ordersSuspendedAt !== 'undefined') {
+        updatedVendor = await this.supabaseAuthService.updateVendorOrdersSuspendedAt(
+          currentVendor.id,
+          restaurantData.ordersSuspendedAt ?? null
         );
       }
 

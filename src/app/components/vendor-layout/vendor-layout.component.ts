@@ -1,14 +1,9 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, ActivatedRoute } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { materialComponents } from '../../material.components';
 import { VendorService, Vendor } from '../../services/vendor.service';
-import {
-  MatSnackBar,
-  MatSnackBarRef,
-  TextOnlySnackBar,
-} from '@angular/material/snack-bar';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../store/models/app.state';
@@ -24,15 +19,18 @@ import * as CategoryActions from '../../store/actions/category.actions';
 })
 export class VendorLayoutComponent implements OnInit, OnDestroy {
   private vendorService = inject(VendorService);
-  private route = inject(ActivatedRoute);
   private store = inject(Store<AppState>);
-  private snackBar = inject(MatSnackBar);
 
   currentVendor: Vendor | null = null;
   private subscription = new Subscription();
-  private ordersSuspendedSnackRef?: MatSnackBarRef<TextOnlySnackBar>;
 
+  ordersSuspended = false;
   infoBannerDismissed = false;
+
+  get suspendedMessage(): string {
+    return this.currentVendor?.orders_suspended_message
+      || 'les commandes en ligne sont actuellement suspendues';
+  }
 
   get showInfoMessage(): boolean {
     return !!(
@@ -59,14 +57,13 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
       })
     );
 
-    this.handleOrdersSuspended(
-      this.vendorService.getCurrentOrdersSuspendedStatus()
-    );
+    this.ordersSuspended =
+      this.vendorService.getCurrentOrdersSuspendedStatus();
     this.subscription.add(
       this.vendorService.ordersSuspended$
         .pipe(distinctUntilChanged())
         .subscribe((isSuspended) => {
-          this.handleOrdersSuspended(isSuspended);
+          this.ordersSuspended = isSuspended;
         })
     );
   }
@@ -84,29 +81,6 @@ export class VendorLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.ordersSuspendedSnackRef?.dismiss();
     this.subscription.unsubscribe();
-  }
-
-  private handleOrdersSuspended(isSuspended: boolean): void {
-    if (isSuspended) {
-      if (!this.ordersSuspendedSnackRef) {
-        const message = this.currentVendor?.orders_suspended_message
-          || 'les commandes en ligne sont actuellement suspendues';
-        this.ordersSuspendedSnackRef = this.snackBar.open(
-          message,
-          undefined,
-          {
-            duration: 0,
-            verticalPosition: 'top',
-            panelClass: ['orders-suspended-snackbar'],
-          }
-        );
-      }
-      return;
-    }
-
-    this.ordersSuspendedSnackRef?.dismiss();
-    this.ordersSuspendedSnackRef = undefined;
   }
 }

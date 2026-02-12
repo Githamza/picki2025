@@ -131,14 +131,6 @@ body {
 }
 
 /* Global snackbar styles */
-.orders-suspended-snackbar {
-  margin-top: 60px !important;
-}
-
-.cdk-overlay-pane .orders-suspended-snackbar {
-  pointer-events: none;
-}
-
 .success-snackbar {
   --mat-snackbar-container-color: var(--mat-sys-tertiary-container) !important;
   --mat-snackbar-supporting-text-color: var(

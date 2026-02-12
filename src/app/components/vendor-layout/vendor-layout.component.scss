@@ -2,25 +2,28 @@
   min-height: 100vh;
 }
 
-.info-message-banner {
+.notification-banners {
   position: fixed;
-  top: 0;
+  top: 60px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  padding: 8px 8px 8px 16px;
-  margin-top: 60px;
-  border-radius: 4px;
   min-width: 280px;
   max-width: 90vw;
+}
+
+.notification-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 4px;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
   font-size: 14px;
   line-height: 20px;
-  background-color: var(--mat-sys-inverse-surface);
-  color: var(--mat-sys-inverse-on-surface);
   box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2),
               0 6px 10px 0 rgba(0, 0, 0, 0.14),
               0 1px 18px 0 rgba(0, 0, 0, 0.12);
@@ -52,6 +55,16 @@
       background-color: rgba(255, 255, 255, 0.1);
     }
   }
+}
+
+.suspended-banner {
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.info-banner {
+  background-color: var(--mat-sys-inverse-surface);
+  color: var(--mat-sys-inverse-on-surface);
 }
 
 .vendor-header {

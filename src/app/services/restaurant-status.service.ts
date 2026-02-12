@@ -85,11 +85,6 @@ export class RestaurantStatusService {
     try {
       await this.vendorService.loadVendors();
 
-      if (this.isRestaurantClosed()) {
-        await this.showRestaurantClosedDialog();
-        return false;
-      }
-
       const withinHours = await this.isWithinBusinessHours();
       if (!withinHours) {
         await this.showRestaurantClosedDialog();
@@ -108,11 +103,6 @@ export class RestaurantStatusService {
    * Shows dialog if restaurant is closed
    */
   async validateRestaurantOpen(): Promise<boolean> {
-    if (this.isRestaurantClosed()) {
-      await this.showRestaurantClosedDialog();
-      return false;
-    }
-
     const withinHours = await this.isWithinBusinessHours();
     if (!withinHours) {
       await this.showRestaurantClosedDialog();

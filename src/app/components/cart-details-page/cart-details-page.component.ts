@@ -17,6 +17,7 @@ import { PaymentRequest } from '../../services/payment-strategy.interface';
 import {
   UserInfoDialogComponent,
   UserInfo,
+  UserInfoDialogData,
 } from '../user-info-dialog/user-info-dialog.component';
 import { AppState, CartItem } from '../../store/models/app.state';
 import {
@@ -190,7 +191,7 @@ import { SupabaseService } from '../../services/supabase.service';
           color="accent"
           class="checkout-button"
           (click)="checkout()"
-          [disabled]="isCheckingOut || (ordersSuspended$ | async)"
+          [disabled]="isCheckingOut || (ordersSuspended$ | async) || restaurantStatusService.closedForDay()"
         >
           <mat-icon>{{ getCheckoutIcon() }}</mat-icon>
           {{ getCheckoutLabel() }}
@@ -361,7 +362,7 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
-  private restaurantStatusService = inject(RestaurantStatusService);
+  protected restaurantStatusService = inject(RestaurantStatusService);
   private vendorService = inject(VendorService);
   private productService = inject(ProductService);
   private deliverySelection = inject(DeliverySelectionService);
@@ -394,6 +395,9 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Check if restaurant is closed for the day
+    this.restaurantStatusService.refreshClosedForDay();
+
     // Initial load if dining preference is already set
     const pref = this.diningPreferenceService.diningPreference();
     if (pref) {
@@ -554,30 +558,19 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
     if (this.vendorService.getCurrentOrdersSuspendedStatus()) {
       return;
     }
+    if (this.restaurantStatusService.closedForDay()) {
+      return;
+    }
 
     this.isCheckingOut = true;
 
     try {
-
-
       // Restaurant is open, proceed with normal checkout
       const items = await firstValueFrom(this.cartItems$);
       if (items.length === 0) {
         this.snackBar.open('Votre panier est vide', 'Fermer', {
           duration: 3000,
         });
-        this.isCheckingOut = false;
-        return;
-      }
-
-      // Check if dining preference is selected
-      if (!this.diningPreferenceService.hasSelectedPreference()) {
-        this.snackBar.open(
-          'Veuillez choisir votre préférence de restauration',
-          'Fermer',
-          { duration: 3000 }
-        );
-        this.vendorNavigation.navigateWithVendor('dining-preference');
         this.isCheckingOut = false;
         return;
       }
@@ -590,12 +583,30 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Open user info dialog first
+      // Compute whether we need the preference step in the dialog
+      const prefData = this.diningPreferenceService.diningPreferenceData();
+      const needsPreferenceStep = !prefData || !prefData.preference || (prefData.preference !== 'eat-in' && prefData.timing == null);
+      const vendor = this.vendorService.getCurrentVendor();
+      const enabledOrderTypes = vendor?.enabled_order_types?.length
+        ? vendor.enabled_order_types
+        : ['take-away', 'eat-in', 'delivery'] as any[];
+
+      const dialogData: UserInfoDialogData = {
+        needsPreferenceStep,
+        enabledOrderTypes,
+        currentPreference: prefData?.preference,
+        currentTiming: prefData?.timing,
+        currentScheduledTime: prefData?.scheduledTime,
+        currentTableNumber: prefData?.tableNumber,
+      };
+
+      // Open user info dialog (with optional preference step)
       const dialogRef = this.dialog.open(UserInfoDialogComponent, {
         width: '500px',
         maxWidth: '90vw',
         disableClose: true,
         autoFocus: true,
+        data: dialogData,
       });
 
       dialogRef.afterClosed().subscribe((userInfo: UserInfo) => {
@@ -729,7 +740,7 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
         timing: timing as any,
         payAtCheckout,
         scheduledTime: scheduledDateTime,
-        tableNumber: diningPref === 'eat-in' ? '1' : undefined,
+        tableNumber: diningPref === 'eat-in' ? (diningPrefData?.tableNumber || '1') : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
         notes: '',

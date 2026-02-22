@@ -36,8 +36,8 @@ export class OrderCardComponent {
   buttonIcons = input.required<Record<OrderStatus, string>>();
   canValidateOrder = input.required<(order: Order) => boolean>();
   canUpdateStatus = input.required<(order: Order) => boolean>();
-  getNextStatus = input.required<(status: OrderStatus) => OrderStatus | null>();
-  getNextStatusLabel = input.required<(status: OrderStatus) => string>();
+  getNextStatus = input.required<(status: OrderStatus, orderType?: string) => OrderStatus | null>();
+  getNextStatusLabel = input.required<(status: OrderStatus, orderType?: string) => string>();
   formatScheduledTime = input.required<(date: Date | undefined) => string>();
   formatScheduledDate = input.required<(date: Date | undefined) => string>();
 

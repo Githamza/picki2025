@@ -1,0 +1,191 @@
+<!-- Order Type Buttons -->
+<div class="dining-options">
+  @for (opt of visibleOrderTypeOptions(); track opt.type) {
+  <button
+    mat-fab
+    extended
+    class="dining-option"
+    [class.take-away]="opt.type === 'take-away'"
+    [class.eat-in]="opt.type === 'eat-in'"
+    [class.delivery]="opt.type === 'delivery'"
+    [class.selected]="selectedPreference === opt.type"
+    (click)="selectPreference(opt.type)"
+    [attr.aria-label]="opt.ariaLabel"
+  >
+    <div class="option-content">
+      <mat-icon class="option-icon">{{ opt.icon }}</mat-icon>
+      <span class="option-text">{{ opt.label }}</span>
+      <p class="option-description">{{ opt.description }}</p>
+    </div>
+  </button>
+  }
+</div>
+
+<!-- Table Number for Eat-In -->
+@if (selectedPreference === 'eat-in') {
+<div class="timing-section">
+  <h3>Numero de table</h3>
+  <mat-form-field class="time-field">
+    <mat-label>Numero de table</mat-label>
+    <input
+      matInput
+      type="text"
+      inputmode="numeric"
+      [value]="tableNumber"
+      (input)="onTableNumberChange($any($event.target).value)"
+      placeholder="Ex: 5"
+    />
+    <mat-icon matSuffix>table_restaurant</mat-icon>
+  </mat-form-field>
+</div>
+}
+
+<!-- Timing Options for Take Away -->
+@if (selectedPreference === 'take-away') {
+<div class="timing-section">
+  <h3>Quand souhaitez-vous recuperer votre commande ?</h3>
+
+  <mat-button-toggle-group
+    [value]="selectedTiming"
+    (change)="selectTiming($event.value)"
+    aria-label="Select pickup timing"
+  >
+    <mat-button-toggle value="asap" [disabled]="!isCurrentlyWithinPickupHours()">Tout de suite</mat-button-toggle>
+    <mat-button-toggle value="later">Plus tard</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (!isCurrentlyWithinPickupHours() && !isLoadingBusinessHours()) {
+  <div class="pickup-closed-hint">
+    <mat-icon>schedule</mat-icon>
+    @if (getPickupHoursHint(); as hint) {
+    <span>Le retrait immediat n'est pas disponible. {{ hint }}</span>
+    } @else {
+    <span>Le retrait immediat n'est pas disponible en dehors des horaires de retrait.</span>
+    }
+  </div>
+  }
+
+  <!-- Time Selection (Today only) - uses pickup hours -->
+  @if (selectedTiming === 'later') {
+  <div class="schedule-section" [formGroup]="orderForm">
+    <mat-form-field class="time-field">
+      <mat-label>Heure de retrait (aujourd'hui)</mat-label>
+      <mat-select
+        formControlName="scheduledTime"
+        placeholder="Choisir l'heure"
+        [disabled]="isLoadingBusinessHours() || pickupTimeSlots().length === 0"
+        (selectionChange)="onScheduledTimeChange()"
+      >
+        @for (time of pickupTimeSlots(); track time) {
+        <mat-option [value]="time">
+          {{ time }}
+        </mat-option>
+        }
+      </mat-select>
+      <mat-icon matSuffix>schedule</mat-icon>
+      @if (!isLoadingBusinessHours() && pickupTimeSlots().length === 0) {
+      <mat-hint>Aucun creneau disponible aujourd'hui.</mat-hint>
+      } @if (orderForm.get('scheduledTime')?.hasError('required')) {
+      <mat-error>L'heure est requise</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Pickup Hours Hint -->
+    @if (getPickupHoursHint(); as hint) {
+    <div class="business-hours-hint">
+      <mat-icon>info</mat-icon>
+      <span>{{ hint }}</span>
+    </div>
+    }
+  </div>
+  }
+</div>
+}
+
+<!-- Timing Options for Delivery -->
+@if (selectedPreference === 'delivery') {
+<div class="timing-section">
+  <h3>Quand souhaitez-vous recevoir votre livraison ?</h3>
+
+  <mat-button-toggle-group
+    [value]="selectedTiming"
+    (change)="selectTiming($event.value)"
+    aria-label="Select delivery timing"
+  >
+    <mat-button-toggle value="asap">Tout de suite</mat-button-toggle>
+    <mat-button-toggle value="later">Plus tard</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <!-- Time Selection for Delivery (Today only) -->
+  @if (selectedTiming === 'later') {
+  <div class="schedule-section" [formGroup]="orderForm">
+    <mat-form-field class="time-field">
+      <mat-label>Heure de livraison (aujourd'hui)</mat-label>
+      <mat-select
+        formControlName="scheduledTime"
+        placeholder="Choisir l'heure"
+        [disabled]="isLoadingBusinessHours() || availableTimeSlots().length === 0"
+        (selectionChange)="onScheduledTimeChange()"
+      >
+        @for (time of availableTimeSlots(); track time) {
+        <mat-option [value]="time">
+          {{ time }}
+        </mat-option>
+        }
+      </mat-select>
+      <mat-icon matSuffix>schedule</mat-icon>
+      @if (!isLoadingBusinessHours() && availableTimeSlots().length === 0) {
+      <mat-hint>Aucun creneau disponible aujourd'hui.</mat-hint>
+      } @if (orderForm.get('scheduledTime')?.hasError('required')) {
+      <mat-error>L'heure est requise</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Business Hours Hint -->
+    @if (getBusinessHoursHint(); as hint) {
+    <div class="business-hours-hint">
+      <mat-icon>info</mat-icon>
+      <span>{{ hint }}</span>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- Delivery Address Autocomplete + Best Option -->
+  <div class="delivery-section">
+    <h3>Livraison</h3>
+    @if (deliverySystem() === 'own') {
+    <div class="delivery-quote">
+      <span>
+        <b>Frais de livraison: {{ ownDeliveryPrice() | vendorCurrency }}</b>
+        <br />
+      </span>
+    </div>
+    }
+    <app-address-autocomplete
+      (placeSelected)="onAddressSelected($event)"
+      [address]="deliverySelection.selectedAddress()"
+    ></app-address-autocomplete>
+
+    @if (deliverySystem() === 'picki' && deliverySelection.loading()) {
+    <div class="delivery-quote">Calcul du tarif de livraison...</div>
+    }
+    @if (deliverySelection.error()) {
+    <div class="delivery-quote">
+      {{ deliverySelection.error() }}
+    </div>
+    }
+    @if (deliverySystem() === 'picki' && deliverySelection.bestOption(); as best) {
+    <div class="delivery-quote">
+      <span>
+        Prix et delai de livraison approximatif:
+        {{ best.totalAmount / 100 | vendorCurrency }}
+      </span>
+      @if (best.etaMinutes) {
+      <span>{{ best.etaMinutes }} min</span>
+      }
+    </div>
+    }
+  </div>
+</div>
+}

@@ -28,7 +28,6 @@
 
     <!-- Show dining preference indicator when selected -->
     <button
-      *ngIf="diningPreferenceService.hasSelectedPreference()"
       class="dining-preference-indicator"
       mat-button
       (click)="changeDiningPreference()"

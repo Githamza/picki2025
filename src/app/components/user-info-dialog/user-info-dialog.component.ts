@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -6,17 +6,36 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import {
+  MatDialogRef,
+  MatDialogModule,
+  MAT_DIALOG_DATA,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import {
+  DiningPreferenceSelectorComponent,
+  DiningPreferenceSelectorResult,
+} from '../../shared/components/dining-preference-selector/dining-preference-selector.component';
+import { DiningPreferenceService } from '../../services/dining-preference.service';
+import { OrderType } from '../../services/vendor.service';
 
 export interface UserInfo {
   nom: string;
   prenom: string;
   email: string;
   phone?: string;
+}
+
+export interface UserInfoDialogData {
+  needsPreferenceStep: boolean;
+  enabledOrderTypes: OrderType[];
+  currentPreference?: OrderType | null;
+  currentTiming?: 'asap' | 'later' | null;
+  currentScheduledTime?: string | null;
+  currentTableNumber?: string | null;
 }
 
 @Component({
@@ -30,105 +49,150 @@ export interface UserInfo {
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    DiningPreferenceSelectorComponent,
   ],
   template: `
     <div class="user-info-dialog">
-      <h2 mat-dialog-title>
-        <mat-icon>person</mat-icon>
-        Informations de commande
-      </h2>
+      <!-- Step 1: Preference Selection -->
+      @if (currentStep() === 'preference') {
+        <h2 mat-dialog-title>
+          <mat-icon>restaurant_menu</mat-icon>
+          Preferences de commande
+        </h2>
 
-      <mat-dialog-content>
-        <p class="dialog-description">
-          Veuillez renseigner vos informations pour finaliser votre commande.
-        </p>
+        <mat-dialog-content>
+          <p class="dialog-description">
+            Veuillez choisir votre mode de commande avant de continuer.
+          </p>
 
-        <form [formGroup]="userForm" class="user-form">
-          <mat-form-field class="full-width">
-            <mat-label>Nom *</mat-label>
-            <input
-              matInput
-              formControlName="nom"
-              placeholder="Votre nom de famille"
-              autocomplete="family-name"
-            />
-            <mat-icon matSuffix>person</mat-icon>
-            <mat-error *ngIf="userForm.get('nom')?.hasError('required')">
-              Le nom est obligatoire
-            </mat-error>
-            <mat-error *ngIf="userForm.get('nom')?.hasError('minlength')">
-              Le nom doit contenir au moins 2 caractères
-            </mat-error>
-          </mat-form-field>
+          <app-dining-preference-selector
+            [compact]="true"
+            [enabledOrderTypes]="dialogData.enabledOrderTypes"
+            [initialPreference]="dialogData.currentPreference ?? null"
+            [initialTiming]="dialogData.currentTiming ?? null"
+            [initialScheduledTime]="dialogData.currentScheduledTime ?? null"
+            [initialTableNumber]="dialogData.currentTableNumber ?? null"
+            (selectionChanged)="onSelectorChanged($event)"
+          />
+        </mat-dialog-content>
 
-          <mat-form-field class="full-width">
-            <mat-label>Prénom *</mat-label>
-            <input
-              matInput
-              formControlName="prenom"
-              placeholder="Votre prénom"
-              autocomplete="given-name"
-            />
-            <mat-icon matSuffix>person_outline</mat-icon>
-            <mat-error *ngIf="userForm.get('prenom')?.hasError('required')">
-              Le prénom est obligatoire
-            </mat-error>
-            <mat-error *ngIf="userForm.get('prenom')?.hasError('minlength')">
-              Le prénom doit contenir au moins 2 caractères
-            </mat-error>
-          </mat-form-field>
+        <mat-dialog-actions align="end">
+          <button mat-button (click)="onCancel()" type="button">
+            <mat-icon>close</mat-icon>
+            Annuler
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="onConfirmPreference()"
+            [disabled]="!selectorResult() || !selectorResult()?.isValid"
+            type="button"
+          >
+            <mat-icon>check</mat-icon>
+            Confirmer
+          </button>
+        </mat-dialog-actions>
+      }
 
-          <mat-form-field class="full-width">
-            <mat-label>Email *</mat-label>
-            <input
-              matInput
-              type="email"
-              formControlName="email"
-              placeholder="votre.email@exemple.com"
-              autocomplete="email"
-            />
-            <mat-icon matSuffix>email</mat-icon>
-            <mat-error *ngIf="userForm.get('email')?.hasError('required')">
-              L'email est obligatoire
-            </mat-error>
-            <mat-error *ngIf="userForm.get('email')?.hasError('email')">
-              Veuillez saisir un email valide
-            </mat-error>
-          </mat-form-field>
+      <!-- Step 2: User Info Form -->
+      @if (currentStep() === 'userInfo') {
+        <h2 mat-dialog-title>
+          <mat-icon>person</mat-icon>
+          Informations de commande
+        </h2>
 
-          <mat-form-field class="full-width">
-            <mat-label>Téléphone (optionnel)</mat-label>
-            <input
-              matInput
-              type="tel"
-              formControlName="phone"
-              placeholder="+33 6 12 34 56 78"
-              autocomplete="tel"
-            />
-            <mat-icon matSuffix>phone</mat-icon>
-            <mat-error *ngIf="userForm.get('phone')?.hasError('pattern')">
-              Format de téléphone invalide
-            </mat-error>
-          </mat-form-field>
-        </form>
-      </mat-dialog-content>
+        <mat-dialog-content>
+          <p class="dialog-description">
+            Veuillez renseigner vos informations pour finaliser votre commande.
+          </p>
 
-      <mat-dialog-actions align="end">
-        <button mat-button (click)="onCancel()" type="button">
-          <mat-icon>close</mat-icon>
-          Annuler
-        </button>
-        <button
-          mat-flat-button
-          color="primary"
-          (click)="onConfirm()"
-          [disabled]="userForm.invalid"
-          type="button"
-        >
-          <mat-icon>payment</mat-icon>
-          Continuer vers le paiement
-        </button>
-      </mat-dialog-actions>
+          <form [formGroup]="userForm" class="user-form">
+            <mat-form-field class="full-width">
+              <mat-label>Nom *</mat-label>
+              <input
+                matInput
+                formControlName="nom"
+                placeholder="Votre nom de famille"
+                autocomplete="family-name"
+              />
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="userForm.get('nom')?.hasError('required')">
+                Le nom est obligatoire
+              </mat-error>
+              <mat-error *ngIf="userForm.get('nom')?.hasError('minlength')">
+                Le nom doit contenir au moins 2 caracteres
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field class="full-width">
+              <mat-label>Prenom *</mat-label>
+              <input
+                matInput
+                formControlName="prenom"
+                placeholder="Votre prenom"
+                autocomplete="given-name"
+              />
+              <mat-icon matSuffix>person_outline</mat-icon>
+              <mat-error *ngIf="userForm.get('prenom')?.hasError('required')">
+                Le prenom est obligatoire
+              </mat-error>
+              <mat-error *ngIf="userForm.get('prenom')?.hasError('minlength')">
+                Le prenom doit contenir au moins 2 caracteres
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field class="full-width">
+              <mat-label>Email *</mat-label>
+              <input
+                matInput
+                type="email"
+                formControlName="email"
+                placeholder="votre.email@exemple.com"
+                autocomplete="email"
+              />
+              <mat-icon matSuffix>email</mat-icon>
+              <mat-error *ngIf="userForm.get('email')?.hasError('required')">
+                L'email est obligatoire
+              </mat-error>
+              <mat-error *ngIf="userForm.get('email')?.hasError('email')">
+                Veuillez saisir un email valide
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field class="full-width">
+              <mat-label>Telephone (optionnel)</mat-label>
+              <input
+                matInput
+                type="tel"
+                formControlName="phone"
+                placeholder="+33 6 12 34 56 78"
+                autocomplete="tel"
+              />
+              <mat-icon matSuffix>phone</mat-icon>
+              <mat-error *ngIf="userForm.get('phone')?.hasError('pattern')">
+                Format de telephone invalide
+              </mat-error>
+            </mat-form-field>
+          </form>
+        </mat-dialog-content>
+
+        <mat-dialog-actions align="end">
+          <button mat-button (click)="onCancel()" type="button">
+            <mat-icon>close</mat-icon>
+            Annuler
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="onConfirm()"
+            [disabled]="userForm.invalid"
+            type="button"
+          >
+            <mat-icon>payment</mat-icon>
+            Continuer vers le paiement
+          </button>
+        </mat-dialog-actions>
+      }
     </div>
   `,
   styles: [
@@ -196,6 +260,16 @@ export interface UserInfo {
 export class UserInfoDialogComponent {
   private fb = inject(FormBuilder);
   private dialogRef = inject(MatDialogRef<UserInfoDialogComponent>);
+  private diningPreferenceService = inject(DiningPreferenceService);
+  readonly dialogData: UserInfoDialogData = inject(MAT_DIALOG_DATA, {
+    optional: true,
+  }) ?? { needsPreferenceStep: false, enabledOrderTypes: [] };
+
+  currentStep = signal<'preference' | 'userInfo'>(
+    this.dialogData.needsPreferenceStep ? 'preference' : 'userInfo'
+  );
+
+  selectorResult = signal<DiningPreferenceSelectorResult | null>(null);
 
   userForm: FormGroup;
 
@@ -206,6 +280,38 @@ export class UserInfoDialogComponent {
       email: ['', [Validators.required, Validators.email]],
       phone: ['', [Validators.pattern(/^(\+33|0)[1-9](\d{8})$/)]],
     });
+  }
+
+  onSelectorChanged(result: DiningPreferenceSelectorResult): void {
+    this.selectorResult.set(result);
+  }
+
+  onConfirmPreference(): void {
+    const result = this.selectorResult();
+    if (!result?.isValid) return;
+
+    let timing = result.timing;
+    let scheduledDate: Date | undefined;
+    let scheduledTime: string | undefined;
+
+    if (timing === 'later') {
+      if (result.scheduledTime) {
+        scheduledDate = result.scheduledDate;
+        scheduledTime = result.scheduledTime;
+      } else {
+        timing = null;
+      }
+    }
+
+    this.diningPreferenceService.setDiningPreference({
+      preference: result.preference,
+      timing,
+      scheduledDate,
+      scheduledTime,
+      tableNumber: result.tableNumber,
+    });
+
+    this.currentStep.set('userInfo');
   }
 
   onCancel(): void {

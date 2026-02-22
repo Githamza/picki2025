@@ -673,7 +673,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
     });
   }
 
-  getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
+  getNextStatus = (currentStatus: OrderStatus, orderType?: string): OrderStatus | null => {
     const statusFlow: Record<OrderStatus, OrderStatus | null> = {
       initiated: null, // Initiated orders need manual validation (accept/refuse)
       paid: 'todo', // Paid orders can be accepted to todo
@@ -681,14 +681,14 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       cancelled: null, // Cancelled orders have no next status
       todo: 'ongoing',
       ongoing: 'done',
-      done: 'picked',
+      done: orderType === 'eat-in' ? null : 'picked',
       picked: null,
     };
     return statusFlow[currentStatus];
   };
 
-  getNextStatusLabel = (currentStatus: OrderStatus): string => {
-    const nextStatus = this.getNextStatus(currentStatus);
+  getNextStatusLabel = (currentStatus: OrderStatus, orderType?: string): string => {
+    const nextStatus = this.getNextStatus(currentStatus, orderType);
     return nextStatus ? this.statusLabels[nextStatus] : '';
   };
 
@@ -698,7 +698,7 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
       return false; // Use separate validation methods
     }
     return (
-      this.getNextStatus(order.status) !== null &&
+      this.getNextStatus(order.status, order.orderType) !== null &&
       !this.isOrderLoading(order.id)
     );
   };

@@ -6,9 +6,10 @@ export type OrderTiming = 'asap' | 'later';
 
 export interface DiningPreferenceData {
   preference: DiningPreference;
-  timing: OrderTiming;
+  timing: OrderTiming | null;
   scheduledDate?: Date;
   scheduledTime?: string; // Changed from Date to string to store time in HH:MM format
+  tableNumber?: string;
 }
 
 @Injectable({
@@ -70,12 +71,15 @@ export class DiningPreferenceService {
 
   getDiningPreferenceText(full: boolean = true): string {
     const data = this._diningPreferenceData();
-    if (!data) return '';
+    if (!data) return 'A définir';
 
     let text = '';
     switch (data.preference) {
       case 'eat-in':
         text = 'Sur place';
+        if (full && data.tableNumber) {
+          text += ` - Table ${data.tableNumber}`;
+        }
         break;
       case 'take-away':
         text = 'À emporter';
@@ -97,6 +101,8 @@ export class DiningPreferenceService {
             text += ` - ${dateStr} à ${timeStr}`;
           } else if (data.timing === 'asap') {
             text += ' - Dès que possible';
+          } else {
+            text += ' - A définir';
           }
         }
         break;
@@ -120,6 +126,8 @@ export class DiningPreferenceService {
             text += ` - ${dateStr} à ${timeStr}`;
           } else if (data.timing === 'asap') {
             text += ' - Dès que possible';
+          } else {
+            text += ' - A définir';
           }
         }
         break;

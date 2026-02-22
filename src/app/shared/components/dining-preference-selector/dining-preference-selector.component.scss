@@ -1,0 +1,227 @@
+:host {
+  display: block;
+}
+
+.dining-options {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.dining-option {
+  flex: 1;
+  min-width: 200px;
+  max-width: 250px;
+  height: 200px;
+
+  &.eat-in {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  &.take-away {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+
+  &.selected {
+    border: 2px solid var(--mat-sys-primary);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 1rem;
+}
+
+.option-icon {
+  margin-bottom: 1rem;
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+}
+
+.option-text {
+  margin-bottom: 0.5rem;
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.option-description {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.timing-section {
+  margin: 2rem 0;
+  text-align: center;
+
+  h3 {
+    color: var(--mat-sys-on-surface);
+    margin-bottom: 1rem;
+  }
+
+  mat-button-toggle-group {
+    margin-bottom: 1.5rem;
+  }
+}
+
+.schedule-section {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+
+  mat-form-field {
+    min-width: 200px;
+  }
+
+  .time-field {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+.pickup-closed-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: color-mix(in srgb, var(--mat-sys-error) 12%, transparent);
+  border-radius: 8px;
+  color: var(--mat-sys-on-surface);
+  font-size: 14px;
+  width: 100%;
+  margin-bottom: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--mat-sys-error);
+  }
+}
+
+.business-hours-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--mat-sys-surface-variant);
+  border-radius: 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 14px;
+  width: 100%;
+  margin-top: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.delivery-section {
+  margin-top: 1rem;
+}
+
+.delivery-quote {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--mat-sys-surface-variant);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+// Compact variant for dialog use
+:host(.compact) {
+  .dining-options {
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .dining-option {
+    min-width: 120px;
+    max-width: 160px;
+    height: 120px;
+  }
+
+  .option-icon {
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .option-text {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .option-description {
+    font-size: 0.8rem;
+  }
+
+  .timing-section {
+    margin: 1rem 0;
+
+    h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+    }
+
+    mat-button-toggle-group {
+      margin-bottom: 1rem;
+    }
+  }
+
+  .schedule-section {
+    margin-top: 1rem;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dining-options {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .dining-option {
+    min-width: unset;
+    max-width: unset;
+    height: 150px;
+  }
+
+  .option-icon {
+    font-size: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .option-text {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dining-option {
+    height: 120px;
+  }
+
+  .option-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+}

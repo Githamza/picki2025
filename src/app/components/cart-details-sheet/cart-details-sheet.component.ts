@@ -28,6 +28,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   UserInfoDialogComponent,
   UserInfo,
+  UserInfoDialogData,
 } from '../user-info-dialog/user-info-dialog.component';
 import { OrdersService } from '../../services/orders.service';
 import { Order, OrderItem } from '../../models/order.model';
@@ -214,7 +215,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           mat-flat-button
           color="accent"
           class="checkout-btn checkout-btn-validate"
-          [disabled]="ordersSuspended$ | async"
+          [disabled]="(ordersSuspended$ | async) || restaurantStatusService.closedForDay()"
           (click)="checkout()"
         >
           Valider ma commande
@@ -466,7 +467,7 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   private bottomSheetRef = inject(MatBottomSheetRef<CartDetailsSheetComponent>);
   private dialog = inject(MatDialog);
   private ordersService = inject(OrdersService);
-  private restaurantStatusService = inject(RestaurantStatusService);
+  protected restaurantStatusService = inject(RestaurantStatusService);
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
   readonly ordersSuspended$ = this.vendorService.ordersSuspended$;
@@ -492,6 +493,9 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Check if restaurant is closed for the day
+    this.restaurantStatusService.refreshClosedForDay();
+
     const pref = this.diningPreferenceService.diningPreference();
     if (pref) {
       this.loadAccessories(pref);
@@ -582,6 +586,9 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
     if (this.vendorService.getCurrentOrdersSuspendedStatus()) {
       return;
     }
+    if (this.restaurantStatusService.closedForDay()) {
+      return;
+    }
 
     // Restaurant is open, proceed with normal checkout
     // Subscribe to cart items to get the current state
@@ -593,24 +600,30 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Check if dining preference is selected
-      if (!this.diningPreferenceService.hasSelectedPreference()) {
-        this.snackBar.open(
-          'Veuillez choisir votre préférence de restauration',
-          'Fermer',
-          { duration: 3000 }
-        );
-        this.bottomSheetRef.dismiss();
-        this.vendorNavigation.navigateWithVendor('dining-preference');
-        return;
-      }
+      // Compute whether we need the preference step in the dialog
+      const prefData = this.diningPreferenceService.diningPreferenceData();
+      const needsPreferenceStep = !prefData || !prefData.preference || (prefData.preference !== 'eat-in' && prefData.timing == null);
+      const vendor = this.vendorService.getCurrentVendor();
+      const enabledOrderTypes = vendor?.enabled_order_types?.length
+        ? vendor.enabled_order_types
+        : ['take-away', 'eat-in', 'delivery'] as any[];
 
-      // Open user info dialog first
+      const dialogData: UserInfoDialogData = {
+        needsPreferenceStep,
+        enabledOrderTypes,
+        currentPreference: prefData?.preference,
+        currentTiming: prefData?.timing,
+        currentScheduledTime: prefData?.scheduledTime,
+        currentTableNumber: prefData?.tableNumber,
+      };
+
+      // Open user info dialog (with optional preference step)
       const dialogRef = this.dialog.open(UserInfoDialogComponent, {
         width: '500px',
         maxWidth: '90vw',
         disableClose: true,
         autoFocus: true,
+        data: dialogData,
       });
 
       dialogRef.afterClosed().subscribe((userInfo: UserInfo) => {
@@ -740,7 +753,7 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
         timing: timing as any,
         payAtCheckout,
         scheduledTime: scheduledDateTime,
-        tableNumber: diningPref === 'eat-in' ? '1' : undefined,
+        tableNumber: diningPref === 'eat-in' ? (diningPrefData?.tableNumber || '1') : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
         notes: '',

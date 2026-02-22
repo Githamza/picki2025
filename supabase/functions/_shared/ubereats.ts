@@ -14,7 +14,7 @@ export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
+    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 };
 
 export const json = (data: unknown, init: ResponseInit = {}) =>
@@ -704,7 +704,7 @@ export interface Product {
   /** Long/detailed description */
   longDescription?: string;
   /** Order for display within category */
-  displayOrder: number;
+  displayOrder?: number;
   /** Whether this is a multi-step product (has configuration steps like menus/formulas) */
   isMultiStep: boolean;
   /** Configuration steps for multi-step products (formulas, menus) */
@@ -721,15 +721,15 @@ export interface Product {
  * A menu category containing products.
  * Maps to categories table.
  */
-export interface Category {
+export interface MenuCategory {
   /** Category name (e.g., "Burgers", "Pizzas", "Menus") */
   categoryName: string;
   /** Description of the category */
   description?: string;
   /** Icon identifier for the category */
   icon?: string;
-  /** Order for display */
-  displayOrder: number;
+  /** Order for display otherwise put 0*/
+  displayOrder?: number;
   /** Products within this category */
   items: Product[];
 }
@@ -759,7 +759,7 @@ export interface RestaurantInfo {
   acceptedPaymentMethods?: string[];
   pickupTimeEstimate?: string;
   operatingHours: OperatingHoursDay[];
-  menu: Category[];
+  menu: MenuCategory[];
 }
 `;
 
@@ -846,7 +846,7 @@ export interface Product {
   imageUrl?: string;
   shortDescription?: string;
   longDescription?: string;
-  displayOrder: number;
+  displayOrder?: number;
   isMultiStep: boolean;
   steps?: ProductStep[];
   hasCustomisations: boolean;
@@ -862,7 +862,7 @@ export interface MenuCategory {
   categoryName: string;
   description?: string;
   icon?: string;
-  displayOrder: number;
+  displayOrder?: number;
   items: Product[];
 }
 

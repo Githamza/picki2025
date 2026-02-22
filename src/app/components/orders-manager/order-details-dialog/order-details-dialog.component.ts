@@ -1162,7 +1162,7 @@ export class OrderDetailsDialogComponent {
       cancelled: null,
       todo: 'ongoing',
       ongoing: 'done',
-      done: 'picked',
+      done: this.data.order.orderType === 'eat-in' ? null : 'picked',
       picked: null,
     };
     return statusFlow[currentStatus];

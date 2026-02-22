@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { VendorService, BusinessHours } from './vendor.service';
 import { RestaurantClosedDialogComponent } from '../components/restaurant-closed-dialog/restaurant-closed-dialog.component';
@@ -13,6 +13,9 @@ export class RestaurantStatusService {
 
   private dialogShownSubject = new BehaviorSubject<boolean>(false);
   public dialogShown$ = this.dialogShownSubject.asObservable();
+
+  /** True when the restaurant is outside its business hours for the current day. */
+  readonly closedForDay = signal(false);
 
   /**
    * Check if restaurant is currently open (at least one vendor is active)
@@ -162,6 +165,15 @@ export class RestaurantStatusService {
       console.error('Error checking business hours:', error);
       return true; // On error, assume open to avoid blocking users
     }
+  }
+
+  /**
+   * Refresh the closedForDay signal by checking current business hours.
+   * Call this when the component initialises or the vendor changes.
+   */
+  async refreshClosedForDay(): Promise<void> {
+    const withinHours = await this.isWithinBusinessHours();
+    this.closedForDay.set(!withinHours);
   }
 
   /**

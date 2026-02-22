@@ -8,6 +8,9 @@
     [class.order-paid]="order().status === 'paid'"
     [class.order-refused]="order().status === 'refused'"
     [class.order-todo]="order().status === 'todo'"
+    [class.order-todo-pay-at-checkout]="
+      order().status === 'todo' && !!order().payAtCheckout
+    "
     [class.order-ongoing]="order().status === 'ongoing'"
     [class.order-done]="order().status === 'done'"
     [class.order-picked]="order().status === 'picked'"
@@ -160,7 +163,7 @@
                 'order-action-button inline-button status-button-' +
                 order().status
               "
-              (click)="onUpdateStatus($event, getNextStatus()(order().status)!)"
+              (click)="onUpdateStatus($event, getNextStatus()(order().status, order().orderType)!)"
               [disabled]="isOrderLoading()(order().id)"
             >
               @if (isOrderLoading()(order().id)) {
@@ -169,7 +172,7 @@
               <mat-icon>{{ buttonIcons()[order().status] }}</mat-icon>
               } @if (!isOrderLoading()(order().id)) {
               <span class="order-action-button-text">
-                {{ getNextStatusLabel()(order().status) }}
+                {{ getNextStatusLabel()(order().status, order().orderType) }}
               </span>
               }
             </button>

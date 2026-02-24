@@ -19,12 +19,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
 import { MatRippleModule } from '@angular/material/core';
 import { MatBadgeModule } from '@angular/material/badge';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatRadioModule, MatRadioChange } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
-import { Observable, Subject, combineLatest } from 'rxjs';
+import { Observable, Subject, combineLatest, firstValueFrom } from 'rxjs';
 import {
   takeUntil,
   filter,
@@ -39,10 +37,7 @@ import {
   ProductStep,
   ProductStepOption,
 } from '../../../models/multi-step-product.model';
-import {
-  Customisation,
-  CustomisationOption,
-} from '../../../models/customisation.interface';
+import { Customisation } from '../../../models/customisation.interface';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placeholder';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
@@ -59,8 +54,6 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
     MatListModule,
     MatRippleModule,
     MatBadgeModule,
-    MatCheckboxModule,
-    MatRadioModule,
     FormsModule,
     VendorCurrencyPipe,
   ],
@@ -98,7 +91,6 @@ export class RegularProductViewComponent
 
   // Customisation properties
   productCustomisations: Customisation[] = [];
-  customisationSelections = new Map<number, number[]>(); // Map of customisation ID to selected option IDs
 
   // Observables for single-step products (kept for backward compatibility)
   steps$!: Observable<ProductStep[]>;
@@ -140,7 +132,6 @@ export class RegularProductViewComponent
       // If customisations are already loaded, use them
       if (this.product.customisations) {
         this.productCustomisations = this.product.customisations;
-        this.initializeCustomisationSelections();
       } else {
         // Load customisations for this product
         this.productService.getProductWithCustomisations(this.product.id)
@@ -148,19 +139,10 @@ export class RegularProductViewComponent
           .subscribe((productWithCustomisations) => {
             if (productWithCustomisations?.customisations) {
               this.productCustomisations = productWithCustomisations.customisations;
-              this.initializeCustomisationSelections();
             }
           });
       }
     }
-  }
-
-  private initializeCustomisationSelections(): void {
-    // Initialize selections map
-    this.customisationSelections.clear();
-    this.productCustomisations.forEach((customisation) => {
-      this.customisationSelections.set(customisation.id, []);
-    });
   }
 
   private initializeMultiStepObservables(): void {
@@ -303,150 +285,40 @@ export class RegularProductViewComponent
     return option.id;
   }
 
-  // Customisation methods
-  onCustomisationOptionClicked(
-    customisation: Customisation,
-    option: CustomisationOption
-  ): void {
-    if (!option.is_available) return;
-
-    const currentSelections =
-      this.customisationSelections.get(customisation.id) || [];
-
-    if (customisation.selection_type === 'single-select') {
-      // For single select, replace the selection
-      this.customisationSelections.set(customisation.id, [option.id]);
-    } else if (customisation.selection_type === 'multi-select') {
-      // For multi select, toggle the option
-      const index = currentSelections.indexOf(option.id);
-      if (index > -1) {
-        // Remove if already selected
-        const newSelections = currentSelections.filter((id) => id !== option.id);
-        this.customisationSelections.set(customisation.id, newSelections);
-      } else {
-        // Add if not selected and haven't exceeded max selections
-        if (currentSelections.length < customisation.max_selections) {
-          this.customisationSelections.set(customisation.id, [
-            ...currentSelections,
-            option.id,
-          ]);
-        }
-      }
-    }
-
-    this.calculateTotalPrice();
-  }
-
-  getSelectedOptionId(customisationId: number): number | null {
-    const selections = this.customisationSelections.get(customisationId) || [];
-    return selections.length > 0 ? selections[0] : null;
-  }
-
-  onRadioChange(
-    customisation: Customisation,
-    event: MatRadioChange
-  ): void {
-    const option = customisation.options?.find((o) => o.id === event.value);
-    if (option && option.is_available) {
-      this.customisationSelections.set(customisation.id, [event.value]);
-      this.calculateTotalPrice();
-    }
-  }
-
-  onCheckboxChange(
-    customisation: Customisation,
-    option: CustomisationOption,
-    event: { checked: boolean }
-  ): void {
-    if (!option.is_available) return;
-
-    const currentSelections =
-      this.customisationSelections.get(customisation.id) || [];
-
-    if (event.checked) {
-      // Add option if not selected and haven't exceeded max selections
-      if (
-        !currentSelections.includes(option.id) &&
-        currentSelections.length < customisation.max_selections
-      ) {
-        this.customisationSelections.set(customisation.id, [
-          ...currentSelections,
-          option.id,
-        ]);
-      }
-    } else {
-      // Remove option if selected
-      const newSelections = currentSelections.filter((id) => id !== option.id);
-      this.customisationSelections.set(customisation.id, newSelections);
-    }
-
-    this.calculateTotalPrice();
-  }
-
-  isCustomisationOptionSelected(
-    customisationId: number,
-    optionId: number
-  ): boolean {
-    const selections = this.customisationSelections.get(customisationId) || [];
-    return selections.includes(optionId);
-  }
-
-  getCustomisationHint(customisation: Customisation): string {
-    const currentSelections =
-      this.customisationSelections.get(customisation.id) || [];
-
-    if (customisation.selection_type === 'single-select') {
-      return customisation.is_required
-        ? 'Choisissez une option *'
-        : 'Choisissez une option (optionnel)';
-    } else if (customisation.selection_type === 'multi-select') {
-      const min = customisation.min_selections;
-      const max = customisation.max_selections;
-      const current = currentSelections.length;
-
-      if (min === max) {
-        return `Choisissez exactement ${min} option${min > 1 ? 's' : ''}${
-          customisation.is_required ? ' *' : ''
-        } (${current}/${min})`;
-      } else if (min > 0) {
-        return `Choisissez ${min} à ${max} options${
-          customisation.is_required ? ' *' : ''
-        } (${current}/${max})`;
-      } else {
-        return `Choisissez jusqu'à ${max} option${max > 1 ? 's' : ''}${
-          customisation.is_required ? ' *' : ''
-        } (${current}/${max})`;
-      }
-    }
-    return '';
-  }
-
   private calculateTotalPrice(): void {
-    // Start with base product price
     this.totalPrice = this.product.price || 0;
-
-    // Add customisation price adjustments
-    this.customisationSelections.forEach((optionIds, customisationId) => {
-      const customisation = this.productCustomisations.find(
-        (c) => c.id === customisationId
-      );
-      if (customisation && customisation.options) {
-        optionIds.forEach((optionId) => {
-          const option = customisation.options?.find((o) => o.id === optionId);
-          if (option && option.price_adjustment) {
-            this.totalPrice += option.price_adjustment;
-          }
-        });
-      }
-    });
   }
 
-  onAddToCart(): void {
-    this.addToCart.emit({
-      product: this.product,
-      comment: this.comment().trim() || undefined,
-      customisationSelections: this.customisationSelections,
-    });
+  async onAddToCart(): Promise<void> {
+    if (this.product.hasCustomisations && this.productCustomisations.length > 0) {
+      const { CustomisationSelectionDialogComponent } = await import(
+        '../../add-product-multi-step/customisation-selection-dialog/customisation-selection-dialog.component'
+      );
+
+      const dialogRef = this.dialog.open(CustomisationSelectionDialogComponent, {
+        data: {
+          product: { name: this.product.name },
+          customisations: this.productCustomisations,
+        },
+        width: '600px',
+        maxWidth: '95vw',
+        maxHeight: '90vh',
+      });
+
+      const result = await firstValueFrom(dialogRef.afterClosed());
+      if (!result) return;
+
+      this.addToCart.emit({
+        product: this.product,
+        comment: this.comment().trim() || undefined,
+        customisationSelections: result.selections,
+      });
+    } else {
+      this.addToCart.emit({
+        product: this.product,
+        comment: this.comment().trim() || undefined,
+      });
+    }
   }
 
   onImageClicked(event: { imageUrl: string; imageName: string }): void {

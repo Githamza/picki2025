@@ -1,0 +1,66 @@
+<div class="customisation-group">
+  <div class="customisation-header">
+    <h3 class="customisation-title">{{ customisation().name }}</h3>
+    @if (customisation().description) {
+    <div class="customisation-description">
+      <p>{{ customisation().description }}</p>
+    </div>
+    }
+    <div class="selection-info">
+      <p class="selection-hint">{{ getHint() }}</p>
+    </div>
+  </div>
+
+  <div class="options-container">
+    @if (customisation().selection_type === 'single-select') {
+    <mat-radio-group
+      [value]="getSelectedOptionId()"
+      (change)="onRadioChange($event)"
+      class="customisation-options-list"
+    >
+      @for (option of customisation().options; track option.id) {
+      <mat-radio-button
+        [value]="option.id"
+        [disabled]="!option.is_available"
+        class="customisation-option-item"
+      >
+        <div class="option-label-content">
+          <span class="option-name">{{ option.name }}</span>
+          @if (option.price_adjustment && option.price_adjustment > 0) {
+          <span class="option-price">
+            +{{ option.price_adjustment | vendorCurrency }}
+          </span>
+          }
+        </div>
+        @if (option.description) {
+        <div class="option-description">{{ option.description }}</div>
+        }
+      </mat-radio-button>
+      }
+    </mat-radio-group>
+    } @else {
+    <div class="customisation-options-list">
+      @for (option of customisation().options; track option.id) {
+      <mat-checkbox
+        [checked]="isOptionSelected(option.id)"
+        [disabled]="!option.is_available"
+        (change)="onCheckboxChange(option, $event)"
+        class="customisation-option-item"
+      >
+        <div class="option-label-content">
+          <span class="option-name">{{ option.name }}</span>
+          @if (option.price_adjustment && option.price_adjustment > 0) {
+          <span class="option-price">
+            +{{ option.price_adjustment | vendorCurrency }}
+          </span>
+          }
+        </div>
+        @if (option.description) {
+        <div class="option-description">{{ option.description }}</div>
+        }
+      </mat-checkbox>
+      }
+    </div>
+    }
+  </div>
+</div>

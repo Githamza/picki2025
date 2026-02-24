@@ -16,11 +16,10 @@ import {
   Customisation,
   CustomisationOption,
 } from '../../../models/customisation.interface';
-import { ProductStepOption } from '../../../models/multi-step-product.model';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 export interface CustomisationSelectionDialogData {
-  product: ProductStepOption;
+  product: { name: string };
   customisations: Customisation[];
   existingSelections?: Map<number, number[]>;
 }

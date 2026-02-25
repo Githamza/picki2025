@@ -9,7 +9,6 @@ import {
 } from '@angular/material/bottom-sheet';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
@@ -54,7 +53,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     MatIconModule,
     MatButtonModule,
     MatDividerModule,
-    MatBadgeModule,
     CartItemStepsTreeComponent,
     AccessoriesStripComponent,
     VendorCurrencyPipe,
@@ -103,7 +101,11 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           <div class="cart-list">
             @for (item of (foodItems$ | async) || []; track item.product.id) {
               <div class="cart-item">
-                <mat-icon class="item-icon" [matBadge]="'x'+item.quantity" matBadgeSize="medium" matBadgeColor="primary">shopping_bag</mat-icon>
+                @if (item.product.imageUrl) {
+                  <img class="item-image" [src]="item.product.imageUrl" [alt]="item.product.name" />
+                } @else {
+                  <mat-icon class="item-icon">shopping_bag</mat-icon>
+                }
                 <div class="item-content">
                   @if (item.metadata?.stepSelections?.length) {
                     <app-cart-item-steps-tree
@@ -111,6 +113,21 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                     >
                       <div stepsHeader class="item-title-row">
                         <span class="item-title">{{ item.product.name }}</span>
+                        <div class="qty-controls" (click)="$event.stopPropagation()">
+                          @if (item.quantity > 1) {
+                            <button mat-icon-button class="qty-btn" (click)="onFoodDecrement(item.product.id)">
+                              <mat-icon>remove</mat-icon>
+                            </button>
+                          } @else {
+                            <button mat-icon-button class="qty-btn" (click)="onFoodRemove(item.product.id)">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          }
+                          <span class="qty-value">{{ item.quantity }}</span>
+                          <button mat-icon-button class="qty-btn" (click)="onFoodIncrement(item.product.id)">
+                            <mat-icon>add</mat-icon>
+                          </button>
+                        </div>
                         <span
                           class="item-price price-value"
                           [style.visibility]="
@@ -124,6 +141,21 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                   } @else {
                     <div class="item-title-row">
                       <span class="item-title">{{ item.product.name }}</span>
+                      <div class="qty-controls">
+                        @if (item.quantity > 1) {
+                          <button mat-icon-button class="qty-btn" (click)="onFoodDecrement(item.product.id)">
+                            <mat-icon>remove</mat-icon>
+                          </button>
+                        } @else {
+                          <button mat-icon-button class="qty-btn" (click)="onFoodRemove(item.product.id)">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        }
+                        <span class="qty-value">{{ item.quantity }}</span>
+                        <button mat-icon-button class="qty-btn" (click)="onFoodIncrement(item.product.id)">
+                          <mat-icon>add</mat-icon>
+                        </button>
+                      </div>
                       <span
                         class="item-price price-value"
                         [style.visibility]="
@@ -303,11 +335,46 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .cart-item:last-child {
         border-bottom: none;
       }
+      .item-image {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
       .item-icon {
-        width: 24px;
-        height: 24px;
+        width: 40px;
+        height: 40px;
         font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: var(--mat-sys-on-surface-variant);
+        flex-shrink: 0;
+      }
+      .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex-shrink: 0;
+      }
+      .qty-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        --mdc-icon-button-state-layer-size: 28px;
+        --mdc-icon-button-icon-size: 18px;
+      }
+      .qty-btn mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+      .qty-value {
+        min-width: 20px;
+        text-align: center;
+        font-weight: 500;
+        font-size: 0.9em;
       }
       .item-content {
         flex: 1;
@@ -330,10 +397,13 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         font-weight: 500;
       }
       .item-price {
-        font-weight: 500;
-        color: var(--mat-sys-on-surface);
+        font-weight: 400;
+        font-size: 0.85em;
+        color: var(--mat-sys-on-surface-variant);
         margin-left: auto;
         white-space: nowrap;
+        padding-left: 8px;
+        border-left: 1px solid var(--mat-sys-outline-variant);
       }
       .item-line {
         color: var(--mat-sys-on-surface-variant);
@@ -342,6 +412,17 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .price-value {
         min-width: 96px;
         text-align: right;
+      }
+      @media (max-width: 600px) {
+        .price-value {
+          min-width: auto;
+        }
+        .item-title-row {
+          gap: 4px;
+        }
+        .qty-controls + .item-price {
+          margin-left: 0;
+        }
       }
       .total-row {
         display: flex;
@@ -447,9 +528,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         font-size: 18px;
         margin-right: 4px;
       }
-      .item-icon {
-        overflow: visible;
-      }
       /* delivery-summary removed: delivery fee is shown as a cart item */
     `,
   ],
@@ -517,6 +595,18 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
         next: (accessories) => this.availableAccessories.set(accessories),
         error: () => this.availableAccessories.set([]),
       });
+  }
+
+  onFoodIncrement(productId: number) {
+    this.store.dispatch(incrementCartItem({ productId }));
+  }
+
+  onFoodDecrement(productId: number) {
+    this.store.dispatch(decrementCartItem({ productId }));
+  }
+
+  onFoodRemove(productId: number) {
+    this.store.dispatch(removeCartItem({ productId }));
   }
 
   onAccessoryAdded(product: Product) {

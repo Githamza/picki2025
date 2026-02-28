@@ -713,10 +713,7 @@ export class SupabaseService implements OnDestroy {
     bucket: string = 'productsophotos',
     folder?: string
   ): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2)}.${fileExt}`;
+    const fileName = `${Date.now()}-${file.name}`;
     const filePath = folder ? `${folder}/${fileName}` : fileName;
 
     const { data, error } = await this.supabase.storage

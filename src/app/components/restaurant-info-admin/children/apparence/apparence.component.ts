@@ -54,6 +54,7 @@ import { ImageUploadComponent } from '../../../../shared/components/image-upload
               formControlName="bannerUrl"
               label="URL de la bannière"
               placeholder="https://... ou téléchargez une image"
+              [folder]="vendorId"
             ></app-image-upload>
           </div>
 
@@ -72,6 +73,7 @@ import { ImageUploadComponent } from '../../../../shared/components/image-upload
               formControlName="logoUrl"
               label="URL du logo"
               placeholder="https://... ou téléchargez une image"
+              [folder]="vendorId"
             ></app-image-upload>
           </div>
         </mat-card-content>
@@ -172,9 +174,11 @@ export class ApparenceComponent implements OnInit {
 
   form!: FormGroup;
   isSaving = signal(false);
+  vendorId: string = '';
 
   ngOnInit() {
     const info = this.dataService.restaurantInfo();
+    this.vendorId = this.vendorService.getCurrentVendor()?.id || '';
     this.form = this.fb.group({
       bannerUrl: [this.dataService.bannerUrl()],
       logoUrl: [info?.vendor.logo_url || ''],

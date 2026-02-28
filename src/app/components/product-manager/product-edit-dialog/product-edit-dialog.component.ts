@@ -215,6 +215,7 @@ export interface DialogData {
             formControlName="image_url"
             label="URL de l'image"
             placeholder="https://..."
+            [folder]="data.vendorId"
           ></app-image-upload>
 
           <!-- 5. Short Description -->

@@ -1,0 +1,52 @@
+<div class="add-to-cart-bar">
+  <div class="quantity-controls">
+    <button
+      mat-fab
+      color="warn"
+      aria-label="Remove item or decrease quantity"
+      (click)="quantity === 1 ? remove.emit() : decrement.emit()"
+      class="quantity-button"
+    >
+      <mat-icon>{{ quantity === 1 ? 'delete' : 'remove' }}</mat-icon>
+    </button>
+
+    <span class="quantity-value">{{ quantity }}</span>
+
+    <button
+      mat-fab
+      color="primary"
+      aria-label="Increase quantity"
+      (click)="increment.emit()"
+      class="quantity-button"
+      [disabled]="stockLimitReached"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <button
+    mat-flat-button
+    color="primary"
+    class="add-to-cart-button"
+    (click)="addToCart.emit()"
+    [disabled]="disabled"
+  >
+    <div class="button-content">
+      <span class="button-text">{{ buttonText }}</span>
+      <span
+        class="button-price"
+        *ngIf="totalPrice > 0"
+      >
+        {{ totalPrice | vendorCurrency }}
+      </span>
+    </div>
+  </button>
+
+  <div class="stock-limit-hint" *ngIf="stockLimitReached && stockQuantity != null">
+    {{ stockQuantity }} disponible(s){{
+      cartQuantityForProduct > 0
+        ? ' (dont ' + cartQuantityForProduct + ' dans le panier)'
+        : ''
+    }}
+  </div>
+</div>

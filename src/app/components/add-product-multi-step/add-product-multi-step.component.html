@@ -123,71 +123,53 @@
             class="summary-content"
             *ngIf="summaryData$ | async as summaryData"
           >
-            <!-- Summary Cards -->
-            <mat-card
-              *ngFor="let item of summaryData"
-              class="summary-card"
-              appearance="outlined"
-            >
-              <mat-card-header>
-                <mat-card-title>{{ item.step.name }}</mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                <div class="options-list">
+            <div class="summary-header">
+              <mat-icon class="summary-header-icon">receipt_long</mat-icon>
+              <span class="summary-header-title">Récapitulatif</span>
+            </div>
+
+            <div class="summary-items">
+              <div
+                *ngFor="let item of summaryData; let i = index"
+                class="summary-row"
+                [style.animation-delay]="i * 60 + 'ms'"
+              >
+                <div class="summary-row-header">
+                  <span class="summary-step-index">{{ i + 1 }}</span>
+                  <span class="summary-step-name">{{ item.step.name }}</span>
+                </div>
+                <div class="summary-options">
                   <div
                     *ngFor="let option of item.selectedOptions"
-                    class="option-item"
+                    class="summary-option-chip"
                   >
-                    <ng-container *ngIf="isMobile$ | async">
-                      <img
-                        *ngIf="option.imageUrl"
-                        [src]="option.imageUrl"
-                        [alt]="option.name"
-                        class="option-thumbnail"
-                        (click)="openImageZoom(option.imageUrl, option.name)"
-                      />
-                    </ng-container>
-                    <ng-container *ngIf="!(isMobile$ | async)">
-                      <img
-                        *ngIf="option.imageUrl"
-                        [src]="option.imageUrl"
-                        [alt]="option.name"
-                        class="option-thumbnail"
-                      />
-                    </ng-container>
-                    <span class="option-name">{{ option.name }}</span>
-                    <span class="spacer"></span>
+                    <mat-icon class="chip-icon">check_circle</mat-icon>
+                    <span class="chip-label">{{ option.name }}</span>
                     <span
-                      class="option-price"
+                      *ngIf="option.priceAdjustment !== 0"
+                      class="chip-price"
                       [class.positive]="option.priceAdjustment > 0"
                       [class.negative]="option.priceAdjustment < 0"
-                      [class.neutral]="option.priceAdjustment === 0"
                     >
-                      <ng-container *ngIf="option.priceAdjustment !== 0">
-                        {{ option.priceAdjustment > 0 ? "+" : ""
-                        }}{{ option.priceAdjustment | vendorCurrency }}
-                      </ng-container>
+                      {{ option.priceAdjustment > 0 ? "+" : ""
+                      }}{{ option.priceAdjustment | vendorCurrency }}
                     </span>
                   </div>
                 </div>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </div>
 
-            <!-- Total Summary Card -->
-            <mat-card class="total-card" appearance="outlined">
-              <mat-card-content>
-                <div class="total-content">
-                  <span class="total-label">Total</span>
-                  <span
-                    class="total-amount"
-                    [style.visibility]="
-                      ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
-                    "
-                    >{{ (totalPrice$ | async) || 0 | vendorCurrency }}</span
-                  >
-                </div>
-              </mat-card-content>
-            </mat-card>
+            <div
+              class="summary-total"
+              [style.visibility]="
+                ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
+              "
+            >
+              <span class="summary-total-label">Total</span>
+              <span class="summary-total-amount">{{
+                (totalPrice$ | async) || 0 | vendorCurrency
+              }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -242,61 +224,20 @@
     </button>
   </div>
   <!-- Quantity Controls and Add to Cart Section (when all steps are visited or configuration is complete) -->
-  <div class="add-to-cart-section" *ngIf="showAddToCartSection$ | async">
-    <div class="quantity-controls">
-      <div class="quantity-buttons">
-        <button
-          mat-fab
-          color="warn"
-          aria-label="Remove item or decrease quantity"
-          (click)="quantity === 1 ? removeItem() : decrementQuantity()"
-          class="quantity-button"
-        >
-          <mat-icon>{{ quantity === 1 ? "delete" : "remove" }}</mat-icon>
-        </button>
-
-        <span class="quantity-value">{{ quantity }}</span>
-
-        <button
-          mat-fab
-          color="primary"
-          aria-label="Increase quantity"
-          (click)="incrementQuantity()"
-          class="quantity-button"
-          [disabled]="isStockLimitReached()"
-        >
-          <mat-icon>add</mat-icon>
-        </button>
-      </div>
-      <div class="stock-limit-hint" *ngIf="isStockLimitReached()">
-        {{ baseProductStockQuantity }} disponible(s){{
-          cartQuantityForBaseProduct > 0
-            ? " (dont " + cartQuantityForBaseProduct + " dans le panier)"
-            : ""
-        }}
-      </div>
-    </div>
-
-    <button
-      matButton="filled"
-      color="primary"
-      class="add-to-cart-button"
-      (click)="addToCart()"
-      [disabled]="!(isConfigurationComplete$ | async)"
-    >
-      <mat-icon>shopping_cart</mat-icon>
-      <div class="button-content">
-        <span class="button-text">Ajouter</span>
-        <span
-          class="button-price"
-          *ngIf="totalPrice$ | async as totalPrice"
-          [style.visibility]="totalPrice * quantity > 0 ? 'visible' : 'hidden'"
-        >
-          {{ totalPrice * quantity | vendorCurrency }}
-        </span>
-      </div>
-    </button>
-  </div>
+  <app-add-to-cart-bar
+    *ngIf="showAddToCartSection$ | async"
+    [quantity]="quantity"
+    [totalPrice]="((totalPrice$ | async) || 0) * quantity"
+    [buttonText]="'Ajouter'"
+    [stockLimitReached]="isStockLimitReached()"
+    [stockQuantity]="baseProductStockQuantity"
+    [cartQuantityForProduct]="cartQuantityForBaseProduct"
+    [disabled]="!(isConfigurationComplete$ | async)"
+    (increment)="incrementQuantity()"
+    (decrement)="decrementQuantity()"
+    (remove)="removeItem()"
+    (addToCart)="addToCart()"
+  ></app-add-to-cart-bar>
 </div>
 
 <!-- Loading State -->

@@ -193,6 +193,7 @@ import {
                 formControlName="image_url"
                 label="URL de l'image"
                 placeholder="https://..."
+                [folder]="currentVendorId"
               ></app-image-upload>
 
               <mat-form-field appearance="fill">

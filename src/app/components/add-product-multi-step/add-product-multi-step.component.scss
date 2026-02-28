@@ -10,6 +10,7 @@
   padding: 32px;
   display: flex;
   flex-direction: column;
+  min-height: calc(100vh - 64px);
 
   .product-header {
     margin-bottom: 24px;
@@ -295,223 +296,157 @@
   }
 }
 
-// Quantity Controls and Add to Cart Section
-.add-to-cart-section {
-  background-color: var(--mat-sys-surface-container);
-  position: sticky;
-  width: 100%;
-  max-width: calc(1440px - 282px);
-  bottom: 0;
-  left: 282px;
-  right: 16px;
-  padding: 16px;
-  z-index: 1001;
-  display: flex;
-  align-items: center;
-  gap: 16px;
 
-  .quantity-controls {
-    display: flex;
-    align-items: center;
-
-    .quantity-buttons {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-
-      .quantity-button {
-        width: 56px;
-        height: 56px;
-        min-height: 56px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        mat-icon {
-          font-size: 20px;
-          height: 20px;
-          width: 20px;
-        }
-      }
-
-      .quantity-value {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: var(--mat-on-surface);
-        min-width: 24px;
-        text-align: center;
-      }
-    }
-
-    .stock-limit-hint {
-      text-align: center;
-      color: #f44336;
-      font-size: 0.85rem;
-      margin-top: 4px;
-    }
+// Summary Step Styles
+@keyframes summaryRowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-
-  .add-to-cart-button {
-    flex: 1;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-
-    .button-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-
-      .button-text {
-        font-size: 1rem;
-        font-weight: 600;
-      }
-
-      .button-price {
-        font-size: 0.85rem;
-        opacity: 0.8;
-      }
-    }
-
-    mat-icon {
-      font-size: 20px;
-      height: 20px;
-      width: 20px;
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-// Summary Step Styles - Material Card + Flexbox
 .summary-container {
-  padding: 8px 0;
+  padding: 4px 0;
 
   .summary-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 0;
 
-    .summary-card {
+    .summary-header {
       display: flex;
-      flex-direction: column;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      transition: box-shadow 0.3s ease;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 16px;
+      margin-bottom: 4px;
+      border-bottom: 2px solid var(--mat-sys-primary);
 
-      &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      .summary-header-icon {
+        font-size: 22px;
+        height: 22px;
+        width: 22px;
+        color: var(--mat-sys-primary);
       }
 
-      mat-card-header {
-        background-color: var(--mat-sys-surface-container-low);
-        padding: 12px 16px;
+      .summary-header-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--mat-sys-on-surface);
+        letter-spacing: 0.01em;
+      }
+    }
 
-        mat-card-title {
-          font-size: 1rem;
+    .summary-items {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary-row {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+      animation: summaryRowSlideIn 0.3s ease-out both;
+
+      .summary-row-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+
+        .summary-step-index {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background-color: var(--mat-sys-primary);
+          color: var(--mat-sys-on-primary);
+          font-size: 0.7rem;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
+        .summary-step-name {
+          font-size: 0.8rem;
           font-weight: 600;
-          color: var(--mat-sys-primary);
-          margin: 0;
+          color: var(--mat-sys-on-surface-variant);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
         }
       }
 
-      mat-card-content {
-        padding: 16px;
+      .summary-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-left: 32px;
 
-        .options-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
+        .summary-option-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 20px;
+          background-color: var(--mat-sys-primary-container);
+          transition: transform 0.15s ease;
 
-          .option-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px;
+          &:hover {
+            transform: scale(1.03);
+          }
+
+          .chip-icon {
+            font-size: 16px;
+            height: 16px;
+            width: 16px;
+            color: var(--mat-sys-primary);
+          }
+
+          .chip-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--mat-sys-on-primary-container);
+          }
+
+          .chip-price {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 1px 6px;
             border-radius: 8px;
-            background-color: var(--mat-sys-surface-container);
-            transition: background-color 0.2s ease;
 
-            &:hover {
-              background-color: var(--mat-sys-surface-container-high);
+            &.positive {
+              color: var(--mat-sys-error);
+              background-color: var(--mat-sys-error-container, #ffebee);
             }
-
-            .option-thumbnail {
-              width: 48px;
-              height: 48px;
-              object-fit: cover;
-              border-radius: 6px;
-              flex-shrink: 0;
-              cursor: zoom-in;
-              transition: transform 0.2s ease;
-
-              &:hover {
-                transform: scale(1.1);
-              }
-            }
-
-            .option-name {
-              font-size: 0.95rem;
-              color: var(--mat-sys-on-surface);
-              flex: 1;
-            }
-
-            .spacer {
-              flex: 1;
-            }
-
-            .option-price {
-              font-size: 0.9rem;
-              font-weight: 600;
-              padding: 4px 12px;
-              border-radius: 16px;
-              white-space: nowrap;
-
-              &.positive {
-                color: var(--mat-sys-error);
-                background-color: var(--mat-sys-error-container, #ffebee);
-              }
-              &.negative {
-                color: var(--mat-sys-success, #4caf50);
-                background-color: var(--mat-sys-success-container, #e8f5e8);
-              }
-              &.neutral {
-                color: var(--mat-sys-on-surface-variant);
-                background-color: var(--mat-sys-surface-variant);
-                font-style: italic;
-              }
+            &.negative {
+              color: var(--mat-sys-tertiary);
+              background-color: var(--mat-sys-tertiary-container);
             }
           }
         }
       }
     }
 
-    .total-card {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      border: 2px solid var(--mat-sys-primary);
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0 4px;
+      margin-top: 4px;
 
-      mat-card-content {
-        padding: 20px;
+      .summary-total-label {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--mat-sys-on-surface);
+      }
 
-        .total-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-
-          .total-label {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--mat-sys-on-surface);
-          }
-
-          .total-amount {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--mat-sys-primary);
-          }
-        }
+      .summary-total-amount {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--mat-sys-primary);
       }
     }
   }
@@ -624,105 +559,47 @@
       }
     }
 
-    // Responsive styles for add-to-cart section
-    .add-to-cart-section {
-      flex-direction: column;
-      width: 100%;
-      padding: 12px;
-      gap: 12px;
-      right: 12px;
-
-      .quantity-controls {
-        .quantity-buttons {
-          gap: 12px;
-
-          .quantity-value {
-            font-size: 1.1rem;
-            min-width: 20px;
-          }
-        }
-      }
-
-      .add-to-cart-button {
-        width: 100%;
-        height: 44px;
-        font-size: 0.95rem;
-
-        .button-content {
-          .button-text {
-            font-size: 0.95rem;
-          }
-
-          .button-price {
-            font-size: 0.8rem;
-          }
-        }
-
-        mat-icon {
-          font-size: 18px;
-          height: 18px;
-          width: 18px;
-        }
-      }
-    }
-
     // Responsive styles for summary section
     .summary-container {
       .summary-content {
-        gap: 12px;
+        .summary-row {
+          padding: 10px 0;
 
-        .summary-card {
-          mat-card-header {
-            padding: 10px 12px;
+          .summary-row-header {
+            gap: 8px;
+            margin-bottom: 6px;
 
-            mat-card-title {
-              font-size: 0.9rem;
+            .summary-step-index {
+              width: 20px;
+              height: 20px;
+              font-size: 0.65rem;
+            }
+
+            .summary-step-name {
+              font-size: 0.75rem;
             }
           }
 
-          mat-card-content {
-            padding: 12px;
+          .summary-options {
+            padding-left: 28px;
+            gap: 6px;
 
-            .options-list {
-              gap: 8px;
+            .summary-option-chip {
+              padding: 4px 10px;
+              gap: 4px;
 
-              .option-item {
-                padding: 6px;
-                gap: 8px;
-
-                .option-thumbnail {
-                  width: 40px;
-                  height: 40px;
-                }
-
-                .option-name {
-                  font-size: 0.85rem;
-                }
-
-                .option-price {
-                  font-size: 0.8rem;
-                  padding: 3px 8px;
-
-                  &.neutral {
-                    font-size: 0.75rem;
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        .total-card {
-          mat-card-content {
-            padding: 16px;
-
-            .total-content {
-              .total-label {
-                font-size: 1.1rem;
+              .chip-icon {
+                font-size: 14px;
+                height: 14px;
+                width: 14px;
               }
 
-              .total-amount {
-                font-size: 1.3rem;
+              .chip-label {
+                font-size: 0.8rem;
+              }
+
+              .chip-price {
+                font-size: 0.72rem;
               }
             }
           }

@@ -68,6 +68,7 @@ import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData
 import { ProductService, Product } from '../../services/product.service';
 import { Customisation } from '../../models/customisation.interface';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { AddToCartBarComponent } from '../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
 import { ActivatedRoute } from '@angular/router';
 
 // Interface for summary data
@@ -106,6 +107,7 @@ interface OptionCustomisationSelection {
     LayoutModule,
     ProductOptionCardComponent,
     VendorCurrencyPipe,
+    AddToCartBarComponent,
   ],
   templateUrl: './add-product-multi-step.component.html',
   styleUrls: ['./add-product-multi-step.component.scss'],

@@ -1167,6 +1167,7 @@ export class CategoryListComponent implements OnInit, OnDestroy {
           formControlName="image_url"
           label="Image de la catégorie"
           placeholder="https://..."
+          [folder]="currentVendorId"
         ></app-image-upload>
 
         <mat-form-field appearance="fill">

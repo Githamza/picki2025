@@ -225,24 +225,15 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
               }}</span>
             </div>
           }
-          <div class="total-row">
-            <div class="total-row-content">
-              <mat-icon class="total-icon">receipt</mat-icon>
-              <span>Total:</span>
-            </div>
-            <span class="total-price price-value">{{
-              getTotal(items ?? []) | vendorCurrency
-            }}</span>
-          </div>
         }
-        <button
+        <!-- <button
          matButton="tonal"
           color="primary"
           class="checkout-btn"
           (click)="goToCartDetails()"
         >
           Modifier mon panier
-        </button>
+        </button>  -->
         <button
           mat-flat-button
           color="accent"
@@ -250,7 +241,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
           [disabled]="(ordersSuspended$ | async) || restaurantStatusService.closedForDay()"
           (click)="checkout()"
         >
-          Valider ma commande
+          Valider ma commande - {{  getTotal((cartItems$ | async) || []) | vendorCurrency }}
         </button>
       </div>
     </div>

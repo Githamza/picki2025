@@ -57,57 +57,16 @@
       <mat-hint>Précisez vos préférences pour ce produit</mat-hint>
     </mat-form-field>
   </div>
-  <div class="add-to-cart">
-    <div class="inner-add-container">
-      <div class="quantity-controls">
-        <div class="quantity-buttons">
-          <button
-            mat-fab
-            color="warn"
-            aria-label="Remove item or decrease quantity"
-            (click)="quantity === 1 ? onRemoveItem() : onDecrementQuantity()"
-            class="quantity-button"
-          >
-            <mat-icon>{{ quantity === 1 ? "delete" : "remove" }}</mat-icon>
-          </button>
-
-          <span class="quantity-value">{{ quantity }}</span>
-
-          <button
-            mat-fab
-            color="primary"
-            aria-label="Increase quantity"
-            (click)="onIncrementQuantity()"
-            class="quantity-button"
-            [disabled]="isStockLimitReached()"
-          >
-            <mat-icon>add</mat-icon>
-          </button>
-        </div>
-        <div class="stock-limit-hint" *ngIf="isStockLimitReached()">
-          {{ product.stockQuantity }} disponible(s){{
-            cartQuantityForProduct > 0
-              ? " (dont " + cartQuantityForProduct + " dans le panier)"
-              : ""
-          }}
-        </div>
-      </div>
-      <button
-        mat-flat-button
-        color="primary"
-        class="add-to-cart-button"
-        (click)="onAddToCart()"
-      >
-        <mat-icon>shopping_cart</mat-icon>
-        <div class="button-content">
-          <span class="button-text">
-            {{ product.hasCustomisations && productCustomisations.length > 0 ? 'Personnaliser et ajouter' : 'Ajouter au panier' }}
-            <span *ngIf="totalPrice > 0">
-              {{ totalPrice | vendorCurrency }}
-            </span>
-          </span>
-        </div>
-      </button>
-    </div>
-  </div>
+  <app-add-to-cart-bar
+    [quantity]="quantity"
+    [totalPrice]="totalPrice * quantity"
+    [buttonText]="product.hasCustomisations && productCustomisations.length > 0 ? 'Personnaliser et ajouter' : 'Ajouter'"
+    [stockLimitReached]="isStockLimitReached()"
+    [stockQuantity]="product.stockQuantity ?? null"
+    [cartQuantityForProduct]="cartQuantityForProduct"
+    (increment)="onIncrementQuantity()"
+    (decrement)="onDecrementQuantity()"
+    (remove)="onRemoveItem()"
+    (addToCart)="onAddToCart()"
+  ></app-add-to-cart-bar>
 </div>

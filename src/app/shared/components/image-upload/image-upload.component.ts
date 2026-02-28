@@ -230,6 +230,7 @@ export class ImageUploadComponent implements ControlValueAccessor {
   @Input() label = "URL de l'image";
   @Input() placeholder = 'https://...';
   @Input() bucket = 'productsophotos';
+  @Input() folder?: string;
 
   private supabaseService = inject(SupabaseService);
   private snackBar = inject(MatSnackBar);
@@ -322,7 +323,8 @@ export class ImageUploadComponent implements ControlValueAccessor {
       // Upload new image
       const imageUrl = await this.supabaseService.uploadImage(
         file,
-        this.bucket
+        this.bucket,
+        this.folder
       );
 
       clearInterval(progressInterval);

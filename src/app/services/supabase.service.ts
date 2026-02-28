@@ -710,13 +710,14 @@ export class SupabaseService implements OnDestroy {
   // Storage methods
   async uploadImage(
     file: File,
-    bucket: string = 'productsophotos'
+    bucket: string = 'productsophotos',
+    folder?: string
   ): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random()
       .toString(36)
       .substring(2)}.${fileExt}`;
-    const filePath = fileName;
+    const filePath = folder ? `${folder}/${fileName}` : fileName;
 
     const { data, error } = await this.supabase.storage
       .from(bucket)
@@ -738,13 +739,15 @@ export class SupabaseService implements OnDestroy {
     url: string,
     bucket: string = 'productsophotos'
   ): Promise<void> {
-    // Extract filename from URL
-    const urlParts = url.split('/');
-    const fileName = urlParts[urlParts.length - 1];
+    // Extract file path from URL (supports vendor subdirectories)
+    const bucketIndex = url.indexOf(`/${bucket}/`);
+    const filePath = bucketIndex !== -1
+      ? url.substring(bucketIndex + bucket.length + 2)
+      : url.split('/').pop()!;
 
     const { error } = await this.supabase.storage
       .from(bucket)
-      .remove([fileName]);
+      .remove([filePath]);
 
     if (error) {
       throw error;

@@ -1050,7 +1050,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
   products: ProductAdmin[] = [];
   isEditMode = false;
   saving = false;
-  currentVendorId: string = '';
+  currentVendorId: string = this.vendorService.getCurrentVendor()?.id || '';
   expandedStepIndex = 0;
 
   // Step management

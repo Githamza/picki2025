@@ -1020,7 +1020,7 @@ export class CategoryListComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(CategoryEditDialogComponent, {
       width: '500px',
       maxWidth: '90vw',
-      data: { category },
+      data: { category, vendorId: this.currentVendorId },
     });
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -1167,7 +1167,7 @@ export class CategoryListComponent implements OnInit, OnDestroy {
           formControlName="image_url"
           label="Image de la catégorie"
           placeholder="https://..."
-          [folder]="currentVendorId"
+          [folder]="vendorId"
         ></app-image-upload>
 
         <mat-form-field appearance="fill">
@@ -1270,6 +1270,7 @@ export class CategoryEditDialogComponent implements OnInit {
   categoryForm: FormGroup;
   isEditMode = false;
   saving = false;
+  vendorId: string = this.data.vendorId || '';
 
   constructor() {
     this.categoryForm = this.createForm();

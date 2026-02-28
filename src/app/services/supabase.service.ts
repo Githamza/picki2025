@@ -740,10 +740,13 @@ export class SupabaseService implements OnDestroy {
     bucket: string = 'productsophotos'
   ): Promise<void> {
     // Extract file path from URL (supports vendor subdirectories)
-    const bucketIndex = url.indexOf(`/${bucket}/`);
-    const filePath = bucketIndex !== -1
-      ? url.substring(bucketIndex + bucket.length + 2)
-      : url.split('/').pop()!;
+    const marker = `/${bucket}/`;
+    const bucketIndex = url.indexOf(marker);
+    if (bucketIndex === -1) {
+      console.warn('deleteImage: could not extract path from URL, skipping delete:', url);
+      return;
+    }
+    const filePath = url.substring(bucketIndex + marker.length);
 
     const { error } = await this.supabase.storage
       .from(bucket)

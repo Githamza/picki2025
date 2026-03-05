@@ -5,7 +5,7 @@
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  min-height: calc(100vh - 64px); // Account for toolbar
+  //min-height: calc(100vh - 64px); // Account for toolbar
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -142,11 +142,10 @@
   }
 }
 
-
 @media (max-width: 768px) {
   .product-add-container {
     padding: 16px;
-    min-height: calc(100vh - 56px);
+    //min-height: calc(100vh - 56px);
   }
 
   .product-header {
@@ -377,4 +376,3 @@
     }
   }
 }
-

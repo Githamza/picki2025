@@ -309,14 +309,13 @@ export class DiningPreferenceSelectorComponent implements OnInit {
     this.emitChange();
   }
 
-  onAddressSelected(placeId: string): void {
+  async onAddressSelected(placeId: string): Promise<void> {
     if (this.deliverySystem() === 'own') {
-      void this.deliverySelection.setAddressOnlyFromPlaceId(placeId);
+      await this.deliverySelection.setAddressOnlyFromPlaceId(placeId);
     } else {
-      void this.deliverySelection.setAddressFromPlaceId(placeId);
+      await this.deliverySelection.setAddressFromPlaceId(placeId);
     }
-    // Emit after a short delay to allow delivery selection to update
-    setTimeout(() => this.emitChange(), 100);
+    this.emitChange();
   }
 
   getBusinessHoursHint(): string | null {

@@ -397,7 +397,7 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
-  async upsertVendorBanner(vendorId: string, imageUrl: string) {
+  async upsertVendorBanner(vendorId: string, imageUrl: string, title?: string) {
     // First check if a banner already exists for this vendor
     const existing = await this.getVendorBanner(vendorId);
 
@@ -407,6 +407,7 @@ export class SupabaseAuthService implements OnDestroy {
         .from('banners')
         .update({
           image_url: imageUrl,
+          title: title ?? null,
           is_active: true,
           updated_at: new Date().toISOString(),
         })
@@ -423,6 +424,7 @@ export class SupabaseAuthService implements OnDestroy {
         .insert({
           vendor_id: vendorId,
           image_url: imageUrl,
+          title: title ?? null,
           is_active: true,
           display_order: 0,
         })

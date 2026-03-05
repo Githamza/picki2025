@@ -13,7 +13,7 @@ export class GooglePlacesAutocompleteService {
     return new Promise((resolve, reject) => {
       const service = new google.maps.places.AutocompleteService();
       service.getPlacePredictions(
-        { input, componentRestrictions: { country: ['fr'] } },
+        { input, componentRestrictions: { country: ['fr','be'] } },
         (predictions, status) => {
           if (
             status !== google.maps.places.PlacesServiceStatus.OK ||

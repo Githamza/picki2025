@@ -386,9 +386,9 @@ export class VendorService {
     }
   }
 
-  async upsertVendorBanner(vendorId: string, imageUrl: string): Promise<void> {
+  async upsertVendorBanner(vendorId: string, imageUrl: string, title?: string): Promise<void> {
     try {
-      await this.supabaseAuthService.upsertVendorBanner(vendorId, imageUrl);
+      await this.supabaseAuthService.upsertVendorBanner(vendorId, imageUrl, title);
     } catch (error) {
       console.error('Error updating vendor banner:', error);
       throw error;

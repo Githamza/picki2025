@@ -6,6 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { VendorService } from '../../../../services/vendor.service';
 import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
@@ -22,6 +24,8 @@ import { ImageUploadComponent } from '../../../../shared/components/image-upload
     MatButtonModule,
     MatDividerModule,
     MatSnackBarModule,
+    MatFormFieldModule,
+    MatInputModule,
     ImageUploadComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +60,15 @@ import { ImageUploadComponent } from '../../../../shared/components/image-upload
               placeholder="https://... ou téléchargez une image"
               [folder]="vendorId"
             ></app-image-upload>
+            <mat-form-field appearance="fill" class="banner-title-field">
+              <mat-label>Texte de la bannière</mat-label>
+              <input
+                matInput
+                formControlName="bannerTitle"
+                placeholder="Ex: Bienvenue chez nous !"
+              />
+              <mat-hint>Ce texte s'affiche sur la bannière</mat-hint>
+            </mat-form-field>
           </div>
 
           <mat-divider class="branding-divider"></mat-divider>
@@ -161,6 +174,10 @@ import { ImageUploadComponent } from '../../../../shared/components/image-upload
       display: block;
     }
 
+    .banner-title-field {
+      width: 100%;
+    }
+
     .branding-divider {
       margin: 8px 0;
     }
@@ -181,6 +198,7 @@ export class ApparenceComponent implements OnInit {
     this.vendorId = this.vendorService.getCurrentVendor()?.id || '';
     this.form = this.fb.group({
       bannerUrl: [this.dataService.bannerUrl()],
+      bannerTitle: [this.dataService.bannerTitle()],
       logoUrl: [info?.vendor.logo_url || ''],
     });
   }
@@ -192,10 +210,11 @@ export class ApparenceComponent implements OnInit {
       if (!currentVendor) throw new Error('No vendor selected');
 
       const bannerUrl = this.form.value.bannerUrl || '';
+      const bannerTitle = this.form.value.bannerTitle || '';
       const logoUrl = this.form.value.logoUrl || '';
 
       if (bannerUrl) {
-        await this.vendorService.upsertVendorBanner(currentVendor.id, bannerUrl);
+        await this.vendorService.upsertVendorBanner(currentVendor.id, bannerUrl, bannerTitle);
       }
 
       if (logoUrl !== currentVendor.logo_url) {
@@ -215,6 +234,7 @@ export class ApparenceComponent implements OnInit {
     const info = this.dataService.restaurantInfo();
     this.form.patchValue({
       bannerUrl: this.dataService.bannerUrl(),
+      bannerTitle: this.dataService.bannerTitle(),
       logoUrl: info?.vendor.logo_url || '',
     });
     this.snackBar.open('Modifications annulées', 'Fermer', { duration: 2000 });

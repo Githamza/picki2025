@@ -12,8 +12,8 @@ export const environment = {
   // Local Supabase (started via `npx supabase start`) runs the API gateway on 54321.
   // This makes the frontend call local Edge Functions during development:
   //   http://127.0.0.1:54321/functions/v1/<function-name>
-  backendUrl: 'http://127.0.0.1:54321',
-  // backendUrl: 'https://ajblxmolmmvvnobpzzhr.supabase.co', // Your backend API URL
+  // backendUrl: 'http://127.0.0.1:54321',
+  backendUrl: 'https://ajblxmolmmvvnobpzzhr.supabase.co', // Your backend API URL
 
   supabase: {
     // url: 'http://127.0.0.1:54321',

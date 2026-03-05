@@ -44,6 +44,7 @@ import { SupabaseService } from '../../../services/supabase.service';
         <div class="image-actions">
           <button
             mat-icon-button
+            type="button"
             color="warn"
             (click)="removeImage()"
             [disabled]="uploading()"
@@ -68,6 +69,7 @@ import { SupabaseService } from '../../../services/supabase.service';
           />
           <button
             mat-icon-button
+            type="button"
             matSuffix
             (click)="fileInput.click()"
             [disabled]="uploading()"

@@ -34,13 +34,21 @@ export const environment = {
       providerClientKey: '6TmZGBm3tkAoZGgd90njFzO2pJqvsgLdpiFdgHR6SmE',
       providerSecretKey: 'Kw6gRkrfU8hz7bUfQ3gwGmzVUEFgkoQLh3vaPr2fj9o',
     },
+    {
+      // Just Eat DaaS credentials are stored as Supabase secrets:
+      // JUST_EAT_DAAS_CLIENT_ID and JUST_EAT_DAAS_CLIENT_SECRET
+      // Set via: supabase secrets set JUST_EAT_DAAS_CLIENT_ID=... JUST_EAT_DAAS_CLIENT_SECRET=...
+      providerName: 'JustEat',
+      providerClientKey: '',
+      providerSecretKey: '',
+    },
   ],
   googleMapsApiKey: 'AIzaSyA8QsSphYIuzHefgxTLJRvBC7UQJPp2it4',
   // Temporary toggle to force a specific delivery provider during development/testing.
-  // Accepted values: 'uber' | 'stuart' | 'all' | 'auto'
-  // - 'uber' or 'stuart': only that provider will be registered
-  // - 'all' | 'auto' (default): both providers will be available and the app selects the best
-  deliveryProviderOverride: 'uber',
+  // Accepted values: 'uber' | 'stuart' | 'just-eat' | 'all' | 'auto'
+  // - 'uber', 'stuart', or 'just-eat': only that provider will be registered
+  // - 'all' | 'auto' (default): all registered providers compete; the app selects the best quote
+  deliveryProviderOverride: 'uber' as 'uber' | 'stuart' | 'just-eat' | 'all' | 'auto',
   
   // PayGreen Sandbox Mode
   // When true:

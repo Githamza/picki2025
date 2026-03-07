@@ -1,19 +1,29 @@
 import { Injectable, inject } from '@angular/core';
 import { GooglePlacesService } from './google-places.service';
+import { VendorService } from './vendor.service';
 import { Address, Coordinates } from './delivery/delivery.types';
 
 @Injectable({ providedIn: 'root' })
 export class GooglePlacesAutocompleteService {
   readonly loader = inject(GooglePlacesService);
+  private vendorService = inject(VendorService);
+
+  private getVendorCountryCode(): string {
+    const vendor = this.vendorService.getCurrentVendor();
+    const country = vendor?.country?.toString().trim().toUpperCase();
+    // Default to FR if no country is set
+    return country || 'FR';
+  }
 
   async getPredictions(
     input: string
   ): Promise<google.maps.places.AutocompletePrediction[]> {
     await this.loader.load();
+    const countryCode = this.getVendorCountryCode();
     return new Promise((resolve, reject) => {
       const service = new google.maps.places.AutocompleteService();
       service.getPlacePredictions(
-        { input, componentRestrictions: { country: ['fr','be'] } },
+        { input, componentRestrictions: { country: [countryCode.toLowerCase()] } },
         (predictions, status) => {
           if (
             status !== google.maps.places.PlacesServiceStatus.OK ||

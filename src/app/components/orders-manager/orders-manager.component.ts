@@ -528,6 +528,50 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
                   raw: data.raw ?? null,
                 }
               );
+            } else if (providerId === 'just-eat') {
+              // Just Eat DaaS: dispatch using the requestId saved at checkout time.
+              // The requestId was stored in delivery.raw.requestId during the quote step.
+              const requestId = (delivery.raw as any)?.requestId;
+              if (!requestId) {
+                console.error(
+                  '[JustEat] Cannot dispatch: no requestId found in delivery.raw for order',
+                  order.id
+                );
+              } else {
+                // Compute order value in cents for Just Eat (totalAmount is already in cents)
+                const orderValueCents = Math.round((order.totalAmount ?? 0) * 100);
+
+                const data = (await this.http
+                  .post(
+                    `${environment.backendUrl}/functions/v1/just-eat-delivery`,
+                    {
+                      action: 'create',
+                      requestId,
+                      vendorId: this.vendorService.getCurrentVendor()?.id,
+                      vendorOrderId: String(order.id).slice(0, 20),
+                      orderValue: orderValueCents,
+                    },
+                    {
+                      headers: {
+                        'Content-Type': 'application/json',
+                        apikey: environment.supabase.anonKey,
+                        Authorization: `Bearer ${environment.supabase.anonKey}`,
+                      },
+                    }
+                  )
+                  .toPromise()) as any;
+
+                await this.supabaseAuthService.updateOrderDeliveryAfterCreation(
+                  order.id,
+                  {
+                    job_id: null,
+                    delivery_id: data.deliveryId ?? requestId,
+                    tracking_url: data.trackingUrl ?? null,
+                    status: 'created',
+                    raw: data.raw ?? null,
+                  }
+                );
+              }
             }
           }
         }

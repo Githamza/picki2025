@@ -214,6 +214,18 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
             </div>
           }
 
+          @if (getDeliveryFee(items ?? []); as deliveryFee) {
+            <div class="fee-row">
+              <div class="fee-row-content">
+                <mat-icon class="fee-icon">local_shipping</mat-icon>
+                <span>Frais de livraison:</span>
+              </div>
+              <span class="fee-price price-value">{{
+                deliveryFee | vendorCurrency
+              }}</span>
+            </div>
+          }
+
           @if (getServiceFee(items ?? []); as serviceFee) {
             <div class="fee-row">
               <div class="fee-row-content">
@@ -624,6 +636,26 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
+  getDeliveryFee(items: CartItem[]): number {
+    if (this.diningPreferenceService.diningPreference() !== 'delivery') {
+      return 0;
+    }
+    // 1. Check if delivery fee is already in the cart as a virtual item
+    const deliveryItem = items.find((item) => item.product.id === -9999);
+    if (deliveryItem) {
+      return deliveryItem.totalPrice || deliveryItem.product.price * deliveryItem.quantity;
+    }
+    // 2. Vendor uses own delivery with fixed price
+    const vendor = this.vendorService.getCurrentVendor();
+    if ((vendor as any)?.delivery_system === 'own') {
+      const amount = Number((vendor as any)?.own_delivery_price ?? 0);
+      return Number.isFinite(amount) && amount > 0 ? amount : 0;
+    }
+    // 3. Picki delivery: use best quote from delivery selection service
+    const best = this.deliverySelection.bestOption();
+    return best ? best.totalAmount / 100 : 0;
+  }
+
   getServiceFee(items: CartItem[]): number {
     const subtotal = this.getSubtotal(items);
     if (subtotal <= 0) {
@@ -638,7 +670,13 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
 
   getTotal(items: CartItem[]): number {
     const subtotal = this.getSubtotal(items);
-    return subtotal + this.getServiceFee(items);
+    let total = subtotal + this.getServiceFee(items);
+    // Add delivery fee if not already included as a cart item
+    const hasDeliveryCartItem = items.some((item) => item.product.id === -9999);
+    if (!hasDeliveryCartItem) {
+      total += this.getDeliveryFee(items);
+    }
+    return total;
   }
 
   getItemPrice(item: CartItem): number {
@@ -947,6 +985,13 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
 
       const bestOption = this.deliverySelection.bestOption();
 
+      // Delivery fee is retained by Picki as platform fee to cover courier cost.
+      // Only applies to delivery orders with a 'picki' delivery system.
+      const isPickiDelivery =
+        diningPref === 'delivery' &&
+        (currentVendor as any)?.delivery_system !== 'own';
+      const deliveryFee = isPickiDelivery ? this.getDeliveryFee(items) : 0;
+
       // Create unified payment request with order reference
       const paymentRequest: PaymentRequest = {
         amount: totalAmount,
@@ -969,6 +1014,8 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
           orderSource: 'cart-sheet',
           // Note: Stripe metadata must be flat strings, so we intentionally avoid nested objects here.
         },
+        // Picki retains the delivery fee from Stripe via application_fee_amount
+        platformFeeAmount: deliveryFee,
       };
 
       console.log(`Processing payment with ${currentProvider}...`);

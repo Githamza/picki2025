@@ -13,6 +13,10 @@ type CreateCheckoutSessionBody = {
   cancel_url: string;
   customer_email?: string;
   metadata?: Record<string, string>;
+  // Picki platform fee in minor units (cents). Retained by Picki's platform
+  // account via Stripe Connect application_fee_amount. Used to recover
+  // delivery courier costs. Vendor receives (total - applicationFeeAmountCents).
+  applicationFeeAmountCents?: number;
 };
 
 const corsHeaders: Record<string, string> = {
@@ -158,12 +162,21 @@ serve(async (req) => {
     params.set(`line_items[${i}][quantity]`, String(quantity));
   }
 
-  // Stripe Connect destination charge
+  // Stripe Connect destination charge — vendor receives total minus application fee.
+  // application_fee_amount is in minor currency units (cents) and is retained
+  // by Picki's platform account to cover delivery courier costs.
+  const applicationFeeAmountCents = Math.max(
+    0,
+    Math.round(Number(body.applicationFeeAmountCents ?? 0))
+  );
   params.set(
     'payment_intent_data[transfer_data][destination]',
     connectedAccountId
   );
-  params.set('payment_intent_data[application_fee_amount]', '0');
+  params.set(
+    'payment_intent_data[application_fee_amount]',
+    String(applicationFeeAmountCents)
+  );
 
   const metadata = body.metadata || {};
   for (const [key, value] of Object.entries(metadata)) {

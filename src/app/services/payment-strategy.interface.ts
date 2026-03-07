@@ -19,6 +19,11 @@ export interface PaymentRequest {
   metadata?: any;
   vendorId?: string; // For marketplace payments
   reference?: string; // Reference to the created order
+  // Amount Picki retains from this payment (e.g. delivery fee).
+  // In major currency units (e.g. euros). Stripe converts to cents internally.
+  // When set, Stripe Connect routes this amount to Picki's platform account
+  // and the remainder (amount - platformFeeAmount) goes to the vendor.
+  platformFeeAmount?: number;
 }
 
 export interface PaymentResponse {

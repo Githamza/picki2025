@@ -35,6 +35,7 @@ import { multiStepProductReducer } from './store/reducers/multi-step-product.red
 import { DELIVERY_PROVIDERS } from './services/delivery/delivery.tokens';
 import { UberDeliveryProvider } from './services/delivery/uber-delivery.provider';
 import { StuartDeliveryProvider } from './services/delivery/stuart-delivery.provider';
+import { JustEatDeliveryProvider } from './services/delivery/just-eat-delivery.provider';
 import { environment } from '../environments/environment';
 
 // Register French locale
@@ -89,6 +90,17 @@ export const appConfig: ApplicationConfig = {
           {
             provide: DELIVERY_PROVIDERS,
             useClass: StuartDeliveryProvider,
+            multi: true,
+          },
+        ]
+      : []),
+    ...(environment.deliveryProviderOverride === 'just-eat' ||
+    environment.deliveryProviderOverride === 'all' ||
+    environment.deliveryProviderOverride === 'auto'
+      ? [
+          {
+            provide: DELIVERY_PROVIDERS,
+            useClass: JustEatDeliveryProvider,
             multi: true,
           },
         ]

@@ -153,7 +153,7 @@ export class DeliverySelectionService {
       line1: info.address.street,
       postalCode: info.address.postal_code,
       city: info.address.city,
-      countryCode: 'FR',
+      countryCode: info.address.country === 'Belgique' ? 'BE' : 'FR',
       coordinates: coords
         ? { lat: coords.lat(), lng: coords.lng() }
         : undefined,

@@ -71,6 +71,11 @@ export class StripePaymentStrategy implements PaymentStrategy {
       cancel_url: cancelUrl,
       customer_email: request.buyer.email,
       metadata: stripeMetadata,
+      // Convert platform fee from major units (euros) to cents for Stripe
+      applicationFeeAmountCents:
+        request.platformFeeAmount && request.platformFeeAmount > 0
+          ? Math.round(request.platformFeeAmount * 100)
+          : 0,
     };
 
     return this.stripeService.createCheckoutSession(checkoutRequest).pipe(

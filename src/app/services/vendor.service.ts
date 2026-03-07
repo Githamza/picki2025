@@ -269,6 +269,7 @@ export class VendorService {
   // Set current vendor directly (used after authentication)
   setCurrentVendor(vendor: Vendor): void {
     this.currentVendorSubject.next(vendor);
+    this.supabaseAuthService.setCurrentVendorId(vendor.id);
     this.updateOrdersSuspendedStatus([vendor]);
   }
 

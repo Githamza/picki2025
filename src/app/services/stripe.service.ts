@@ -44,6 +44,10 @@ export interface StripeCheckoutCreateRequest {
   cancel_url: string;
   customer_email?: string;
   metadata?: Record<string, string>;
+  // Picki platform fee in minor units (cents). Passed directly to Stripe
+  // application_fee_amount so this amount is retained by Picki's platform
+  // account. Set to the delivery fee amount so Picki can cover courier costs.
+  applicationFeeAmountCents?: number;
 }
 
 export interface StripeCheckoutGetRequest {

@@ -12,6 +12,7 @@ import * as MultiStepProductActions from '../actions/multi-step-product.actions'
 import * as CartActions from '../actions/cart.actions';
 import { ProductService } from '../../services/product.service';
 import { SupabaseService } from '../../services/supabase.service';
+import { VendorService } from '../../services/vendor.service';
 import {
   ProductStep,
   ProductStepOption,
@@ -19,12 +20,14 @@ import {
 } from '../../models/multi-step-product.model';
 import { Store } from '@ngrx/store';
 import { selectMultiStepConfiguration } from '../selectors/multi-step-product.selectors';
+import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
 
 @Injectable()
 export class MultiStepProductEffects {
   private actions$ = inject(Actions);
   private productService = inject(ProductService);
   private supabaseService = inject(SupabaseService);
+  private vendorService = inject(VendorService);
   private store = inject(Store);
 
   initializeMultiStepProduct$ = createEffect(() =>
@@ -37,12 +40,16 @@ export class MultiStepProductEffects {
               throw new Error('Product not found');
             }
 
+            const defaultVatRate = getDefaultVatRate(
+              this.vendorService.getCurrentVendor()?.country
+            );
+
             // Transform the database product to our Product interface
             const baseProduct = {
               id: productData.id,
               name: productData.name,
               price: Number(productData.price),
-              tvaRate: Number(productData.tva_rate) || 10,
+              tvaRate: Number(productData.tva_rate) || defaultVatRate,
               imageUrl: productData.image_url || '',
               categoryId: productData.category_id || 0,
               description: productData.short_description || '',
@@ -144,6 +151,10 @@ export class MultiStepProductEffects {
     configuration: any,
     optionCustomisationSelections?: Map<string, Map<number, number[]>>
   ): Promise<CartMultiStepMetadata> {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
+
     const stepSelections = await Promise.all(
       configuration.steps.map(async (step: ProductStep) => {
         const selection = configuration.selections[step.id];
@@ -213,7 +224,7 @@ export class MultiStepProductEffects {
               productId: option.productId,
               priceAdjustment: option.priceAdjustment,
               alaCartePrice: option.alaCartePrice || 0,
-              tvaRate: option.tvaRate ?? 10,
+              tvaRate: option.tvaRate ?? defaultVatRate,
               customisationSelections: customisationSelectionsForOption,
             };
           })
@@ -230,7 +241,7 @@ export class MultiStepProductEffects {
     return {
       baseProductId: configuration.baseProduct.id,
       baseProductPrice: configuration.baseProduct.price || 0,
-      baseProductTvaRate: configuration.baseProduct.tvaRate ?? 10,
+      baseProductTvaRate: configuration.baseProduct.tvaRate ?? defaultVatRate,
       stepSelections: stepSelections.filter(
         (stepSelection) => stepSelection.selectedOptions.length > 0
       ),
@@ -240,6 +251,10 @@ export class MultiStepProductEffects {
 
   // Transform database step data to our ProductStep model
   private transformStepData(stepData: any[]): ProductStep[] {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
+
     return stepData
       .map((step) => ({
         id: step.id,
@@ -271,7 +286,9 @@ export class MultiStepProductEffects {
           stockQuantity: option.option_product?.stock_quantity ?? null,
           // Pro-rata TVA calculation fields
           alaCartePrice: option.option_product?.price ? Number(option.option_product.price) : 0,
-          tvaRate: option.option_product?.tva_rate ? Number(option.option_product.tva_rate) : 10,
+          tvaRate: option.option_product?.tva_rate
+            ? Number(option.option_product.tva_rate)
+            : defaultVatRate,
         })),
       }))
       // Filter out steps that have no visible options

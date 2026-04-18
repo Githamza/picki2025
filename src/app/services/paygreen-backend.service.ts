@@ -44,7 +44,8 @@ export class PaygreenBackendService {
    */
   createPaymentOrder(
     vendorId: string,
-    paymentOrder: PayGreenPaymentOrderRequest
+    paymentOrder: PayGreenPaymentOrderRequest,
+    deliveryAmountMinor?: number
   ): Observable<PayGreenPaymentOrderResponseBackend> {
     return this.http.post<PayGreenPaymentOrderResponseBackend>(
       `${this.backendUrl}/functions/v1/create-paygreen-order`,
@@ -53,6 +54,7 @@ export class PaygreenBackendService {
         paymentOrder,
         apiUrl: this.paygreenConfig.getApiUrl(),
         isSandbox: this.paygreenConfig.useSandboxCredentials(),
+        ...(deliveryAmountMinor != null && { deliveryAmountMinor }),
       },
       { headers: this.getHeaders() }
     );
@@ -70,6 +72,20 @@ export class PaygreenBackendService {
     }).toString();
     return this.http.get<any>(
       `${this.backendUrl}/functions/v1/get-paygreen-order?${params}`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Create a marketplace shop for a vendor via PayGreen API
+   */
+  createMarketplaceShop(vendorId: string): Observable<{ success: boolean; shop_id: string }> {
+    return this.http.post<{ success: boolean; shop_id: string }>(
+      `${this.backendUrl}/functions/v1/paygreen-create-marketplace-shop`,
+      {
+        vendorId,
+        isSandbox: this.paygreenConfig.useSandboxCredentials(),
+      },
       { headers: this.getHeaders() }
     );
   }

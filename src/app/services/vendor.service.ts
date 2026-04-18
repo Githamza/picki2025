@@ -1043,7 +1043,6 @@ export class VendorService {
 
       const paygreenConfigured =
         paygreenOnboardingCompleted &&
-        !!paygreenCredentials?.public_key &&
         !!paygreenCredentials?.shop_id &&
         paygreenCredentials?.active === true;
 
@@ -1063,6 +1062,34 @@ export class VendorService {
         selectedProvider: null,
       };
     }
+  }
+
+  async updatePaygreenMode(vendorId: string, mode: 'independent' | 'marketplace'): Promise<void> {
+    const updatedVendor = await this.supabaseAuthService.updateVendorPaygreenMode(vendorId, mode);
+
+    // Update local state
+    this.currentVendorSubject.next(updatedVendor);
+    this.vendorsSubject.next(
+      this.vendorsSubject.value.map((v) =>
+        v.id === updatedVendor.id ? updatedVendor : v
+      )
+    );
+    this.vendorsCache = this.vendorsSubject.value;
+    this.cacheTimestamp = Date.now();
+  }
+
+  async updateVendorNationalId(vendorId: string, nationalId: string): Promise<void> {
+    const updatedVendor = await this.supabaseAuthService.updateVendorNationalId(vendorId, nationalId);
+
+    // Update local state
+    this.currentVendorSubject.next(updatedVendor);
+    this.vendorsSubject.next(
+      this.vendorsSubject.value.map((v) =>
+        v.id === updatedVendor.id ? updatedVendor : v
+      )
+    );
+    this.vendorsCache = this.vendorsSubject.value;
+    this.cacheTimestamp = Date.now();
   }
 
   async updatePaymentProvider(provider: 'STRIPE' | 'PAYGREEN'): Promise<void> {

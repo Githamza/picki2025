@@ -23,6 +23,7 @@ import {
   MenuFormData,
 } from '../../models/product-admin.interface';
 import { Customisation } from '../../models/customisation.interface';
+import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
 
 @Component({
   selector: 'app-product-manager',
@@ -969,11 +970,14 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (completeMenu) => {
+          const defaultVatRate = getDefaultVatRate(
+            this.vendorService.getCurrentVendor()?.country
+          );
           // Create the duplicated menu data
           const duplicatedMenuData: MenuFormData = {
             name: `${completeMenu.name} (Copie)`,
             price: completeMenu.price,
-            tva_rate: completeMenu.tva_rate ?? 10,
+            tva_rate: completeMenu.tva_rate ?? defaultVatRate,
             image_url: completeMenu.image_url,
             short_description: completeMenu.short_description,
             long_description: completeMenu.long_description,

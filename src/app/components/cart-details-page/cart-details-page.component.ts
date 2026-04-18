@@ -40,6 +40,7 @@ import { AccessoriesStripComponent } from '../accessories-strip/accessories-stri
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
 import { SupabaseService } from '../../services/supabase.service';
+import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
 
 @Component({
   selector: 'app-cart-details-page',
@@ -663,6 +664,9 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
       const orderItems: OrderItem[] = items.map((item) => {
         // For multi-step products, use the calculated totalPrice instead of base product price
         const itemPrice = item.totalPrice || item.product.price;
+        const defaultVatRate = getDefaultVatRate(
+          this.vendorService.getCurrentVendor()?.country
+        );
         
         // Store multi-step metadata in options field
         const options = item.metadata ? 
@@ -715,7 +719,7 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
           productName: item.product.name,
           quantity: item.quantity,
           price: itemPrice, // Use calculated price for multi-step products
-          tvaRate: item.product.tvaRate ?? 10, // Store TVA rate from product
+          tvaRate: item.product.tvaRate ?? defaultVatRate, // Store TVA rate from product
           options: options, // Store multi-step metadata or complements
           vendorId: item.product.vendorId,
           comment: item.comment,

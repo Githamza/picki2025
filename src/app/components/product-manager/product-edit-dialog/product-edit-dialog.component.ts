@@ -32,6 +32,11 @@ import { Customisation } from '../../../models/customisation.interface';
 import { ImageUploadComponent } from '../../../shared/components';
 import { VendorCurrencySymbolPipe } from '../../../shared/pipes/vendor-currency-symbol.pipe';
 import { VendorService } from '../../../services/vendor.service';
+import {
+  formatVatRateLabel,
+  getAllowedVatRates,
+  getDefaultVatRate,
+} from '../../../shared/utils/vat-rates.util';
 
 export interface DialogData {
   product?: ProductAdmin;
@@ -109,9 +114,9 @@ export interface DialogData {
         <mat-form-field appearance="fill">
           <mat-label>Taux de TVA</mat-label>
           <mat-select formControlName="tva_rate">
-            <mat-option [value]="5.5">5,5% </mat-option>
-            <mat-option [value]="10">10% </mat-option>
-            <mat-option [value]="20">20%</mat-option>
+            @for (rate of availableVatRates; track rate) {
+            <mat-option [value]="rate">{{ formatVatRate(rate) }}</mat-option>
+            }
           </mat-select>
         </mat-form-field>
 
@@ -516,6 +521,8 @@ export class ProductEditDialogComponent implements OnInit {
   saving = false;
   autoAssociateToFormules = true;
   showMoreOptions = false;
+  readonly availableVatRates: readonly number[];
+  private readonly defaultVatRate: number;
 
   isAccessoryMode = false;
   vendorOrderTypes: string[] = [];
@@ -556,8 +563,10 @@ export class ProductEditDialogComponent implements OnInit {
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {
     this.isAccessoryMode = !!data.isAccessory || !!data.product?.is_accessory;
-    // Get vendor's enabled order types
     const currentVendor = this.vendorService.getCurrentVendor();
+    this.availableVatRates = getAllowedVatRates(currentVendor?.country);
+    this.defaultVatRate = getDefaultVatRate(currentVendor?.country);
+    // Get vendor's enabled order types
     this.vendorOrderTypes = currentVendor?.enabled_order_types?.length
       ? currentVendor.enabled_order_types
       : ['eat-in', 'take-away', 'delivery'];
@@ -567,6 +576,7 @@ export class ProductEditDialogComponent implements OnInit {
   ngOnInit() {
     this.loadCategories();
     this.loadCustomisations();
+    this.applySingleVatRateDefault();
     if (this.data.product) {
       this.populateForm(this.data.product);
     }
@@ -576,7 +586,7 @@ export class ProductEditDialogComponent implements OnInit {
     return this.fb.group({
       name: ['', [Validators.required]],
       price: [0, [Validators.required, Validators.min(0)]],
-      tva_rate: [10, [Validators.required]],
+      tva_rate: [this.defaultVatRate, [Validators.required]],
       category_id: [null],
       display_order: [0, [Validators.min(0)]],
       image_url: [''],
@@ -664,7 +674,7 @@ export class ProductEditDialogComponent implements OnInit {
     this.productForm.patchValue({
       name: product.name,
       price: product.price,
-      tva_rate: product.tva_rate ?? 10,
+      tva_rate: product.tva_rate ?? this.defaultVatRate,
       category_id: product.category_id,
       display_order: product.display_order ?? 0,
       image_url: product.image_url,
@@ -683,6 +693,8 @@ export class ProductEditDialogComponent implements OnInit {
       is_accessory: product.is_accessory ?? false,
     });
 
+    this.applySingleVatRateDefault();
+
     // Auto-expand more options if any optional field has a value
     if (
       product.long_description ||
@@ -694,6 +706,16 @@ export class ProductEditDialogComponent implements OnInit {
     ) {
       this.showMoreOptions = true;
     }
+  }
+
+  private applySingleVatRateDefault(): void {
+    if (this.availableVatRates.length !== 1) {
+      return;
+    }
+
+    this.productForm.patchValue({
+      tva_rate: this.availableVatRates[0],
+    });
   }
 
   saveProduct() {
@@ -814,5 +836,9 @@ export class ProductEditDialogComponent implements OnInit {
         this.saving = false;
       },
     });
+  }
+
+  formatVatRate(rate: number): string {
+    return formatVatRateLabel(rate);
   }
 }

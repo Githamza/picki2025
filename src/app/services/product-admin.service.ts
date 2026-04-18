@@ -3,6 +3,7 @@ import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
 import { SupabaseAuthService } from './supabase-auth.service';
+import { VendorService } from './vendor.service';
 import {
   ProductAdmin,
   ProductFormData,
@@ -12,6 +13,7 @@ import {
   MenuStep,
   MenuStepOption,
 } from '../models/product-admin.interface';
+import { getDefaultVatRate } from '../shared/utils/vat-rates.util';
 
 @Injectable({
   providedIn: 'root',
@@ -19,6 +21,7 @@ import {
 export class ProductAdminService {
   private supabaseService = inject(SupabaseService);
   private supabaseAuthService = inject(SupabaseAuthService);
+  private vendorService = inject(VendorService);
 
   // Get all products for a vendor with category information
   getProducts(vendorId: string): Observable<ProductAdmin[]> {
@@ -138,6 +141,9 @@ export class ProductAdminService {
     id: number,
     productData: ProductFormData
   ): Promise<ProductAdmin> {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
     const { data: product, error } = await this.supabaseAuthService
       .getClient()
       .from('products')
@@ -161,7 +167,7 @@ export class ProductAdminService {
 
     return {
       ...product,
-      tva_rate: (product as any).tva_rate ?? 10,
+      tva_rate: (product as any).tva_rate ?? defaultVatRate,
       category_name: (product as any).categories?.name || null,
       no_catalogable: (product as any).no_catalogable ?? false,
       display_order: (product as any).display_order ?? 0,
@@ -173,6 +179,9 @@ export class ProductAdminService {
     vendorId: string,
     productData: ProductFormData
   ): Promise<ProductAdmin> {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
     const { data: product, error } = await this.supabaseAuthService
       .getClient()
       .from('products')
@@ -197,7 +206,7 @@ export class ProductAdminService {
 
     return {
       ...product,
-      tva_rate: (product as any).tva_rate ?? 10,
+      tva_rate: (product as any).tva_rate ?? defaultVatRate,
       category_name: (product as any).categories?.name || null,
       no_catalogable: (product as any).no_catalogable ?? false,
       display_order: (product as any).display_order ?? 0,
@@ -344,6 +353,9 @@ export class ProductAdminService {
   }
 
   private async fetchMenuWithSteps(id: number): Promise<MenuAdmin> {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
     const { data: menu, error } = await this.supabaseAuthService
       .getClient()
       .from('products')
@@ -405,7 +417,7 @@ export class ProductAdminService {
 
     return {
       ...menu,
-      tva_rate: (menu as any).tva_rate ?? 10,
+      tva_rate: (menu as any).tva_rate ?? defaultVatRate,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
       has_customisations: menu.has_customisations ?? undefined,
@@ -418,6 +430,9 @@ export class ProductAdminService {
     vendorId: string,
     menuData: MenuFormData
   ): Promise<MenuAdmin> {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
     const { data: menu, error } = await this.supabaseAuthService
       .getClient()
       .from('products')
@@ -443,7 +458,7 @@ export class ProductAdminService {
 
     return {
       ...menu,
-      tva_rate: (menu as any).tva_rate ?? 10,
+      tva_rate: (menu as any).tva_rate ?? defaultVatRate,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
       has_customisations: menu.has_customisations ?? undefined,
@@ -456,6 +471,9 @@ export class ProductAdminService {
     id: number,
     menuData: MenuFormData
   ): Promise<MenuAdmin> {
+    const defaultVatRate = getDefaultVatRate(
+      this.vendorService.getCurrentVendor()?.country
+    );
     const { data: menu, error } = await this.supabaseAuthService
       .getClient()
       .from('products')
@@ -479,7 +497,7 @@ export class ProductAdminService {
 
     return {
       ...menu,
-      tva_rate: (menu as any).tva_rate ?? 10,
+      tva_rate: (menu as any).tva_rate ?? defaultVatRate,
       category_name: menu.categories?.name || null,
       no_catalogable: (menu as any).no_catalogable ?? false,
       has_customisations: menu.has_customisations ?? undefined,

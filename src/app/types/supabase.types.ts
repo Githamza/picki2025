@@ -1343,6 +1343,7 @@ export type Database = {
           orders_suspended_message: string | null
           own_delivery_price: number
           paygreen_merchant_id: string | null
+          paygreen_mode: string
           paygreen_onboarding_completed: boolean | null
           paymentprovider: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed: number
@@ -1350,6 +1351,7 @@ export type Database = {
           stripe_account_id: string | null
           stripe_onboarding_completed: boolean | null
           updated_at: string | null
+          national_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -1377,12 +1379,14 @@ export type Database = {
           orders_suspended_message?: string | null
           own_delivery_price?: number
           paygreen_merchant_id?: string | null
+          paygreen_mode?: string
           paygreen_onboarding_completed?: boolean | null
           paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed?: number
           service_fee_rate_percent?: number
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
+          national_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1411,12 +1415,14 @@ export type Database = {
           orders_suspended_message?: string | null
           own_delivery_price?: number
           paygreen_merchant_id?: string | null
+          paygreen_mode?: string
           paygreen_onboarding_completed?: boolean | null
           paymentprovider?: Database["public"]["Enums"]["payment_provider_choice"]
           service_fee_fixed?: number
           service_fee_rate_percent?: number
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
+          national_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

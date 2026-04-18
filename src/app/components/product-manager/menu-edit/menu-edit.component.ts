@@ -52,6 +52,11 @@ import {
   BulkSelectorDialogData,
   BulkSelectorResult,
 } from '../bulk-product-selector-dialog/bulk-product-selector-dialog.component';
+import {
+  formatVatRateLabel,
+  getAllowedVatRates,
+  getDefaultVatRate,
+} from '../../../shared/utils/vat-rates.util';
 
 @Component({
   selector: 'app-menu-edit',
@@ -147,9 +152,9 @@ import {
                 <mat-form-field appearance="fill" class="tva-field">
                   <mat-label>TVA</mat-label>
                   <mat-select formControlName="tva_rate">
-                    <mat-option [value]="5.5">5,5%</mat-option>
-                    <mat-option [value]="10">10%</mat-option>
-                    <mat-option [value]="20">20%</mat-option>
+                    @for (rate of availableVatRates; track rate) {
+                    <mat-option [value]="rate">{{ formatVatRate(rate) }}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -1043,6 +1048,12 @@ export class MenuEditComponent implements OnInit, OnDestroy {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private destroy$ = new Subject<void>();
+  availableVatRates = getAllowedVatRates(
+    this.vendorService.getCurrentVendor()?.country
+  );
+  private defaultVatRate = getDefaultVatRate(
+    this.vendorService.getCurrentVendor()?.country
+  );
 
   menuForm: FormGroup;
   menu: MenuAdmin | null = null;
@@ -1085,7 +1096,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     return this.fb.group({
       name: ['', [Validators.required]],
       price: [0, [Validators.required, Validators.min(0)]],
-      tva_rate: [10, [Validators.required]],
+      tva_rate: [this.defaultVatRate, [Validators.required]],
       category_id: [null],
       image_url: [''],
       short_description: [''],
@@ -1106,6 +1117,13 @@ export class MenuEditComponent implements OnInit, OnDestroy {
       .subscribe((vendor) => {
         if (vendor?.id) {
           this.currentVendorId = vendor.id;
+          this.availableVatRates = getAllowedVatRates(vendor.country);
+          this.defaultVatRate = getDefaultVatRate(vendor.country);
+          if (!this.isEditMode && !this.menuForm.get('tva_rate')?.dirty) {
+            this.menuForm.patchValue({
+              tva_rate: this.defaultVatRate,
+            });
+          }
         }
       });
   }
@@ -1172,7 +1190,7 @@ export class MenuEditComponent implements OnInit, OnDestroy {
     this.menuForm.patchValue({
       name: menu.name,
       price: menu.price,
-      tva_rate: menu.tva_rate ?? 10,
+      tva_rate: menu.tva_rate ?? this.defaultVatRate,
       category_id: menu.category_id,
       image_url: menu.image_url,
       short_description: menu.short_description,
@@ -1187,6 +1205,10 @@ export class MenuEditComponent implements OnInit, OnDestroy {
         this.addStep(step);
       });
     }
+  }
+
+  formatVatRate(rate: number): string {
+    return formatVatRateLabel(rate);
   }
 
   addStep(stepData?: MenuStep) {

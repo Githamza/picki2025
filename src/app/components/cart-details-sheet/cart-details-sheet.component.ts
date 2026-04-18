@@ -36,6 +36,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { VendorService } from '../../services/vendor.service';
 import { Product, ProductService } from '../../services/product.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
+import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
 import {
   addToCart,
   incrementCartItem,
@@ -837,6 +838,9 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
       const orderItems: OrderItem[] = items.map((item) => {
         // For multi-step products, use the calculated totalPrice instead of base product price
         const itemPrice = item.totalPrice || item.product.price;
+        const defaultVatRate = getDefaultVatRate(
+          this.vendorService.getCurrentVendor()?.country
+        );
         
         // Store multi-step metadata in options field
         const options = item.metadata ? 
@@ -848,7 +852,7 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
           productName: item.product.name,
           quantity: item.quantity,
           price: itemPrice, // Use calculated price for multi-step products
-          tvaRate: item.product.tvaRate ?? 10, // Store TVA rate from product
+          tvaRate: item.product.tvaRate ?? defaultVatRate, // Store TVA rate from product
           options: options, // Store multi-step metadata or complements
           vendorId: item.product.vendorId,
           comment: item.comment,

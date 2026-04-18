@@ -1181,8 +1181,23 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async updateVendorNationalId(vendorId: string, nationalId: string) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        national_id: nationalId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   async getPaygreenCredentials(vendorId: string): Promise<{
-    public_key: string;
+    public_key: string | null;
     shop_id: string;
     active: boolean;
   } | null> {
@@ -1212,6 +1227,29 @@ export class SupabaseAuthService implements OnDestroy {
       .from('vendors')
       .update({
         paymentprovider: provider,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
+  async updateVendorPaygreenMode(
+    vendorId: string,
+    mode: 'independent' | 'marketplace'
+  ) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        paygreen_mode: mode,
         updated_at: new Date().toISOString(),
       })
       .eq('id', vendorId)

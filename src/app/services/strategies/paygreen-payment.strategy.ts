@@ -55,8 +55,12 @@ export class PaygreenPaymentStrategy implements PaymentStrategy {
     if (!request.vendorId) {
       throw new Error('vendorId is required for PayGreen payments');
     }
+
+    // Pass delivery cost for marketplace mode split
+    const deliveryAmountMinor = request.metadata?.delivery?.amountMinor as number | undefined;
+
     return this.paygreenBackend
-      .createPaymentOrder(request.vendorId, paymentOrderRequest)
+      .createPaymentOrder(request.vendorId, paymentOrderRequest, deliveryAmountMinor)
       .pipe(
         map((response) => ({
           id: response.data.id,

@@ -1,11 +1,12 @@
 import { serve } from 'https://deno.land/std@0.200.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getPayGreenAuth } from '../_shared/paygreen-auth.ts';
 
 interface CreateOrderRequest {
   vendorId: string;
   paymentOrder: any;
   apiUrl?: string;
   isSandbox?: boolean;
+  deliveryAmountMinor?: number; // delivery cost in cents for marketplace split
 }
 
 // Helper to build JSON responses with CORS headers
@@ -45,7 +46,7 @@ serve(async (req) => {
     return json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { vendorId, paymentOrder, apiUrl: frontendApiUrl, isSandbox = false } = body;
+  const { vendorId, paymentOrder, apiUrl: frontendApiUrl, isSandbox = false, deliveryAmountMinor } = body;
   if (!vendorId || !paymentOrder) {
     return json(
       { error: 'vendorId and paymentOrder are required' },
@@ -55,92 +56,54 @@ serve(async (req) => {
 
   console.log('Sandbox mode:', isSandbox);
 
-  // Initialize Supabase service client
-  // Use local Supabase URL and service key if LOCALLY is true
-  const isLocal = Deno.env.get('LOCALLY') === 'true';
-  const supabaseUrl = isLocal 
-    ? Deno.env.get('LOCAL_SUPABASE_URL') 
-    : Deno.env.get('SUPABASE_URL');
-  const serviceKey = isLocal 
-    ? Deno.env.get('LOCAL_SUPABASE_SERVICE_ROLE_KEY') 
-    : Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase Service Key:', serviceKey);
-  if (!supabaseUrl || !serviceKey) {
-    return json(
-      { error: 'Supabase service credentials not set' },
-      { status: 500 }
-    );
-  }
-  const supabase = createClient(supabaseUrl, serviceKey);
-
-  // Fetch PayGreen credentials for this vendor
-  // Select both production and sandbox credentials
-  const { data: creds, error: credsError } = await supabase
-    .from('vendor_paygreen_credentials')
-    .select('shop_id, public_key, secret_key, sandbox_shop_id, sandbox_public_key, sandbox_secret_key')
-    .eq('vendor_id', vendorId)
-    .eq('active', true)
-    .single();
-
-  console.log(
-    'Fetched credentials for vendor:',
-    vendorId,
-    creds ? 'Found' : 'Not found'
-  );
-
-  if (credsError || !creds) {
-    console.error('Credentials error:', credsError);
-    return json({ error: 'Credentials not found for vendor' }, { status: 400 });
-  }
-
-  // Select the appropriate credentials based on sandbox mode
-  const shopId = isSandbox ? creds.sandbox_shop_id : creds.shop_id;
-  const secretKey = isSandbox ? creds.sandbox_secret_key : creds.secret_key;
-
-  if (!shopId || !secretKey) {
-    const mode = isSandbox ? 'sandbox' : 'production';
-    console.error(`Missing ${mode} credentials for vendor:`, vendorId);
-    return json({ error: `${mode} credentials not configured for vendor` }, { status: 400 });
-  }
   // Use API URL from frontend if provided, otherwise fall back to environment variable or default
   const apiUrl = frontendApiUrl || Deno.env.get('PG_API_URL') || 'https://api.paygreen.fr';
-  
   console.log('Using PayGreen API URL:', apiUrl);
 
   try {
-    // 1. Authenticate with PayGreen
-    const authRes = await fetch(
-      `${apiUrl}/auth/authentication/${shopId}/secret-key`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: secretKey,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      }
-    );
+    // Authenticate using the shared helper (handles independent vs marketplace)
+    const auth = await getPayGreenAuth(vendorId, apiUrl, isSandbox);
 
-    if (!authRes.ok) {
-      const errBody = await authRes.text();
-      console.error('PayGreen auth failed:', errBody);
-      return json({ error: 'Auth failed', details: errBody }, { status: 500 });
+    console.log('PayGreen mode:', auth.paygreenMode);
+
+    // Build the payment order body
+    let orderBody = { ...paymentOrder };
+
+    // In marketplace mode, add eligible_amounts for vendor split
+    if (auth.paygreenMode === 'marketplace' && auth.vendorShopId) {
+      const totalAmount = paymentOrder.amount; // already in cents
+
+      let vendorAmount: number;
+      if (auth.deliverySystem === 'picki' && deliveryAmountMinor && deliveryAmountMinor > 0) {
+        // Picki keeps the delivery fee, vendor gets the rest
+        vendorAmount = totalAmount - deliveryAmountMinor;
+      } else {
+        // Vendor gets 100% (eat-in, take-away, or own delivery)
+        vendorAmount = totalAmount;
+      }
+
+      console.log('Marketplace split - total:', totalAmount, 'vendor:', vendorAmount, 'delivery:', deliveryAmountMinor || 0);
+
+      orderBody = {
+        ...orderBody,
+        eligible_amounts: [
+          {
+            shop_id: auth.vendorShopId,
+            amount: vendorAmount,
+          },
+        ],
+      };
     }
 
-    const authData = await authRes.json();
-    const token = authData.data.token as string;
-
-    // 2. Create payment order
+    // Create payment order
     const orderRes = await fetch(`${apiUrl}/payment/payment-orders`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${auth.token}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify(paymentOrder),
+      body: JSON.stringify(orderBody),
     });
 
     if (!orderRes.ok) {
@@ -157,6 +120,6 @@ serve(async (req) => {
     return json(orderJson);
   } catch (error) {
     console.error('Function error:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    return json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 });

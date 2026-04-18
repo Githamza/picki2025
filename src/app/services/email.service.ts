@@ -5,11 +5,16 @@ import { environment } from '../../environments/environment';
 import { DomainService } from './domain.service';
 import { VendorService } from './vendor.service';
 import { firstValueFrom } from 'rxjs';
+import {
+  getDefaultVatRate,
+  normalizeVatCountryCode,
+} from '../shared/utils/vat-rates.util';
 
 export interface VendorEmailInfo {
   businessName: string;
   currency: string;
   paymentProvider: string;
+  countryCode?: string;
   siret?: string;
   tvaNumber?: string;
   address?: {
@@ -53,6 +58,7 @@ export class EmailService {
         businessName: vendor.business_name,
         currency: vendor.currency || 'EUR',
         paymentProvider: vendor.paymentprovider || 'STRIPE',
+        countryCode: normalizeVatCountryCode(vendor.country),
         // SIRET and TVA number can be added to vendor_metadata table if needed
         siret: (vendor as any).siret || undefined,
         tvaNumber: (vendor as any).tva_number || undefined,
@@ -88,6 +94,7 @@ export class EmailService {
 
       // Get vendor information
       const vendorInfo = await this.getVendorEmailInfo(order.vendorId);
+      const defaultVatRate = getDefaultVatRate(vendorInfo?.countryCode);
       console.log('Vendor info for email:', vendorInfo);
 
       // Prepare the request body with enhanced data
@@ -106,7 +113,7 @@ export class EmailService {
             unitPrice: item.price / item.quantity,
             totalPrice: item.price,
             price: item.price,
-            tvaRate: item.tvaRate ?? 10,
+            tvaRate: item.tvaRate ?? defaultVatRate,
             options: item.options,  // Pass full metadata for pro-rata TVA calculation
           })),
           totalAmount: order.totalAmount,
@@ -210,6 +217,7 @@ export class EmailService {
 
       // Get vendor information
       const vendorInfo = await this.getVendorEmailInfo(order.vendorId);
+      const defaultVatRate = getDefaultVatRate(vendorInfo?.countryCode);
       console.log('Vendor info for ready email:', vendorInfo);
 
       // Prepare the request body with enhanced data
@@ -228,7 +236,7 @@ export class EmailService {
             unitPrice: item.price / item.quantity,
             totalPrice: item.price,
             price: item.price,
-            tvaRate: item.tvaRate ?? 10,
+            tvaRate: item.tvaRate ?? defaultVatRate,
             options: item.options,  // Pass full metadata for pro-rata TVA calculation
           })),
           totalAmount: order.totalAmount,
@@ -331,6 +339,7 @@ export class EmailService {
       console.log('Refuse reason:', refuseReason);
 
       const vendorInfo = await this.getVendorEmailInfo(order.vendorId);
+      const defaultVatRate = getDefaultVatRate(vendorInfo?.countryCode);
 
       const requestBody = {
         to: order.customer.email,
@@ -347,7 +356,7 @@ export class EmailService {
             unitPrice: item.price / item.quantity,
             totalPrice: item.price,
             price: item.price,
-            tvaRate: item.tvaRate ?? 10,
+            tvaRate: item.tvaRate ?? defaultVatRate,
             options: item.options,
           })),
           totalAmount: order.totalAmount,

@@ -21,6 +21,7 @@ import { VendorService } from '../../services/vendor.service';
 import { EmailService } from '../../services/email.service';
 import { MapLocationViewerComponent } from '../../shared/components/map-location-viewer/map-location-viewer.component';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
 
 @Component({
   selector: 'app-payment-success',
@@ -1160,7 +1161,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           productName: item.product.name,
           quantity: item.quantity,
           price: item.product.price,
-          tvaRate: item.product.tvaRate ?? 10,
+          tvaRate: item.product.tvaRate ?? getDefaultVatRate(this.vendorService.getCurrentVendor()?.country),
           options: [],
           vendorId: item.product.vendorId,
         }));

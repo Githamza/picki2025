@@ -17,4 +17,8 @@ export interface PayGreenPaymentOrderRequest {
   plbs: boolean;
   amount: number;
   reference?: string;
+  eligible_amounts?: Array<{
+    shop_id: string;
+    amount: number; // in cents, vendor's share
+  }>;
 }

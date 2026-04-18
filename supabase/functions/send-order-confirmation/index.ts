@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { getDefaultVatRate } from '../_shared/vat-rates.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,9 +7,6 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-// Default VAT rate for France (food service) - used as fallback
-const DEFAULT_VAT_RATE = 10; // 10% for restaurant food
 
 // Interface for TVA breakdown by rate
 interface TvaBreakdown {
@@ -24,10 +22,13 @@ interface TvaBreakdown {
 function calculateProRataTvaComponents(item: any): Array<{ttc: number; rate: number}> {
   const metadata = item.options?.[0];
   const itemPrice = (item.totalPrice || item.price || 0) * (item.quantity || 1);
+  const fallbackRate = getDefaultVatRate(
+    item.countryCode ?? item.country ?? item.vendorCountry
+  );
 
   // If not a multi-step product or no metadata, use simple calculation
   if (!metadata?.stepSelections?.length) {
-    return [{ ttc: itemPrice, rate: item.tvaRate ?? DEFAULT_VAT_RATE }];
+    return [{ ttc: itemPrice, rate: item.tvaRate ?? fallbackRate }];
   }
 
   // Collect all components with their à la carte prices and TVA rates
@@ -37,7 +38,7 @@ function calculateProRataTvaComponents(item: any): Array<{ttc: number; rate: num
     for (const opt of step.selectedOptions || []) {
       components.push({
         alaCartePrice: opt.alaCartePrice || 0,
-        tvaRate: opt.tvaRate ?? item.tvaRate ?? DEFAULT_VAT_RATE,
+        tvaRate: opt.tvaRate ?? item.tvaRate ?? fallbackRate,
         priceAdjustment: opt.priceAdjustment || 0,
       });
     }
@@ -45,7 +46,7 @@ function calculateProRataTvaComponents(item: any): Array<{ttc: number; rate: num
 
   // If no valid components found, fall back to simple calculation
   if (components.length === 0) {
-    return [{ ttc: itemPrice, rate: item.tvaRate ?? DEFAULT_VAT_RATE }];
+    return [{ ttc: itemPrice, rate: item.tvaRate ?? fallbackRate }];
   }
 
   // Calculate total à la carte price (base prices only, not adjustments)
@@ -57,7 +58,7 @@ function calculateProRataTvaComponents(item: any): Array<{ttc: number; rate: num
 
   // If no à la carte prices available, fall back to simple calculation
   if (totalAlaCarte <= 0) {
-    return [{ ttc: itemPrice, rate: item.tvaRate ?? DEFAULT_VAT_RATE }];
+    return [{ ttc: itemPrice, rate: item.tvaRate ?? fallbackRate }];
   }
 
   // Allocate base price proportionally, then add supplements to their respective components
@@ -308,6 +309,9 @@ serve(async (req) => {
     const paymentMethod = getPaymentMethodLabel(vendorInfo?.paymentProvider || orderDetails.paymentMethod, payAtCheckout);
     const orderDateTime = orderDetails.createdAt || new Date().toISOString();
     const refuseReason = body.refuseReason || '';
+    const defaultVatRate = getDefaultVatRate(
+      vendorInfo?.countryCode ?? vendorInfo?.address?.country
+    );
 
     // Calculate VAT breakdown grouped by rate
     const totalTTC = orderDetails.totalAmount || 0;
@@ -356,7 +360,7 @@ serve(async (req) => {
             const unitPrice = item.unitPrice || item.price / (item.quantity || 1);
             const lineTotal = item.totalPrice || item.price || (unitPrice * (item.quantity || 1));
             const itemName = item.name || item.title || item.productName || 'Article';
-            const itemTvaRate = item.tvaRate ?? DEFAULT_VAT_RATE;
+            const itemTvaRate = item.tvaRate ?? defaultVatRate;
             return `
               <tr>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e0e0e0; font-size: 14px;">

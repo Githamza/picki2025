@@ -4,6 +4,7 @@ import { map, switchMap } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
 import { CategoryService } from './category.service';
 import { CustomisationService } from './customisation.service';
+import { VendorService } from './vendor.service';
 import { Tables } from '../types/supabase.types';
 import {
   ProductWithComplements,
@@ -11,6 +12,7 @@ import {
   ComplementSelection,
   DatabaseProductComplementInsert,
 } from '../models/complement.model';
+import { getDefaultVatRate } from '../shared/utils/vat-rates.util';
 
 export interface Product {
   id: number;
@@ -41,6 +43,7 @@ export class ProductService {
   private supabaseService = inject(SupabaseService);
   private categoryService = inject(CategoryService);
   private customisationService = inject(CustomisationService);
+  private vendorService = inject(VendorService);
 
   // Accessories cache: key = vendorId_orderType, value = { data, timestamp }
   private accessoriesCache = new Map<string, { data: Product[]; timestamp: number }>();
@@ -307,11 +310,15 @@ export class ProductService {
   }
 
   private mapToProduct(dbProduct: any): Product {
+    const defaultVatRate = getDefaultVatRate(
+      dbProduct.vendor?.country ?? this.vendorService.getCurrentVendor()?.country
+    );
+
     return {
       id: dbProduct.id,
       name: dbProduct.name,
       price: Number(dbProduct.price),
-      tvaRate: Number(dbProduct.tva_rate) || 10,
+      tvaRate: Number(dbProduct.tva_rate) || defaultVatRate,
       imageUrl: dbProduct.image_url || '',
       categoryId: dbProduct.category_id || 0,
       description: dbProduct.short_description || '',

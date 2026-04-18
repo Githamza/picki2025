@@ -4,14 +4,18 @@ import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { VendorService } from '../../../../services/vendor.service';
 import { StripeService } from '../../../../services/stripe.service';
+import { PaygreenBackendService } from '../../../../services/paygreen-backend.service';
 import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
 
 export interface PaymentProviderStatus {
@@ -33,6 +37,9 @@ export interface PaymentProviderStatus {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -122,49 +129,139 @@ export interface PaymentProviderStatus {
               </div>
 
               <!-- PayGreen Provider -->
-              <div class="provider-row">
-                <div class="provider-select">
-                  <mat-radio-button
-                    value="PAYGREEN"
-                    [disabled]="isUpdatingProvider() || !paymentProvidersStatus()?.paygreen?.onboardingCompleted"
-                  ></mat-radio-button>
-                </div>
-                <div class="provider-info">
-                  <div class="provider-header">
-                    <mat-icon class="provider-icon paygreen-icon">eco</mat-icon>
-                    <span class="provider-name">PayGreen</span>
-                    <span
-                      class="provider-status"
-                      [class.configured]="paymentProvidersStatus()?.paygreen?.configured"
-                      [class.not-configured]="!paymentProvidersStatus()?.paygreen?.configured"
-                    >
-                      {{ paymentProvidersStatus()?.paygreen?.configured ? 'Configuré' : 'Non configuré' }}
-                    </span>
-                    <span
-                      *ngIf="!paymentProvidersStatus()?.paygreen?.configured"
-                      class="provider-badge complete-setup"
-                    >
-                      Configuration plus complète
-                    </span>
+              <div class="provider-row paygreen-provider-row" [class.has-form]="!paymentProvidersStatus()?.paygreen?.configured">
+                <div class="provider-row-header">
+                  <div class="provider-select">
+                    <mat-radio-button
+                      value="PAYGREEN"
+                      [disabled]="isUpdatingProvider() || !paymentProvidersStatus()?.paygreen?.onboardingCompleted"
+                    ></mat-radio-button>
                   </div>
-                  <p class="provider-description">
-                    Solution de paiement éco-responsable.
-                  </p>
+                  <div class="provider-info">
+                    <div class="provider-header">
+                      <mat-icon class="provider-icon paygreen-icon">eco</mat-icon>
+                      <span class="provider-name">PayGreen</span>
+                      <span
+                        class="provider-status"
+                        [class.configured]="paymentProvidersStatus()?.paygreen?.configured"
+                        [class.not-configured]="!paymentProvidersStatus()?.paygreen?.configured"
+                      >
+                        {{ paymentProvidersStatus()?.paygreen?.configured ? 'Configuré' : 'Non configuré' }}
+                      </span>
+                    </div>
+                    <p class="provider-description">
+                      Solution de paiement éco-responsable.
+                    </p>
+                  </div>
                 </div>
-                <div class="provider-actions">
+
+                <div *ngIf="!paymentProvidersStatus()?.paygreen?.configured" class="paygreen-onboarding-form">
+                  <div class="onboarding-section-title">
+                    <mat-icon>badge</mat-icon>
+                    <span>Identification</span>
+                  </div>
+                  <mat-form-field appearance="outline" class="siret-field">
+                    <mat-label>Numéro SIRET</mat-label>
+                    <input
+                      matInput
+                      [value]="paygreenSiret()"
+                      (input)="paygreenSiret.set($any($event.target).value)"
+                      placeholder="Ex: 012345678"
+                      [disabled]="isCreatingPaygreenMarketplace()"
+                    />
+                    <mat-hint>Requis pour créer votre compte PayGreen</mat-hint>
+                  </mat-form-field>
+
+                  <div class="onboarding-section-title">
+                    <mat-icon>location_on</mat-icon>
+                    <span>Adresse de l'établissement</span>
+                  </div>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Rue</mat-label>
+                    <input
+                      matInput
+                      [value]="paygreenStreet()"
+                      (input)="paygreenStreet.set($any($event.target).value)"
+                      placeholder="123 Rue Example"
+                      [disabled]="isCreatingPaygreenMarketplace()"
+                    />
+                  </mat-form-field>
+                  <div class="address-row">
+                    <mat-form-field appearance="outline" class="postal-code-field">
+                      <mat-label>Code postal</mat-label>
+                      <input
+                        matInput
+                        [value]="paygreenPostalCode()"
+                        (input)="paygreenPostalCode.set($any($event.target).value)"
+                        placeholder="37000"
+                        [disabled]="isCreatingPaygreenMarketplace()"
+                      />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="city-field">
+                      <mat-label>Ville</mat-label>
+                      <input
+                        matInput
+                        [value]="paygreenCity()"
+                        (input)="paygreenCity.set($any($event.target).value)"
+                        placeholder="Tours"
+                        [disabled]="isCreatingPaygreenMarketplace()"
+                      />
+                    </mat-form-field>
+                  </div>
+
+                  <p class="address-hint" *ngIf="!paygreenStreet() || !paygreenCity() || !paygreenPostalCode()">
+                    <mat-icon>info</mat-icon>
+                    L'adresse complète est requise pour l'inscription PayGreen marketplace.
+                  </p>
+
                   <button
-                    *ngIf="!paymentProvidersStatus()?.paygreen?.configured"
-                    mat-stroked-button
+                    mat-flat-button
                     color="primary"
                     type="button"
+                    class="configure-paygreen-button"
+                    [disabled]="isCreatingPaygreenMarketplace()"
                     (click)="onConfigurePaygreen()"
                   >
-                    <mat-icon>settings</mat-icon>
-                    Configurer mon compte
+                    <mat-spinner *ngIf="isCreatingPaygreenMarketplace()" diameter="18" class="button-spinner"></mat-spinner>
+                    <mat-icon *ngIf="!isCreatingPaygreenMarketplace()">settings</mat-icon>
+                    {{ isCreatingPaygreenMarketplace() ? 'Configuration en cours...' : 'Configurer mon compte PayGreen' }}
                   </button>
                 </div>
               </div>
             </mat-radio-group>
+
+            <!-- PayGreen Marketplace Mode (only when PayGreen is selected) -->
+            <div
+              class="paygreen-mode-section"
+              *ngIf="paymentProvidersStatus()?.selectedProvider === 'PAYGREEN'"
+            >
+              <div class="mode-header">
+                <mat-icon>storefront</mat-icon>
+                <span class="mode-title">Mode PayGreen</span>
+              </div>
+              <mat-radio-group
+                class="mode-radio-group"
+                [value]="currentPaygreenMode()"
+                (change)="onPaygreenModeChange($any($event).value)"
+                [disabled]="isUpdatingPaygreenMode()"
+              >
+                <mat-radio-button value="independent">
+                  <span class="mode-label">Indépendant</span>
+                  <span class="mode-desc">Le vendor utilise son propre compte PayGreen (clés API complètes)</span>
+                </mat-radio-button>
+                <mat-radio-button value="marketplace">
+                  <span class="mode-label">Marketplace</span>
+                  <span class="mode-desc">Les paiements transitent par le compte Picki. Seul le shop_id PayGreen est requis.</span>
+                </mat-radio-button>
+              </mat-radio-group>
+              <div class="mode-info" *ngIf="currentPaygreenMode() === 'marketplace'">
+                <mat-icon>info</mat-icon>
+                <span>
+                  En mode marketplace, Picki gère les paiements et reverse au vendor sa part.
+                  Si la livraison est gérée par Picki, les frais de livraison sont retenus automatiquement.
+                </span>
+              </div>
+            </div>
 
             <div
               class="provider-warning"
@@ -252,6 +349,17 @@ export interface PaymentProviderStatus {
     .provider-row:hover {
       background: var(--mat-sys-surface-container-highest);
       border-color: var(--mat-sys-outline);
+    }
+
+    .paygreen-provider-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .paygreen-provider-row .provider-row-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
     .provider-select {
@@ -345,6 +453,78 @@ export interface PaymentProviderStatus {
       display: inline-block;
     }
 
+    .paygreen-onboarding-form {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--mat-sys-outline-variant);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .onboarding-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      font: var(--mat-sys-label-large);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .onboarding-section-title mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--mat-sys-tertiary);
+    }
+
+    .siret-field {
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .address-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .postal-code-field {
+      flex: 0 0 140px;
+    }
+
+    .city-field {
+      flex: 1;
+    }
+
+    .address-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 8px 12px;
+      background: var(--mat-sys-secondary-container);
+      border-radius: var(--mat-sys-corner-small);
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-secondary-container);
+    }
+
+    .address-hint mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .configure-paygreen-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      align-self: flex-start;
+    }
+
     .provider-warning {
       display: flex;
       align-items: flex-start;
@@ -389,9 +569,85 @@ export interface PaymentProviderStatus {
       color: var(--mat-sys-on-primary-container);
     }
 
+    .paygreen-mode-section {
+      padding: 16px;
+      background: var(--mat-sys-surface-container-high);
+      border: 1px solid var(--mat-sys-outline-variant);
+      border-radius: var(--mat-sys-corner-medium);
+    }
+
+    .mode-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mode-header mat-icon {
+      color: var(--mat-sys-tertiary);
+    }
+
+    .mode-title {
+      font: var(--mat-sys-title-small);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .mode-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mode-label {
+      font: var(--mat-sys-body-medium);
+      color: var(--mat-sys-on-surface);
+      font-weight: 500;
+    }
+
+    .mode-desc {
+      display: block;
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-surface-variant);
+      margin-top: 2px;
+    }
+
+    .mode-info {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--mat-sys-tertiary-container);
+      border-radius: var(--mat-sys-corner-medium);
+    }
+
+    .mode-info mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--mat-sys-on-tertiary-container);
+      flex-shrink: 0;
+    }
+
+    .mode-info span {
+      font: var(--mat-sys-body-small);
+      color: var(--mat-sys-on-tertiary-container);
+    }
+
     @media (max-width: 600px) {
       .provider-row {
+        padding: 12px;
+        gap: 12px;
         flex-wrap: wrap;
+      }
+
+      .paygreen-provider-row .provider-row-header {
+        gap: 12px;
+        width: 100%;
+      }
+
+      .provider-header {
+        gap: 6px;
       }
 
       .provider-select {
@@ -401,13 +657,13 @@ export interface PaymentProviderStatus {
       .provider-info {
         order: 2;
         flex: 1;
-        min-width: 180px;
+        min-width: 0;
       }
 
       .provider-actions {
         order: 3;
         width: 100%;
-        margin-top: 12px;
+        margin-top: 4px;
       }
 
       .provider-actions button {
@@ -419,6 +675,37 @@ export interface PaymentProviderStatus {
         padding-left: 0;
         margin-top: 4px;
       }
+
+      .paygreen-onboarding-form {
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      .siret-field {
+        max-width: 100%;
+      }
+
+      .address-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .postal-code-field {
+        flex: 1;
+      }
+
+      .configure-paygreen-button {
+        align-self: stretch;
+        width: 100%;
+      }
+
+      .onboarding-section-title {
+        margin-top: 4px;
+      }
+
+      .address-hint {
+        font: var(--mat-sys-body-small);
+      }
     }
   `],
 })
@@ -426,6 +713,7 @@ export class PaiementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private vendorService = inject(VendorService);
   private stripeService = inject(StripeService);
+  private paygreenBackendService = inject(PaygreenBackendService);
   private dataService = inject(RestaurantInfoDataService);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
@@ -439,6 +727,13 @@ export class PaiementComponent implements OnInit {
   isLoadingPaymentProviders = signal(true);
   isUpdatingProvider = signal(false);
   isCreatingStripeOnboarding = signal(false);
+  isCreatingPaygreenMarketplace = signal(false);
+  paygreenSiret = signal('');
+  paygreenStreet = signal('');
+  paygreenCity = signal('');
+  paygreenPostalCode = signal('');
+  currentPaygreenMode = signal<'independent' | 'marketplace'>('independent');
+  isUpdatingPaygreenMode = signal(false);
 
   ngOnInit() {
     const info = this.dataService.restaurantInfo();
@@ -447,6 +742,17 @@ export class PaiementComponent implements OnInit {
         onlinePaymentsEnabled: [info?.vendor.online_payments_enabled ?? true],
       }),
     });
+
+    // Pre-fill address fields from existing data
+    if (info?.address) {
+      this.paygreenStreet.set(info.address.street || '');
+      this.paygreenCity.set(info.address.city || '');
+      this.paygreenPostalCode.set(info.address.postal_code || '');
+    }
+    // Pre-fill SIRET from vendor
+    if (info?.vendor?.national_id) {
+      this.paygreenSiret.set(info.vendor.national_id);
+    }
 
     this.loadPaymentProvidersStatus();
     this.checkStripeOnboardingReturn();
@@ -509,6 +815,11 @@ export class PaiementComponent implements OnInit {
     try {
       const status = await this.vendorService.getPaymentProvidersStatus();
       this.paymentProvidersStatus.set(status);
+      // Initialize PayGreen mode from vendor data
+      const vendor = this.vendorService.getCurrentVendor();
+      if (vendor?.paygreen_mode) {
+        this.currentPaygreenMode.set(vendor.paygreen_mode as 'independent' | 'marketplace');
+      }
     } catch (error) {
       console.error('Error loading payment providers status:', error);
       this.snackBar.open('Erreur lors du chargement des fournisseurs de paiement', 'Fermer', {
@@ -608,10 +919,117 @@ export class PaiementComponent implements OnInit {
   }
 
   onConfigurePaygreen() {
-    window.open('https://app.paygreen.fr/auth/signup', '_blank');
-    this.snackBar.open('Redirection vers PayGreen pour créer votre compte...', 'Fermer', {
-      duration: 5000,
+    const currentVendor = this.vendorService.getCurrentVendor();
+    if (!currentVendor) {
+      this.snackBar.open('Erreur: Aucun vendeur sélectionné', 'Fermer', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+      return;
+    }
+
+    const siret = this.paygreenSiret().trim();
+    const street = this.paygreenStreet().trim();
+    const city = this.paygreenCity().trim();
+    const postalCode = this.paygreenPostalCode().trim();
+
+    if (!siret) {
+      this.snackBar.open('Veuillez renseigner votre numéro SIRET', 'Fermer', {
+        duration: 3000,
+        panelClass: ['error-snackbar'],
+      });
+      return;
+    }
+
+    if (!street || !city || !postalCode) {
+      this.snackBar.open('Veuillez renseigner l\'adresse complète (rue, ville, code postal)', 'Fermer', {
+        duration: 4000,
+        panelClass: ['error-snackbar'],
+      });
+      return;
+    }
+
+    this.isCreatingPaygreenMarketplace.set(true);
+
+    // Save SIRET and address first, then create marketplace shop
+    Promise.all([
+      this.vendorService.updateVendorNationalId(currentVendor.id, siret),
+      this.vendorService.saveRestaurantInfo({
+        address: { street, city, postal_code: postalCode, country: currentVendor.country || 'FR' },
+      }),
+    ]).then(() => {
+      this.paygreenBackendService.createMarketplaceShop(currentVendor.id).subscribe({
+        next: () => {
+          this.isCreatingPaygreenMarketplace.set(false);
+          this.snackBar.open('Compte PayGreen marketplace créé avec succès!', 'Fermer', {
+            duration: 5000,
+            panelClass: ['success-snackbar'],
+          });
+          this.loadPaymentProvidersStatusAndSelectPaygreen();
+        },
+        error: (error) => {
+          this.isCreatingPaygreenMarketplace.set(false);
+          const errorMsg = error?.error?.error || 'Erreur lors de la création du compte PayGreen';
+          console.error('Error creating PayGreen marketplace shop:', error);
+          this.snackBar.open(errorMsg, 'Fermer', {
+            duration: 5000,
+            panelClass: ['error-snackbar'],
+          });
+          this.cdr.detectChanges();
+        },
+      });
+    }).catch((error) => {
+      this.isCreatingPaygreenMarketplace.set(false);
+      console.error('Error saving SIRET:', error);
+      this.snackBar.open('Erreur lors de la sauvegarde du SIRET', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+      this.cdr.detectChanges();
     });
+  }
+
+  private async loadPaymentProvidersStatusAndSelectPaygreen() {
+    this.isLoadingPaymentProviders.set(true);
+    try {
+      const status = await this.vendorService.getPaymentProvidersStatus();
+      this.paymentProvidersStatus.set(status);
+
+      if (status.paygreen.configured) {
+        await this.onProviderSelect('PAYGREEN');
+        this.currentPaygreenMode.set('marketplace');
+      }
+    } catch (error) {
+      console.error('Error loading payment providers status:', error);
+    } finally {
+      this.isLoadingPaymentProviders.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  async onPaygreenModeChange(mode: 'independent' | 'marketplace') {
+    const vendor = this.vendorService.getCurrentVendor();
+    if (!vendor) return;
+
+    this.isUpdatingPaygreenMode.set(true);
+    try {
+      await this.vendorService.updatePaygreenMode(vendor.id, mode);
+      this.currentPaygreenMode.set(mode);
+      this.snackBar.open(
+        `Mode PayGreen changé vers ${mode === 'marketplace' ? 'Marketplace' : 'Indépendant'}`,
+        'Fermer',
+        { duration: 3000, panelClass: ['success-snackbar'] }
+      );
+    } catch (error) {
+      console.error('Error updating PayGreen mode:', error);
+      this.snackBar.open('Erreur lors de la mise à jour du mode PayGreen', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.isUpdatingPaygreenMode.set(false);
+      this.cdr.detectChanges();
+    }
   }
 
   async onSave() {

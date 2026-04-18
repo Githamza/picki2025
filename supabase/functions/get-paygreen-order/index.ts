@@ -1,8 +1,7 @@
 // This file runs on Supabase Edge Functions (Deno runtime)
 // Declare Deno for TypeScript tooling in Node projects scanning this file
 declare const Deno: any;
-// @ts-ignore - remote import resolved by Deno at runtime
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getPayGreenAuth } from '../_shared/paygreen-auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,75 +36,33 @@ Deno.serve(async (req: Request) => {
 
   console.log('Sandbox mode:', isSandbox);
 
-  // Use local Supabase URL and service key if LOCALLY is true
-  const isLocal = Deno.env.get('LOCALLY') === 'true';
-  const supabaseUrl = isLocal 
-    ? Deno.env.get('LOCAL_SUPABASE_URL') 
-    : Deno.env.get('SUPABASE_URL');
-  const serviceKey = isLocal 
-    ? Deno.env.get('LOCAL_SUPABASE_SERVICE_ROLE_KEY') 
-    : Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !serviceKey) {
-    return json({ error: 'Server not configured' }, { status: 500 });
-  }
-  const supabase = createClient(supabaseUrl, serviceKey);
-
-  const { data: creds } = await supabase
-    .from('vendor_paygreen_credentials')
-    .select('shop_id, secret_key, sandbox_shop_id, sandbox_secret_key')
-    .eq('vendor_id', vendorId)
-    .eq('active', true)
-    .single();
-  if (!creds) {
-    return json({ error: 'Vendor credentials not found' }, { status: 400 });
-  }
-
-  // Select the appropriate credentials based on sandbox mode
-  const shopId = isSandbox ? creds.sandbox_shop_id : creds.shop_id;
-  const secretKey = isSandbox ? creds.sandbox_secret_key : creds.secret_key;
-
-  if (!shopId || !secretKey) {
-    const mode = isSandbox ? 'sandbox' : 'production';
-    return json({ error: `${mode} credentials not configured for vendor` }, { status: 400 });
-  }
-  // Use API URL from frontend if provided, otherwise fall back to environment variable or default
   const apiUrl = frontendApiUrl || Deno.env.get('PG_API_URL') || 'https://api.paygreen.fr';
-  
   console.log('Using PayGreen API URL:', apiUrl);
 
-  // authenticate
-  const authRes = await fetch(
-    `${apiUrl}/auth/authentication/${shopId}/secret-key`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: secretKey,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    }
-  );
-  if (!authRes.ok) {
-    const body = await authRes.text();
-    return json({ error: 'Auth error', details: body }, { status: 500 });
+  try {
+    // Authenticate using the shared helper (handles independent vs marketplace)
+    const auth = await getPayGreenAuth(vendorId, apiUrl, isSandbox);
+
+    console.log('PayGreen mode:', auth.paygreenMode);
+
+    const detailsRes = await fetch(
+      `${apiUrl}/payment/payment-orders/${paymentId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    const txt = await detailsRes.text();
+    return new Response(txt, {
+      status: detailsRes.status,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    });
+  } catch (error) {
+    console.error('Function error:', error);
+    return json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
-  const token = (await authRes.json()).data.token as string;
-
-  const detailsRes = await fetch(
-    `${apiUrl}/payment/payment-orders/${paymentId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    }
-  );
-
-  const txt = await detailsRes.text();
-  return new Response(txt, {
-    status: detailsRes.status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders },
-  });
 });

@@ -1,8 +1,10 @@
 import {
   ApplicationConfig,
+  inject,
   isDevMode,
   provideZoneChangeDetection,
   LOCALE_ID,
+  provideAppInitializer,
 } from '@angular/core';
 import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -36,6 +38,7 @@ import { DELIVERY_PROVIDERS } from './services/delivery/delivery.tokens';
 import { UberDeliveryProvider } from './services/delivery/uber-delivery.provider';
 import { StuartDeliveryProvider } from './services/delivery/stuart-delivery.provider';
 import { JustEatDeliveryProvider } from './services/delivery/just-eat-delivery.provider';
+import { ClarityService } from './services/clarity.service';
 import { environment } from '../environments/environment';
 
 // Register French locale
@@ -46,6 +49,9 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withViewTransitions()),
     provideAnimations(),
+    provideAppInitializer(() => {
+      inject(ClarityService).initialize();
+    }),
     provideHttpClient(),
     provideNativeDateAdapter(),
     { provide: LOCALE_ID, useValue: 'fr-FR' },

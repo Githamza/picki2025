@@ -1,5 +1,9 @@
 import { serve } from 'https://deno.land/std@0.200.0/http/server.ts';
 import { getPayGreenAuth } from '../_shared/paygreen-auth.ts';
+import {
+  createServiceClient,
+  validateAndComputeDiscount,
+} from '../_shared/coupons.ts';
 
 interface CreateOrderRequest {
   vendorId: string;
@@ -7,6 +11,13 @@ interface CreateOrderRequest {
   apiUrl?: string;
   isSandbox?: boolean;
   deliveryAmountMinor?: number; // delivery cost in cents for marketplace split
+  // Optional coupon code. Server re-validates and computes the discount; the
+  // client never controls the discount amount.
+  couponCode?: string;
+  // Products subtotal in major units. Used by the server to compute the
+  // percentage/fixed discount. To prevent inflated-subtotal abuse the server
+  // caps it at paymentOrder.amount/100 before computing.
+  subtotal?: number;
 }
 
 // Helper to build JSON responses with CORS headers
@@ -46,7 +57,15 @@ serve(async (req) => {
     return json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { vendorId, paymentOrder, apiUrl: frontendApiUrl, isSandbox = false, deliveryAmountMinor } = body;
+  const {
+    vendorId,
+    paymentOrder,
+    apiUrl: frontendApiUrl,
+    isSandbox = false,
+    deliveryAmountMinor,
+    couponCode,
+    subtotal,
+  } = body;
   if (!vendorId || !paymentOrder) {
     return json(
       { error: 'vendorId and paymentOrder are required' },
@@ -69,9 +88,56 @@ serve(async (req) => {
     // Build the payment order body
     let orderBody = { ...paymentOrder };
 
-    // In marketplace mode, add eligible_amounts for vendor split
+    // Server-side coupon recomputation. The client only sends the code +
+    // products subtotal (major units). The server caps the subtotal at the
+    // client-declared paymentOrder.amount (in major units) to prevent abuse
+    // where a percentage discount would be inflated via a fake subtotal.
+    let resolvedDiscountMajor = 0;
+    let resolvedCouponCode: string | null = null;
+    let resolvedCouponId: string | null = null;
+    const requestedCouponCode = (couponCode || '').toString().trim();
+
+    if (requestedCouponCode) {
+      const paymentAmountCents = Number(orderBody.amount);
+      const paymentAmountMajor = Number.isFinite(paymentAmountCents)
+        ? paymentAmountCents / 100
+        : 0;
+      const safeSubtotal = Math.max(
+        0,
+        Math.min(Number(subtotal) || 0, paymentAmountMajor)
+      );
+
+      const supabaseAdmin = createServiceClient();
+      const validation = await validateAndComputeDiscount(supabaseAdmin, {
+        vendorId,
+        code: requestedCouponCode,
+        subtotal: safeSubtotal,
+      });
+
+      if (!validation.valid) {
+        return json(
+          { error: 'Coupon validation failed', reason: validation.reason },
+          { status: 400 }
+        );
+      }
+
+      resolvedDiscountMajor = validation.discountAmount;
+      resolvedCouponCode = validation.code;
+      resolvedCouponId = validation.couponId;
+
+      const discountCents = Math.round(resolvedDiscountMajor * 100);
+      const newAmountCents = Math.max(
+        0,
+        Math.round(paymentAmountCents - discountCents)
+      );
+      orderBody = { ...orderBody, amount: newAmountCents };
+    }
+
+    // In marketplace mode, add eligible_amounts for vendor split.
+    // We use `orderBody.amount` (already post-discount in cents) so the split
+    // sums to the actual amount being charged.
     if (auth.paygreenMode === 'marketplace' && auth.vendorShopId) {
-      const totalAmount = paymentOrder.amount; // already in cents
+      const totalAmount = Number(orderBody.amount);
 
       let vendorAmount: number;
       if (auth.deliverySystem === 'picki' && deliveryAmountMinor && deliveryAmountMinor > 0) {
@@ -117,7 +183,12 @@ serve(async (req) => {
 
     const orderJson = await orderRes.json();
     console.log('PayGreen order created successfully');
-    return json(orderJson);
+    return json({
+      ...orderJson,
+      coupon_id: resolvedCouponId,
+      coupon_code: resolvedCouponCode,
+      discount_amount: resolvedDiscountMajor,
+    });
   } catch (error) {
     console.error('Function error:', error);
     return json({ error: error.message || 'Internal server error' }, { status: 500 });

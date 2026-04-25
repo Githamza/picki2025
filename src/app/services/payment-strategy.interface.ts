@@ -24,6 +24,13 @@ export interface PaymentRequest {
   // When set, Stripe Connect routes this amount to Picki's platform account
   // and the remainder (amount - platformFeeAmount) goes to the vendor.
   platformFeeAmount?: number;
+  // Optional coupon code applied by the customer. The server-side checkout
+  // edge functions re-validate the code and recompute the discount; the
+  // client never controls the discount amount.
+  couponCode?: string;
+  // Products subtotal in major units. Used by PayGreen-side recomputation,
+  // since PayGreen takes a single amount and not line items.
+  productsSubtotal?: number;
 }
 
 export interface PaymentResponse {
@@ -32,6 +39,12 @@ export interface PaymentResponse {
   url?: string; // For redirect-based payments
   clientSecret?: string; // For Stripe Payment Intents
   provider: 'paygreen' | 'stripe';
+  // Server-resolved coupon fields (echoed back by the checkout edge functions
+  // so the client can persist the same numbers on the order without
+  // recomputing).
+  couponId?: string | null;
+  couponCode?: string | null;
+  discountAmount?: number;
 }
 
 export interface PaymentStrategy {

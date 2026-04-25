@@ -13,10 +13,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
 import { AccessoriesStripComponent } from '../accessories-strip/accessories-strip.component';
+import { CouponInputComponent } from '../coupon-input/coupon-input.component';
 import {
   selectCartItems,
   selectFoodItems,
   selectAccessoryItems,
+  selectAppliedCoupon,
 } from '../../store/selectors/cart.selectors';
 import { CartItem, AppState } from '../../store/models/app.state';
 import { Router } from '@angular/router';
@@ -43,8 +45,13 @@ import {
   decrementCartItem,
   removeCartItem,
   clearCart,
+  applyCoupon as applyCouponAction,
+  removeCoupon as removeCouponAction,
 } from '../../store/actions/cart.actions';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { CouponService } from '../../services/coupon.service';
+import { CartTotalsService } from '../../services/cart-totals.service';
+import { AppliedCoupon } from '../../models/coupon.model';
 
 @Component({
   selector: 'app-cart-details-sheet',
@@ -56,6 +63,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     MatDividerModule,
     CartItemStepsTreeComponent,
     AccessoriesStripComponent,
+    CouponInputComponent,
     VendorCurrencyPipe,
   ],
   template: `
@@ -212,6 +220,29 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
               <span class="fee-price price-value"
                 [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
               >{{ getItemPrice(item) | vendorCurrency }}</span>
+            </div>
+          }
+
+          @if (totals.subtotal() > 0) {
+            <app-coupon-input
+              class="coupon-input-row"
+              [applied]="appliedCoupon()"
+              [busy]="couponBusy()"
+              [error]="couponError()"
+              (apply)="onApplyCoupon($event)"
+              (remove)="onRemoveCoupon()"
+            />
+          }
+
+          @if (totals.discount() > 0) {
+            <div class="fee-row discount-row">
+              <div class="fee-row-content">
+                <mat-icon class="fee-icon discount-icon">redeem</mat-icon>
+                <span>Remise{{ appliedCoupon() ? ' (' + appliedCoupon()!.code + ')' : '' }}:</span>
+              </div>
+              <span class="fee-price price-value discount-value">
+                -{{ totals.discount() | vendorCurrency }}
+              </span>
             </div>
           }
 
@@ -472,6 +503,20 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       .total-price {
         color: var(--mat-primary);
       }
+      .coupon-input-row {
+        display: block;
+        margin: 8px 0 4px 0;
+      }
+      .discount-row {
+        color: var(--mat-sys-tertiary);
+      }
+      .discount-icon {
+        color: var(--mat-sys-tertiary);
+      }
+      .discount-value {
+        color: var(--mat-sys-tertiary);
+        font-weight: 500;
+      }
       .empty-cart {
         text-align: center;
         color: #888;
@@ -553,6 +598,8 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
   readonly ordersSuspended$ = this.vendorService.ordersSuspended$;
+  private couponService = inject(CouponService);
+  protected totals = inject(CartTotalsService);
 
   // Track products with insufficient stock by product ID
   insufficientStockItems = signal<Map<number, { available: number; required: number }>>(new Map());
@@ -560,6 +607,12 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   // Accessories
   availableAccessories = signal<Product[]>([]);
   private accessoriesSub?: Subscription;
+
+  // Coupon UI state
+  protected couponBusy = signal(false);
+  protected couponError = signal<string | null>(null);
+  protected appliedCoupon = signal<AppliedCoupon | undefined>(undefined);
+  private couponSub?: Subscription;
 
   constructor(private store: Store<AppState>) {
     this.cartItems$ = this.store.select(selectCartItems);
@@ -582,10 +635,88 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
     if (pref) {
       this.loadAccessories(pref);
     }
+
+    this.couponSub = this.store
+      .select(selectAppliedCoupon)
+      .subscribe((c) => this.appliedCoupon.set(c));
   }
 
   ngOnDestroy() {
     this.accessoriesSub?.unsubscribe();
+    this.couponSub?.unsubscribe();
+  }
+
+  protected onApplyCoupon(code: string): void {
+    const vendor = this.vendorService.getCurrentVendor();
+    const subtotal = this.totals.subtotal();
+    if (!vendor?.id || subtotal <= 0) {
+      this.couponError.set('Ajoutez des produits avant d\'appliquer un code.');
+      return;
+    }
+
+    this.couponBusy.set(true);
+    this.couponError.set(null);
+
+    this.couponService
+      .validate({ vendorId: vendor.id, code, subtotal })
+      .subscribe({
+        next: (result) => {
+          this.couponBusy.set(false);
+          if (result.valid) {
+            this.store.dispatch(
+              applyCouponAction({
+                coupon: {
+                  couponId: result.couponId,
+                  code: result.code,
+                  discountType: result.discountType,
+                  discountAmount: result.discountAmount,
+                },
+              })
+            );
+            this.snackBar.open(`Code "${result.code}" appliqué.`, 'Fermer', {
+              duration: 3000,
+              panelClass: ['success-snackbar'],
+            });
+          } else {
+            this.couponError.set(this.couponFailureMessage(result.reason, result.minSubtotal));
+          }
+        },
+        error: () => {
+          this.couponBusy.set(false);
+          this.couponError.set('Validation impossible. Réessayez.');
+        },
+      });
+  }
+
+  protected onRemoveCoupon(): void {
+    this.store.dispatch(removeCouponAction());
+    this.couponError.set(null);
+  }
+
+  private couponFailureMessage(
+    reason:
+      | 'NOT_FOUND'
+      | 'INACTIVE'
+      | 'EXPIRED'
+      | 'EXHAUSTED'
+      | 'BELOW_MIN_SUBTOTAL',
+    minSubtotal?: number
+  ): string {
+    switch (reason) {
+      case 'EXPIRED':
+        return 'Ce code n\'est plus valide.';
+      case 'EXHAUSTED':
+        return 'Ce code a atteint son nombre maximum d\'utilisations.';
+      case 'INACTIVE':
+        return 'Ce code n\'est pas actif.';
+      case 'BELOW_MIN_SUBTOTAL':
+        return minSubtotal !== undefined
+          ? `Panier minimum requis : ${minSubtotal.toFixed(2)} ${this.vendorService.getCurrentCurrency() ?? ''}`.trim()
+          : 'Le panier ne respecte pas le minimum requis.';
+      case 'NOT_FOUND':
+      default:
+        return 'Code invalide.';
+    }
   }
 
   private loadAccessories(orderType: string) {
@@ -671,7 +802,8 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
 
   getTotal(items: CartItem[]): number {
     const subtotal = this.getSubtotal(items);
-    let total = subtotal + this.getServiceFee(items);
+    const discount = Math.min(this.appliedCoupon()?.discountAmount ?? 0, subtotal);
+    let total = Math.max(0, subtotal - discount) + this.getServiceFee(items);
     // Add delivery fee if not already included as a cart item
     const hasDeliveryCartItem = items.some((item) => item.product.id === -9999);
     if (!hasDeliveryCartItem) {
@@ -859,6 +991,8 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
         };
       });
 
+      const couponSnapshot = this.appliedCoupon();
+
       // Create order with "initiated" status
       const order: Order = {
         id: '', // Will be generated by database
@@ -880,6 +1014,11 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
         createdAt: new Date(),
         updatedAt: new Date(),
         notes: '',
+        couponId: couponSnapshot?.couponId ?? null,
+        couponCode: couponSnapshot?.code ?? null,
+        discountAmount: couponSnapshot
+          ? Math.min(couponSnapshot.discountAmount, this.getSubtotal(items))
+          : 0,
       };
 
       console.log('Creating order:', order);
@@ -997,6 +1136,7 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
       const deliveryFee = isPickiDelivery ? this.getDeliveryFee(items) : 0;
 
       // Create unified payment request with order reference
+      const productsSubtotal = this.getSubtotal(items);
       const paymentRequest: PaymentRequest = {
         amount: totalAmount,
         currency: this.vendorService.getCurrentCurrency(),
@@ -1020,6 +1160,12 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
         },
         // Picki retains the delivery fee from Stripe via application_fee_amount
         platformFeeAmount: deliveryFee,
+        ...(couponSnapshot
+          ? {
+              couponCode: couponSnapshot.code,
+              productsSubtotal,
+            }
+          : {}),
       };
 
       console.log(`Processing payment with ${currentProvider}...`);

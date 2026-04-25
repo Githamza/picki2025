@@ -58,5 +58,12 @@ export interface Order {
   updatedAt: Date;
   notes?: string;
   vendorId?: string;
-  refuse_reason?: string; // Reference to the vendor this order belongs to
+  refuse_reason?: string;
+  // Coupon fields (filled when a coupon is applied to the cart). The DB
+  // trigger increments coupons.current_uses when status reaches a non-cancelled
+  // value (paid / todo / ongoing / done / picked).
+  couponId?: string | null;
+  couponCode?: string | null;
+  /** Discount amount in vendor currency major units. */
+  discountAmount?: number;
 }

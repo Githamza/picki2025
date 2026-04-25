@@ -36,6 +36,13 @@ export const restaurantInfoRoutes: Routes = [
           ),
       },
       {
+        path: 'coupons',
+        loadComponent: () =>
+          import('./children/coupons/coupons-admin-page.component').then(
+            (m) => m.CouponsAdminPageComponent
+          ),
+      },
+      {
         path: 'messages',
         loadComponent: () =>
           import('./children/messages/messages.component').then(

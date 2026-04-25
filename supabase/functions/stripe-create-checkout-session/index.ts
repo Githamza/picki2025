@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.200.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateAndComputeDiscount } from '../_shared/coupons.ts';
 
 type CreateCheckoutSessionBody = {
   vendorId: string; // vendor UUID
@@ -17,6 +18,11 @@ type CreateCheckoutSessionBody = {
   // account via Stripe Connect application_fee_amount. Used to recover
   // delivery courier costs. Vendor receives (total - applicationFeeAmountCents).
   applicationFeeAmountCents?: number;
+  // Optional coupon code. The server re-validates the code against the vendor's
+  // coupons table and applies a Stripe one-off coupon to the session. The
+  // discount is computed server-side from the products subtotal (sum of items),
+  // ignoring any client-supplied discount value.
+  couponCode?: string;
 };
 
 const corsHeaders: Record<string, string> = {
@@ -144,6 +150,12 @@ serve(async (req) => {
     params.set('customer_email', customerEmail);
   }
 
+  // Build line items + compute server-side products subtotal.
+  // The "Frais de service" line is excluded from coupon discount per spec
+  // (coupon applies to products subtotal only).
+  const SERVICE_FEE_NAMES = new Set(['frais de service', 'service fee']);
+  let productsSubtotal = 0;
+
   for (let i = 0; i < body.items.length; i++) {
     const item = body.items[i];
     const name = (item?.name || '').toString().trim();
@@ -160,6 +172,71 @@ serve(async (req) => {
       String(toCents(price))
     );
     params.set(`line_items[${i}][quantity]`, String(quantity));
+
+    if (!SERVICE_FEE_NAMES.has(name.toLowerCase())) {
+      productsSubtotal += price * quantity;
+    }
+  }
+
+  // Server-side coupon recomputation. The client only sends the code; the
+  // amount is resolved here from the products subtotal so the charged amount
+  // can never be tampered with.
+  let resolvedDiscountCents = 0;
+  let resolvedCouponCode: string | null = null;
+  let resolvedCouponId: string | null = null;
+  const requestedCouponCode = (body.couponCode || '').toString().trim();
+
+  if (requestedCouponCode && productsSubtotal > 0) {
+    const validation = await validateAndComputeDiscount(supabase, {
+      vendorId,
+      code: requestedCouponCode,
+      subtotal: productsSubtotal,
+    });
+
+    if (validation.valid) {
+      resolvedDiscountCents = toCents(validation.discountAmount);
+      resolvedCouponCode = validation.code;
+      resolvedCouponId = validation.couponId;
+    } else {
+      return json(
+        { error: 'Coupon validation failed', reason: validation.reason },
+        { status: 400 }
+      );
+    }
+  }
+
+  // If we have a discount, create a one-off Stripe coupon and attach it to
+  // the session. Stripe rejects negative line items, so the discount API is
+  // the only correct path. The coupon is created on the connected account
+  // (transfer_data destination) so that it lives on the right Stripe account.
+  if (resolvedDiscountCents > 0 && resolvedCouponCode) {
+    const couponParams = new URLSearchParams();
+    couponParams.set('amount_off', String(resolvedDiscountCents));
+    couponParams.set('currency', currency);
+    couponParams.set('duration', 'once');
+    couponParams.set('name', `Remise ${resolvedCouponCode}`);
+
+    const couponRes = await fetch('https://api.stripe.com/v1/coupons', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeSecretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Stripe-Account': connectedAccountId,
+      },
+      body: couponParams.toString(),
+    });
+
+    if (!couponRes.ok) {
+      const couponErr = await couponRes.text();
+      console.error('Stripe one-off coupon creation failed:', couponErr);
+      return json(
+        { error: 'Stripe coupon creation failed', details: couponErr },
+        { status: 502 }
+      );
+    }
+
+    const couponJson = await couponRes.json();
+    params.set('discounts[0][coupon]', String(couponJson.id));
   }
 
   // Stripe Connect destination charge — vendor receives total minus application fee.
@@ -215,6 +292,11 @@ serve(async (req) => {
     metadata: session.metadata,
     currency: session.currency,
     amount_total: session.amount_total,
+    // Server-resolved coupon fields, so the client persists the same numbers
+    // it actually charged via Stripe (in major units for DB storage).
+    coupon_id: resolvedCouponId,
+    coupon_code: resolvedCouponCode,
+    discount_amount: resolvedDiscountCents > 0 ? resolvedDiscountCents / 100 : 0,
   });
 });
 

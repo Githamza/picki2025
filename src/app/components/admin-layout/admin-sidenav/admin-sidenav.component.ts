@@ -48,6 +48,7 @@ export class AdminSidenavComponent implements OnInit {
     { path: 'horaires', label: 'Horaires', icon: 'schedule' },
     { path: 'commandes', label: 'Types de commande', icon: 'restaurant_menu' },
     { path: 'paiement', label: 'Paiement', icon: 'payments' },
+    { path: 'coupons', label: 'Codes promo', icon: 'local_offer' },
     { path: 'messages', label: 'Messages', icon: 'message' },
     { path: 'stocks', label: 'Stocks', icon: 'inventory_2' },
     { path: 'contact', label: 'Contact', icon: 'contact_phone' },

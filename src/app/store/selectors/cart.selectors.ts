@@ -9,6 +9,11 @@ export const selectCartItems = createSelector(
   (state) => state.items
 );
 
+export const selectAppliedCoupon = createSelector(
+  selectCart,
+  (state) => state.coupon
+);
+
 export const selectCartTotalCount = createSelector(selectCartItems, (items) =>
   items
     .filter(

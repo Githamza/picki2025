@@ -30,6 +30,10 @@ export interface StripeCheckoutSession {
   line_items?: unknown;
   created?: number;
   expires_at?: number;
+  // Server-resolved coupon fields (echoed by stripe-create-checkout-session).
+  coupon_id?: string | null;
+  coupon_code?: string | null;
+  discount_amount?: number;
 }
 
 export interface StripeCheckoutCreateRequest {
@@ -48,6 +52,10 @@ export interface StripeCheckoutCreateRequest {
   // application_fee_amount so this amount is retained by Picki's platform
   // account. Set to the delivery fee amount so Picki can cover courier costs.
   applicationFeeAmountCents?: number;
+  // Optional vendor coupon code. Server re-validates and applies the
+  // resulting discount via Stripe one-off coupon API. Never trust client
+  // for the discount amount.
+  couponCode?: string;
 }
 
 export interface StripeCheckoutGetRequest {

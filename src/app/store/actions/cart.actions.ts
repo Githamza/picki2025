@@ -1,6 +1,7 @@
 import { createAction, props } from '@ngrx/store';
 import { Product } from '../../services/product.service';
 import { ComplementSelection } from '../../models/complement.model';
+import { AppliedCoupon } from '../../models/coupon.model';
 
 export const addToCart = createAction(
   '[Cart] Add To Cart',
@@ -40,3 +41,10 @@ export const upsertDeliveryFee = createAction(
 );
 
 export const removeDeliveryFee = createAction('[Cart] Remove Delivery Fee');
+
+export const applyCoupon = createAction(
+  '[Cart] Apply Coupon',
+  props<{ coupon: AppliedCoupon }>()
+);
+
+export const removeCoupon = createAction('[Cart] Remove Coupon');

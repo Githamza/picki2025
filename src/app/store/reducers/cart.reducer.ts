@@ -7,6 +7,8 @@ import {
   clearCart,
   upsertDeliveryFee,
   removeDeliveryFee,
+  applyCoupon,
+  removeCoupon,
 } from '../actions/cart.actions';
 import { CartState } from '../models/app.state';
 
@@ -198,5 +200,13 @@ export const cartReducer = createReducer(
     ...state,
     items: state.items.filter((item) => item.product.id !== DELIVERY_FEE_PRODUCT_ID),
   })),
+  on(applyCoupon, (state, { coupon }) => ({
+    ...state,
+    coupon,
+  })),
+  on(removeCoupon, (state) => {
+    const { coupon: _coupon, ...rest } = state;
+    return { ...rest, items: state.items };
+  }),
   on(clearCart, () => initialState)
 );

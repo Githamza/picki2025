@@ -3,6 +3,7 @@ import { ProductState } from '../reducers/product.reducer'; // Adjust path as ne
 import { MultiStepProductState } from '../reducers/multi-step-product.reducer';
 import { ComplementSelection } from '../../models/complement.model';
 import { PromotionalBannersState } from '../reducers/promotional-banners.reducer';
+import { AppliedCoupon } from '../../models/coupon.model';
 
 // App state model
 export interface AppState {
@@ -60,4 +61,5 @@ export interface CartItem {
 
 export interface CartState {
   items: CartItem[];
+  coupon?: AppliedCoupon;
 }

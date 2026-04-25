@@ -76,6 +76,7 @@ export class StripePaymentStrategy implements PaymentStrategy {
         request.platformFeeAmount && request.platformFeeAmount > 0
           ? Math.round(request.platformFeeAmount * 100)
           : 0,
+      ...(request.couponCode ? { couponCode: request.couponCode } : {}),
     };
 
     return this.stripeService.createCheckoutSession(checkoutRequest).pipe(
@@ -84,6 +85,9 @@ export class StripePaymentStrategy implements PaymentStrategy {
         status: session.status,
         url: session.url,
         provider: this.provider,
+        couponId: session.coupon_id ?? null,
+        couponCode: session.coupon_code ?? null,
+        discountAmount: session.discount_amount ?? 0,
       }))
     );
   }

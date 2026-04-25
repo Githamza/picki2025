@@ -161,6 +161,65 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number
+          discount_percent: number | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          min_subtotal: number | null
+          updated_at: string
+          valid_from: string
+          valid_until: string
+          vendor_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number
+          discount_percent?: number | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_subtotal?: number | null
+          updated_at?: string
+          valid_from?: string
+          valid_until: string
+          vendor_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number
+          discount_percent?: number | null
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_subtotal?: number | null
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customisation_options: {
         Row: {
           created_at: string | null
@@ -562,11 +621,15 @@ export type Database = {
       orders: {
         Row: {
           confirmation_email_sent: boolean | null
+          coupon_code: string | null
+          coupon_id: string | null
+          coupon_redeemed: boolean
           created_at: string | null
           customer_email: string
           customer_first_name: string
           customer_last_name: string
           customer_phone: string | null
+          discount_amount: number
           id: string
           notes: string | null
           order_number: string
@@ -585,11 +648,15 @@ export type Database = {
         }
         Insert: {
           confirmation_email_sent?: boolean | null
+          coupon_code?: string | null
+          coupon_id?: string | null
+          coupon_redeemed?: boolean
           created_at?: string | null
           customer_email: string
           customer_first_name: string
           customer_last_name: string
           customer_phone?: string | null
+          discount_amount?: number
           id?: string
           notes?: string | null
           order_number: string
@@ -608,11 +675,15 @@ export type Database = {
         }
         Update: {
           confirmation_email_sent?: boolean | null
+          coupon_code?: string | null
+          coupon_id?: string | null
+          coupon_redeemed?: boolean
           created_at?: string | null
           customer_email?: string
           customer_first_name?: string
           customer_last_name?: string
           customer_phone?: string | null
+          discount_amount?: number
           id?: string
           notes?: string | null
           order_number?: string
@@ -630,6 +701,13 @@ export type Database = {
           vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
@@ -1462,6 +1540,7 @@ export type Database = {
       }
     }
     Enums: {
+      coupon_discount_type: "percentage" | "fixed"
       order_status:
         | "todo"
         | "ongoing"
@@ -1610,6 +1689,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      coupon_discount_type: ["percentage", "fixed"],
       order_status: [
         "todo",
         "ongoing",

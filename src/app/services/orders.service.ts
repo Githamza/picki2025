@@ -337,6 +337,9 @@ export class OrdersService {
         notes: order.notes,
         pay_at_checkout: order.payAtCheckout ?? false,
         vendor_id: vendorId, // Include vendor ID when creating order
+        coupon_id: order.couponId ?? null,
+        coupon_code: order.couponCode ?? null,
+        discount_amount: order.discountAmount ?? 0,
       });
 
       if (dbOrder) {
@@ -689,6 +692,12 @@ export class OrdersService {
       notes: dbOrder.notes || undefined,
       vendorId: dbOrder.vendor_id || undefined, // Include vendor ID from database
       refuse_reason: dbOrder.refuse_reason || undefined,
+      couponId: dbOrder.coupon_id || undefined,
+      couponCode: dbOrder.coupon_code || undefined,
+      discountAmount:
+        dbOrder.discount_amount != null
+          ? Number(dbOrder.discount_amount)
+          : undefined,
     };
   }
 }

@@ -12,6 +12,10 @@ export interface PayGreenPaymentOrderResponseBackend {
     status: string;
   } & Record<string, unknown>;
   timestamp?: string;
+  // Server-resolved coupon fields, echoed by create-paygreen-order.
+  coupon_id?: string | null;
+  coupon_code?: string | null;
+  discount_amount?: number;
 }
 
 @Injectable({
@@ -38,14 +42,20 @@ export class PaygreenBackendService {
   }
 
   /**
-   * Create a hosted payment order through the server (Edge function)
+   * Create a hosted payment order through the server (Edge function).
+   * The server re-validates `couponCode` (if any) and adjusts the final
+   * payment amount accordingly. The client never controls the discount.
+   *
    * @param vendorId ID of the vendor whose credentials should be used
    * @param paymentOrder Raw PayGreen PaymentOrder payload (amount already converted to cents)
+   * @param deliveryAmountMinor Delivery cost in cents (for marketplace split)
+   * @param coupon Optional coupon code + products subtotal in major units
    */
   createPaymentOrder(
     vendorId: string,
     paymentOrder: PayGreenPaymentOrderRequest,
-    deliveryAmountMinor?: number
+    deliveryAmountMinor?: number,
+    coupon?: { code: string; subtotal: number }
   ): Observable<PayGreenPaymentOrderResponseBackend> {
     return this.http.post<PayGreenPaymentOrderResponseBackend>(
       `${this.backendUrl}/functions/v1/create-paygreen-order`,
@@ -55,6 +65,7 @@ export class PaygreenBackendService {
         apiUrl: this.paygreenConfig.getApiUrl(),
         isSandbox: this.paygreenConfig.useSandboxCredentials(),
         ...(deliveryAmountMinor != null && { deliveryAmountMinor }),
+        ...(coupon ? { couponCode: coupon.code, subtotal: coupon.subtotal } : {}),
       },
       { headers: this.getHeaders() }
     );

@@ -59,14 +59,29 @@ export class PaygreenPaymentStrategy implements PaymentStrategy {
     // Pass delivery cost for marketplace mode split
     const deliveryAmountMinor = request.metadata?.delivery?.amountMinor as number | undefined;
 
+    const couponInput = request.couponCode
+      ? {
+          code: request.couponCode,
+          subtotal: request.productsSubtotal ?? request.amount,
+        }
+      : undefined;
+
     return this.paygreenBackend
-      .createPaymentOrder(request.vendorId, paymentOrderRequest, deliveryAmountMinor)
+      .createPaymentOrder(
+        request.vendorId,
+        paymentOrderRequest,
+        deliveryAmountMinor,
+        couponInput
+      )
       .pipe(
         map((response) => ({
           id: response.data.id,
           status: response.data.status,
           url: response.data.hosted_payment_url + '?lang=fr', // Use the hosted payment URL from PayGreen
           provider: this.provider,
+          couponId: response.coupon_id ?? null,
+          couponCode: response.coupon_code ?? null,
+          discountAmount: response.discount_amount ?? 0,
         }))
       );
   }

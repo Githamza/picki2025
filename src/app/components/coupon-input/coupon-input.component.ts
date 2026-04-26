@@ -3,12 +3,13 @@ import {
   Component,
   computed,
   effect,
-  inject,
   input,
   output,
   signal,
 } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { startWith } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,6 +23,9 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
  * button) or a chip-style summary of the applied coupon (with remove button).
  * The container is responsible for calling the validation service and
  * updating the NgRx state; this component only emits intent.
+ *
+ * Server-side invalid coupon messages are mirrored onto the `code` control via
+ * `setErrors` so Material shows the field error state and `mat-error`.
  */
 @Component({
   selector: 'app-coupon-input',
@@ -57,15 +61,15 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         </button>
       </div>
     } @else {
-      <form class="coupon-form" (ngSubmit)="onApply()">
-        <mat-form-field appearance="outline" class="coupon-field">
+      <form class="coupon-form" [formGroup]="couponForm" (ngSubmit)="onApply()">
+        <mat-form-field  class="coupon-field">
           <mat-label>Code promo</mat-label>
           <input
             matInput
             type="text"
             autocomplete="off"
             autocapitalize="characters"
-            [formControl]="codeControl"
+            formControlName="code"
             [maxlength]="32"
             (input)="onInputChange()"
             aria-describedby="coupon-error"
@@ -181,11 +185,26 @@ export class CouponInputComponent {
 
   readonly apply = output<string>();
   readonly remove = output<void>();
+  /** Parent should clear `[error]` when the user edits the code after a failed apply. */
+  readonly clearError = output<void>();
+
+  private static readonly serverCouponErrorKey = 'serverCoupon';
 
   readonly codeControl = new FormControl<string>('', {
     nonNullable: true,
     validators: [Validators.required, Validators.minLength(3)],
   });
+
+  readonly couponForm = new FormGroup({
+    code: this.codeControl,
+  });
+
+  private readonly codeValue = toSignal(
+    this.codeControl.valueChanges.pipe(
+      startWith(this.codeControl.value)
+    ),
+    { initialValue: this.codeControl.value }
+  );
 
   private readonly localError = signal<string | null>(null);
 
@@ -194,7 +213,7 @@ export class CouponInputComponent {
   );
 
   readonly canSubmit = computed(() => {
-    const value = (this.codeControl.value || '').trim();
+    const value = (this.codeValue() || '').trim();
     return value.length >= 3;
   });
 
@@ -203,16 +222,35 @@ export class CouponInputComponent {
       const err = this.error();
       if (err) {
         this.localError.set(null);
+        const current = this.codeControl.errors;
+        this.codeControl.setErrors({
+          ...(current ?? {}),
+          [CouponInputComponent.serverCouponErrorKey]: true,
+        });
+        this.codeControl.markAsTouched();
+      } else {
+        this.clearServerCouponErrorFromControl();
       }
     });
   }
 
+  private clearServerCouponErrorFromControl(): void {
+    const errors = this.codeControl.errors;
+    if (!errors?.[CouponInputComponent.serverCouponErrorKey]) return;
+    const next = { ...errors };
+    delete next[CouponInputComponent.serverCouponErrorKey];
+    this.codeControl.setErrors(Object.keys(next).length ? next : null);
+  }
+
   protected onInputChange(): void {
     this.localError.set(null);
+    if (this.error()) {
+      this.clearError.emit();
+    }
     const v = this.codeControl.value;
     if (v && v !== v.toUpperCase()) {
       const start = (document.activeElement as HTMLInputElement)?.selectionStart;
-      this.codeControl.setValue(v.toUpperCase(), { emitEvent: false });
+      this.codeControl.setValue(v.toUpperCase(), { emitEvent: true });
       if (start !== undefined && document.activeElement instanceof HTMLInputElement) {
         document.activeElement.setSelectionRange(start, start);
       }

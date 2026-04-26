@@ -231,6 +231,7 @@ import { AppliedCoupon } from '../../models/coupon.model';
               [error]="couponError()"
               (apply)="onApplyCoupon($event)"
               (remove)="onRemoveCoupon()"
+              (clearError)="couponError.set(null)"
             />
           }
 

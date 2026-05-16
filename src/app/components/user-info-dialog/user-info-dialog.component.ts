@@ -160,7 +160,7 @@ export interface UserInfoDialogData {
             </mat-form-field>
 
             <mat-form-field class="full-width">
-              <mat-label>Telephone (optionnel)</mat-label>
+              <mat-label>Telephone *</mat-label>
               <input
                 matInput
                 type="tel"
@@ -169,6 +169,9 @@ export interface UserInfoDialogData {
                 autocomplete="tel"
               />
               <mat-icon matSuffix>phone</mat-icon>
+              <mat-error *ngIf="userForm.get('phone')?.hasError('required')">
+                Le telephone est obligatoire
+              </mat-error>
               <mat-error *ngIf="userForm.get('phone')?.hasError('pattern')">
                 Format de telephone invalide
               </mat-error>
@@ -278,7 +281,10 @@ export class UserInfoDialogComponent {
       nom: ['', [Validators.required, Validators.minLength(2)]],
       prenom: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.pattern(/^(\+33|0)[1-9](\d{8})$/)]],
+      phone: [
+        '',
+        [Validators.required, Validators.pattern(/^(\+33|0)[1-9](\d{8})$/)],
+      ],
     });
   }
 

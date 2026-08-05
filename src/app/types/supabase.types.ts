@@ -1398,6 +1398,7 @@ export type Database = {
       vendors: {
         Row: {
           auth_user_id: string | null
+          auto_print_enabled: boolean
           banner_url: string | null
           business_name: string
           business_type: string | null
@@ -1433,6 +1434,7 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          auto_print_enabled?: boolean
           banner_url?: string | null
           business_name: string
           business_type?: string | null
@@ -1468,6 +1470,7 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          auto_print_enabled?: boolean
           banner_url?: string | null
           business_name?: string
           business_type?: string | null

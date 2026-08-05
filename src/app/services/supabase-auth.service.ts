@@ -528,6 +528,26 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  async updateVendorAutoPrintEnabled(vendorId: string, enabled: boolean) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        auto_print_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
   async updateVendorCustomMessages(
     vendorId: string,
     messages: {

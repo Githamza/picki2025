@@ -51,6 +51,7 @@ export class AdminSidenavComponent implements OnInit {
     { path: 'coupons', label: 'Codes promo', icon: 'local_offer' },
     { path: 'messages', label: 'Messages', icon: 'message' },
     { path: 'stocks', label: 'Stocks', icon: 'inventory_2' },
+    { path: 'impression', label: 'Impression', icon: 'print' },
     { path: 'contact', label: 'Contact', icon: 'contact_phone' },
   ];
 

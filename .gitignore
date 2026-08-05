@@ -106,3 +106,10 @@ __azurite_db*__.json
 
 # Remotion rendered output
 remotion/out/
+
+# Capacitor / Android signing artifacts
+# (android/.gitignore covers build output, .gradle and local.properties)
+*.keystore
+*.jks
+android/app/release/
+android/keystore.properties

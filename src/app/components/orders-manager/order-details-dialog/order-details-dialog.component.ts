@@ -19,8 +19,15 @@ import { Order, OrderStatus } from '../../../models/order.model';
 import { RefuseReasonDialogComponent } from '../refuse-reason-dialog/refuse-reason-dialog.component';
 import { SupabaseAuthService } from '../../../services/supabase-auth.service';
 import { EmailService } from '../../../services/email.service';
+import { TicketPrintService } from '../../../services/ticket-print.service';
 import { MapLocationViewerComponent } from '../../../shared/components/map-location-viewer/map-location-viewer.component';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
+import {
+  getDeliveryFee,
+  getProductItems,
+  getServiceFee,
+  getSubtotal,
+} from '../../../shared/utils/order-totals.util';
 
 @Component({
   selector: 'app-order-details-dialog',
@@ -312,6 +319,22 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
                 }
                 <span>Renvoyer le ticket</span>
               </button>
+              @if (canPrintTicket) {
+              <button
+                mat-stroked-button
+                class="resend-ticket-button"
+                (click)="printTicket()"
+                [disabled]="isPrintingTicket()"
+                matTooltip="Imprimer le ticket sur l'imprimante Bluetooth"
+              >
+                @if (isPrintingTicket()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                  <mat-icon>print</mat-icon>
+                }
+                <span>Imprimer le ticket</span>
+              </button>
+              }
             </div>
           </div>
         </div>
@@ -1033,10 +1056,14 @@ export class OrderDetailsDialogComponent {
   data = inject<{ order: Order; onAccept?: () => void; onRefuse?: (reason?: string) => void; onUpdateStatus?: (status: OrderStatus) => void }>(MAT_DIALOG_DATA);
   private supabaseAuth = inject(SupabaseAuthService);
   private emailService = inject(EmailService);
+  private ticketPrintService = inject(TicketPrintService);
   private snackBar = inject(MatSnackBar);
 
   isProcessing = this.data.onAccept ? signal(false) : signal(false);
   readonly isSendingTicket = signal<boolean>(false);
+  readonly isPrintingTicket = signal<boolean>(false);
+  /** Bluetooth printing only exists inside the Android app. */
+  readonly canPrintTicket = this.ticketPrintService.isNative;
 
   readonly isLoadingDelivery = signal<boolean>(false);
   readonly deliveryInfo = signal<any | null>(null);
@@ -1114,35 +1141,21 @@ export class OrderDetailsDialogComponent {
     picked: '',
   };
 
-  // Fee calculation methods
+  // Fee calculation methods - shared with the printed ticket so both agree.
   getSubtotal(): number {
-    return this.data.order.items
-      .filter(item => !this.isDeliveryFeeItem(item))
-      .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return getSubtotal(this.data.order);
   }
 
   getDeliveryFee(): number {
-    const deliveryItem = this.data.order.items.find(item => this.isDeliveryFeeItem(item));
-    return deliveryItem ? deliveryItem.price * deliveryItem.quantity : 0;
+    return getDeliveryFee(this.data.order);
   }
 
   getServiceFee(): number {
-    const subtotal = this.getSubtotal();
-    const deliveryFee = this.getDeliveryFee();
-    const serviceFee = this.data.order.totalAmount - subtotal - deliveryFee;
-    return serviceFee > 0 ? serviceFee : 0;
-  }
-
-  private isDeliveryFeeItem(item: any): boolean {
-    const productId = Number(item.productId);
-    const name = (item.productName || '').toLowerCase();
-    return productId === -9999 ||
-           name.includes('livraison') ||
-           name.includes('delivery');
+    return getServiceFee(this.data.order);
   }
 
   getProductItems() {
-    return this.data.order.items.filter(item => !this.isDeliveryFeeItem(item));
+    return getProductItems(this.data.order);
   }
 
   canValidateOrder(order: Order): boolean {
@@ -1282,6 +1295,31 @@ export class OrderDetailsDialogComponent {
 
   closeDialog() {
     this.dialogRef.close();
+  }
+
+  /**
+   * Manual reprint. Ignores the auto-print toggles - the staff asked for it
+   * explicitly - but still needs a printer configured on this device.
+   */
+  async printTicket() {
+    if (this.isPrintingTicket()) return;
+
+    this.isPrintingTicket.set(true);
+    try {
+      await this.ticketPrintService.printOrder(this.data.order);
+      this.snackBar.open('Ticket envoyé à l\'imprimante', 'OK', {
+        duration: 3000,
+        panelClass: ['success-snackbar'],
+      });
+    } catch (error) {
+      console.error('Error printing ticket:', error);
+      this.snackBar.open(this.ticketPrintService.describeError(error), 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.isPrintingTicket.set(false);
+    }
   }
 
   async resendTicket() {

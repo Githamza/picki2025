@@ -142,6 +142,21 @@
             >
           </div>
           <div class="customer-info-right">
+            @if (canPrintTicket()) {
+            <button
+              mat-icon-button
+              (click)="onPrintTicket($event)"
+              [disabled]="isOrderPrinting()(order().id)"
+              class="print-ticket-button"
+              matTooltip="Imprimer le ticket"
+            >
+              @if (isOrderPrinting()(order().id)) {
+              <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+              <mat-icon>print</mat-icon>
+              }
+            </button>
+            }
             @if (order().status === 'paid') {
             <button
               mat-fab

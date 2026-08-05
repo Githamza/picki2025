@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Picki</string>
+    <string name="title_activity_main">Picki</string>
+    <string name="package_name">com.pikiapp.tablet</string>
+    <string name="custom_url_scheme">com.pikiapp.tablet</string>
+</resources>

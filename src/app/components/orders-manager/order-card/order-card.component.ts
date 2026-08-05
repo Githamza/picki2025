@@ -8,6 +8,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Order, OrderStatus } from '../../../models/order.model';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
+import {
+  getDeliveryFee,
+  getProductItems,
+  getServiceFee,
+  getSubtotal,
+} from '../../../shared/utils/order-totals.util';
 
 @Component({
   selector: 'app-order-card',
@@ -41,9 +47,14 @@ export class OrderCardComponent {
   formatScheduledTime = input.required<(date: Date | undefined) => string>();
   formatScheduledDate = input.required<(date: Date | undefined) => string>();
 
+  /** Only true inside the Android app, where a Bluetooth printer exists. */
+  canPrintTicket = input<boolean>(false);
+  isOrderPrinting = input<(orderId: string) => boolean>(() => false);
+
   // Outputs
   cardClick = output<Order>();
   updateStatus = output<{ order: Order; status: OrderStatus }>();
+  printTicket = output<Order>();
 
   onCardClick() {
     this.cardClick.emit(this.order());
@@ -52,6 +63,11 @@ export class OrderCardComponent {
   onVoirPlusClick(event: Event) {
     event.stopPropagation();
     this.cardClick.emit(this.order());
+  }
+
+  onPrintTicket(event: Event) {
+    event.stopPropagation();
+    this.printTicket.emit(this.order());
   }
 
   onUpdateStatus(event: Event, newStatus: OrderStatus) {
@@ -85,23 +101,17 @@ export class OrderCardComponent {
     }
   }
 
-  // Fee calculation methods
+  // Fee calculation methods - shared with the printed ticket so both agree.
   getSubtotal(): number {
-    return this.order().items
-      .filter(item => !this.isDeliveryFeeItem(item))
-      .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return getSubtotal(this.order());
   }
 
   getDeliveryFee(): number {
-    const deliveryItem = this.order().items.find(item => this.isDeliveryFeeItem(item));
-    return deliveryItem ? deliveryItem.price * deliveryItem.quantity : 0;
+    return getDeliveryFee(this.order());
   }
 
   getServiceFee(): number {
-    const subtotal = this.getSubtotal();
-    const deliveryFee = this.getDeliveryFee();
-    const serviceFee = this.order().totalAmount - subtotal - deliveryFee;
-    return serviceFee > 0 ? serviceFee : 0;
+    return getServiceFee(this.order());
   }
 
   getTotalFees(): number {
@@ -113,15 +123,7 @@ export class OrderCardComponent {
   }
 
   getProductItemsCount(): number {
-    return this.order().items.filter(item => !this.isDeliveryFeeItem(item)).length;
-  }
-
-  private isDeliveryFeeItem(item: any): boolean {
-    const productId = Number(item.productId);
-    const name = (item.productName || '').toLowerCase();
-    return productId === -9999 ||
-           name.includes('livraison') ||
-           name.includes('delivery');
+    return getProductItems(this.order()).length;
   }
 }
 

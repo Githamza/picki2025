@@ -28,6 +28,7 @@ import { SupabaseAuthService } from '../../services/supabase-auth.service';
 import { EmailService } from '../../services/email.service';
 import { VendorService } from '../../services/vendor.service';
 import { SoundNotificationService } from '../../services/sound-notification.service';
+import { TicketPrintService } from '../../services/ticket-print.service';
 import { Order, OrderStatus } from '../../models/order.model';
 import { OrderDetailsDialogComponent } from './order-details-dialog/order-details-dialog.component';
 import { OrderCardComponent } from './order-card/order-card.component';
@@ -79,6 +80,41 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
   private emailService = inject(EmailService);
   private vendorService = inject(VendorService);
   public soundNotificationService = inject(SoundNotificationService);
+  private ticketPrintService = inject(TicketPrintService);
+
+  /** Bluetooth printing only exists inside the Android app. */
+  readonly canPrintTicket = this.ticketPrintService.isNative;
+  private readonly printingOrderIds = signal<Set<string>>(new Set());
+
+  readonly isOrderPrinting = (orderId: string): boolean =>
+    this.printingOrderIds().has(orderId);
+
+  /** Manual reprint from a card; ignores the auto-print toggles. */
+  async printOrderTicket(order: Order): Promise<void> {
+    if (this.isOrderPrinting(order.id)) {
+      return;
+    }
+
+    this.printingOrderIds.update((ids) => new Set(ids).add(order.id));
+    try {
+      await this.ticketPrintService.printOrder(order);
+      this.snackBar.open(`Ticket ${order.orderNumber} envoyé`, 'OK', {
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error printing ticket:', error);
+      this.snackBar.open(this.ticketPrintService.describeError(error), 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.printingOrderIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(order.id);
+        return next;
+      });
+    }
+  }
   private changeDetectorRef = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
   private dialog = inject(MatDialog);
@@ -227,6 +263,13 @@ export class OrdersManagerComponent implements OnInit, OnDestroy {
 
       // Check for new orders and play sound if found
       await this.checkForNewOrders();
+
+      // Auto-print keeps its own persisted guard rather than reusing the
+      // notification diff above, which is reset-sensitive and would reprint
+      // the whole backlog after a relaunch.
+      await this.ticketPrintService.autoPrintNewOrders(
+        this.ordersService.getCurrentOrders()
+      );
     } catch (error) {
       console.error('Error auto-refreshing orders:', error);
       // Don't show error message for auto-refresh failures

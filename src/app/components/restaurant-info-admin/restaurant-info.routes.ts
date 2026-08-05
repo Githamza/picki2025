@@ -57,6 +57,13 @@ export const restaurantInfoRoutes: Routes = [
           ),
       },
       {
+        path: 'impression',
+        loadComponent: () =>
+          import('./children/impression/impression.component').then(
+            (m) => m.ImpressionComponent
+          ),
+      },
+      {
         path: 'contact',
         loadComponent: () =>
           import('./children/contact/contact.component').then(

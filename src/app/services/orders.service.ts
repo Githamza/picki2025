@@ -73,11 +73,12 @@ export class OrdersService {
     this.ordersSubject.next(orders);
   }
 
-  // Debug method to check order existence
+  // Debug method to check order existence (admin context: orders are only
+  // readable by the vendor's authenticated session under RLS)
   async debugOrderExists(orderId: string): Promise<boolean> {
     try {
       console.log(`Checking if order ${orderId} exists...`);
-      const { data, error } = await this.supabaseService
+      const { data, error } = await this.supabaseAuthService
         .getClient()
         .from('orders')
         .select('id, order_number, status, created_at')
@@ -103,11 +104,11 @@ export class OrdersService {
     }
   }
 
-  // Debug method to list all order IDs
+  // Debug method to list all order IDs (admin context, see debugOrderExists)
   async debugListAllOrderIds(): Promise<void> {
     try {
       console.log('Fetching all order IDs...');
-      const { data, error } = await this.supabaseService
+      const { data, error } = await this.supabaseAuthService
         .getClient()
         .from('orders')
         .select('id, order_number, status, created_at')
@@ -137,181 +138,75 @@ export class OrdersService {
     }
   }
 
-  // Enhanced get order method with better error handling
-  async getOrderById(orderId: string): Promise<Order | null> {
-    console.log(`Getting order by ID: ${orderId}`);
-
+  // Customer-facing order read (success page, tracking links). Orders carry
+  // no anon RLS policies, so anonymous reads go through the confirm-payment
+  // edge function, addressed by the order UUID only the customer holds.
+  async getOrderStatusPublic(
+    orderId: string
+  ): Promise<{ order: Order | null; delivery: any }> {
     try {
-      // First check if order exists
-      const exists = await this.debugOrderExists(orderId);
-      if (!exists) {
-        console.warn(`Order ${orderId} does not exist`);
-        return null;
-      }
-
-      console.log(`Order ${orderId} exists, fetching full details...`);
-
       const { data, error } = await this.supabaseService
         .getClient()
-        .from('orders')
-        .select(
-          `
-          *,
-          order_items (
-            *,
-            products (
-              id,
-              name,
-              image_url
-            )
-          )
-        `
-        )
-        .eq('id', orderId)
-        .single();
-
-      if (error) {
-        console.error(`Error fetching order ${orderId}:`, error);
-        console.error('Supabase error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
+        .functions.invoke('confirm-payment', {
+          body: { action: 'status', orderId },
         });
-        return null;
+
+      if (error || !data?.order) {
+        console.error(`Error fetching order ${orderId}:`, error ?? data);
+        return { order: null, delivery: null };
       }
 
-      if (!data) {
-        console.error(`No data returned for order ${orderId}`);
-        return null;
-      }
-
-      console.log(`Successfully fetched order ${orderId}:`, {
-        id: data.id,
-        orderNumber: data.order_number,
-        status: data.status,
-        itemCount: data.order_items?.length || 0,
-      });
-
-      return this.mapDbOrderToOrder(data);
+      return {
+        order: this.mapDbOrderToOrder(data.order),
+        delivery: data.delivery ?? null,
+      };
     } catch (error) {
       console.error(`Error getting order ${orderId}:`, error);
-
-      // Check if it's the specific callback error
-      if (
-        error instanceof Error &&
-        error.message.includes('callback is no longer runnable')
-      ) {
-        console.error(
-          'Detected Angular lifecycle callback error. This may be due to component destruction during async operation.'
-        );
-      }
-
-      return null;
+      return { order: null, delivery: null };
     }
   }
 
-  // Safer wrapper that returns an Observable to handle Angular lifecycle better
-  getOrderByIdSafe(orderId: string): Observable<Order | null> {
-    return from(this.getOrderById(orderId)).pipe(
-      map((order) => {
-        console.log(
-          `Observable wrapper: Order ${orderId} result:`,
-          order ? 'found' : 'not found'
-        );
-        return order;
-      })
-    );
+  // Legacy signature used by the success page: order only.
+  async getOrderById(orderId: string): Promise<Order | null> {
+    const { order } = await this.getOrderStatusPublic(orderId);
+    return order;
   }
 
-  // Most robust method - handles timeouts, retries, and lifecycle issues
-  getOrderByIdRobust(orderId: string): Observable<Order | null> {
-    console.log(`Getting order ${orderId} with robust method...`);
+  /**
+   * Server-side payment confirmation. The edge function verifies the payment
+   * with Stripe/PayGreen, flips the order to 'paid', records the payment,
+   * advances the delivery status and claims the confirmation email.
+   */
+  async confirmPayment(params: {
+    provider: 'stripe' | 'paygreen';
+    sessionId?: string;
+    poId?: string;
+    vendorId?: string;
+    apiUrl?: string;
+    isSandbox?: boolean;
+  }): Promise<{
+    order: Order | null;
+    delivery: any;
+    payment: any;
+    emailAlreadySent: boolean;
+  } | null> {
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .functions.invoke('confirm-payment', {
+        body: { action: 'confirm', ...params },
+      });
 
-    return from(
-      (async () => {
-        try {
-          // Use a simpler query first to test connectivity
-          const { data: testData, error: testError } =
-            await this.supabaseService
-              .getClient()
-              .from('orders')
-              .select('id, order_number, status')
-              .eq('id', orderId)
-              .single();
+    if (error || !data?.order) {
+      console.error('confirm-payment failed:', error ?? data);
+      return null;
+    }
 
-          if (testError) {
-            console.error(
-              `Simple query failed for order ${orderId}:`,
-              testError
-            );
-            throw new Error(`Order not found: ${testError.message}`);
-          }
-
-          if (!testData) {
-            console.warn(`Order ${orderId} not found in database`);
-            return null;
-          }
-
-          console.log(`Order ${orderId} found, fetching full details...`);
-
-          // Now get full order details
-          const { data, error } = await this.supabaseService
-            .getClient()
-            .from('orders')
-            .select(
-              `
-              *,
-              order_items (
-                *,
-                products (
-                  id,
-                  name,
-                  image_url
-                )
-              )
-            `
-            )
-            .eq('id', orderId)
-            .single();
-
-          if (error) {
-            console.error(`Full query failed for order ${orderId}:`, error);
-            throw new Error(`Failed to fetch order details: ${error.message}`);
-          }
-
-          return this.mapDbOrderToOrder(data);
-        } catch (error) {
-          console.error(`Robust method error for order ${orderId}:`, error);
-          throw error;
-        }
-      })()
-    ).pipe(
-      timeout(10000), // 10 second timeout
-      retry({
-        count: 2,
-        delay: 1000, // 1 second delay between retries
-      }),
-      catchError((error) => {
-        console.error(`All retry attempts failed for order ${orderId}:`, error);
-
-        if (error?.name === 'TimeoutError') {
-          return throwError(
-            () => new Error('Request timed out. Please try again.')
-          );
-        }
-
-        if (error?.message?.includes('callback is no longer runnable')) {
-          console.error(
-            'Detected callback lifecycle error, returning null instead of throwing'
-          );
-          return of(null); // Return null instead of throwing for lifecycle errors
-        }
-
-        return throwError(() => error);
-      }),
-      shareReplay(1) // Share the result to avoid multiple requests
-    );
+    return {
+      order: this.mapDbOrderToOrder(data.order),
+      delivery: data.delivery ?? null,
+      payment: data.payment ?? null,
+      emailAlreadySent: data.emailAlreadySent === true,
+    };
   }
 
   async addOrder(order: Order): Promise<Order> {
@@ -320,179 +215,117 @@ export class OrdersService {
       const currentVendor = this.vendorService.getCurrentVendor();
       const vendorId = currentVendor?.id;
 
-      // Create order in database
-      const dbOrder = await this.supabaseService.createOrder({
+      const defaultVatRate = getDefaultVatRate(currentVendor?.country);
+
+      const orderPayload = {
         order_number: order.orderNumber,
         customer_email: order.customer.email,
         customer_first_name: order.customer.firstName,
         customer_last_name: order.customer.lastName,
         customer_phone: order.customer.phone,
         total_amount: order.totalAmount,
-        status: order.status as Database['public']['Enums']['order_status'],
-        order_type:
-          order.orderType as Database['public']['Enums']['order_type'],
-        timing: order.timing as Database['public']['Enums']['order_timing'],
-        scheduled_time: order.scheduledTime?.toISOString(),
-        table_number: order.tableNumber,
-        notes: order.notes,
+        status: order.status,
+        order_type: order.orderType,
+        timing: order.timing,
+        scheduled_time: order.scheduledTime?.toISOString() ?? null,
+        table_number: order.tableNumber ?? null,
+        notes: order.notes ?? null,
         pay_at_checkout: order.payAtCheckout ?? false,
-        vendor_id: vendorId, // Include vendor ID when creating order
+        vendor_id: vendorId ?? null,
         coupon_id: order.couponId ?? null,
         coupon_code: order.couponCode ?? null,
         discount_amount: order.discountAmount ?? 0,
+      };
+
+      const itemsPayload = order.items.map((item) => ({
+        // Some cart rows are "virtual" (e.g. delivery fee uses id -9999) and must not
+        // be persisted as a FK to products. Keep them as order_items rows with NULL product_id.
+        product_id: (() => {
+          const parsed = Number.parseInt(item.productId, 10);
+          if (Number.isFinite(parsed) && parsed > 0) return parsed;
+          console.warn(
+            '[OrdersService] Skipping product FK for non-product cart item',
+            {
+              orderNumber: order.orderNumber,
+              productId: item.productId,
+              productName: item.productName,
+            }
+          );
+          return null;
+        })(),
+        product_name: item.productName,
+        quantity: item.quantity,
+        unit_price: item.price, // This will now be the correct calculated price for multi-step products
+        total_price: item.price * item.quantity,
+        tva_rate: item.tvaRate ?? defaultVatRate, // Store TVA rate at time of purchase
+        vendor_id: (item as any).vendorId || null,
+        options: item.options || [], // Store multi-step metadata here
+        comment: item.comment || null,
+        complements: ((item as any).selectedComplements || []).map(
+          (comp: any) => ({
+            complement_product_id: comp.complement_product_id,
+            complement_name:
+              comp.complement_name ||
+              `Complement ${comp.complement_product_id}`,
+            quantity: comp.quantity,
+            unit_price: comp.unit_price,
+            total_price: comp.total_price,
+          })
+        ),
+      }));
+
+      // Atomic server-side creation: order + items + complements + stock
+      // reservation happen in a single transaction (create_full_order rolls
+      // everything back when stock is insufficient), replacing the old
+      // insert-then-delete-on-failure sequence on the open order tables.
+      const { data, error } = await (
+        this.supabaseService.getClient() as any
+      ).rpc('create_full_order', {
+        p_order: orderPayload,
+        p_items: itemsPayload,
       });
 
-      if (dbOrder) {
-        const defaultVatRate = getDefaultVatRate(
-          this.vendorService.getCurrentVendor()?.country
-        );
-
-        // Create order items with proper vendor ID and comments
-        const orderItems = order.items.map((item) => ({
-          order_id: dbOrder.id,
-          // Some cart rows are "virtual" (e.g. delivery fee uses id -9999) and must not
-          // be persisted as a FK to products. Keep them as order_items rows with NULL product_id.
-          product_id: (() => {
-            const parsed = Number.parseInt(item.productId, 10);
-            if (Number.isFinite(parsed) && parsed > 0) return parsed;
-            console.warn(
-              '[OrdersService] Skipping product FK for non-product cart item',
-              {
-                orderNumber: order.orderNumber,
-                productId: item.productId,
-                productName: item.productName,
-              }
-            );
-            return null;
-          })(),
-          product_name: item.productName,
-          quantity: item.quantity,
-          unit_price: item.price, // This will now be the correct calculated price for multi-step products
-          total_price: item.price * item.quantity,
-          tva_rate: item.tvaRate ?? defaultVatRate, // Store TVA rate at time of purchase
-          vendor_id: (item as any).vendorId || null, // Get vendor ID from item if available
-          options: item.options || [], // Store multi-step metadata here
-          comment: item.comment || null,
-        }));
-
-        const createdOrderItems = await this.supabaseService.createOrderItems(
-          orderItems
-        );
-
-        // Create order item complements if any
-        if (createdOrderItems) {
-          const allComplements: any[] = [];
-
-          order.items.forEach((item, index) => {
-            const orderItem = createdOrderItems[index];
-            if (orderItem && (item as any).selectedComplements) {
-              const complements = (item as any).selectedComplements.map(
-                (comp: any) => ({
-                  order_item_id: orderItem.id,
-                  complement_product_id: comp.complement_product_id,
-                  complement_name:
-                    comp.complement_name ||
-                    `Complement ${comp.complement_product_id}`,
-                  quantity: comp.quantity,
-                  unit_price: comp.unit_price,
-                  total_price: comp.total_price,
-                })
-              );
-              allComplements.push(...complements);
-            }
-          });
-
-          if (allComplements.length > 0) {
-            await this.supabaseService.createOrderItemComplements(
-              allComplements
-            );
+      if (error) {
+        if (String(error.message || '').includes('INSUFFICIENT_STOCK')) {
+          let insufficientItems: any[] = [];
+          try {
+            insufficientItems = JSON.parse(error.details || '[]');
+          } catch {
+            // keep empty list when detail parsing fails
           }
-        }
-
-        // Atomically reserve stock for all products in the order
-        // This uses row-level locking to prevent race conditions
-        const { data: stockResult, error: stockError } = await (
-          this.supabaseService.getClient() as any
-        ).rpc('reserve_stock_for_order', { p_order_id: dbOrder.id });
-
-        if (stockError) {
-          console.error(
-            '[OrdersService] Stock reservation RPC error:',
-            stockError
-          );
-          // Delete the order since stock reservation failed
-          await this.deleteOrderOnStockFailure(dbOrder.id);
-          throw new Error(
-            'Stock reservation failed due to database error. Please try again.'
-          );
-        }
-
-        if (stockResult && !stockResult.success) {
           console.warn(
             '[OrdersService] Insufficient stock for order:',
-            stockResult.insufficientItems
+            insufficientItems
           );
-          // Delete the order since stock is insufficient
-          await this.deleteOrderOnStockFailure(dbOrder.id);
-
-          // Create a detailed error with insufficient items info
-          const error = new Error('INSUFFICIENT_STOCK') as any;
-          error.insufficientItems = stockResult.insufficientItems;
-          throw error;
+          const stockError = new Error('INSUFFICIENT_STOCK') as any;
+          stockError.insufficientItems = insufficientItems;
+          throw stockError;
         }
-
-        console.log(
-          '[OrdersService] Stock reserved successfully for order:',
-          dbOrder.id,
-          stockResult?.reservedProducts
-        );
-
-        // Reload orders
-        await this.loadOrders();
-
-        // Return the created order with the database ID
-        return {
-          ...order,
-          id: dbOrder.id,
-        };
+        console.error('[OrdersService] create_full_order RPC error:', error);
+        throw new Error('Order creation failed. Please try again.');
       }
 
-      throw new Error('Failed to create order');
+      if (!data?.success || !data?.order_id) {
+        throw new Error('Failed to create order');
+      }
+
+      console.log(
+        '[OrdersService] Order created with stock reserved:',
+        data.order_id,
+        data.stock?.reservedProducts
+      );
+
+      // Reload orders
+      await this.loadOrders();
+
+      // Return the created order with the database ID
+      return {
+        ...order,
+        id: data.order_id,
+      };
     } catch (error) {
       console.error('Error adding order:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Deletes an order when stock reservation fails.
-   * This is called to clean up after atomic stock reservation detects insufficient stock.
-   * The database cascades will automatically delete order_items and order_item_complements.
-   */
-  private async deleteOrderOnStockFailure(orderId: string): Promise<void> {
-    try {
-      const { error } = await this.supabaseService
-        .getClient()
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
-
-      if (error) {
-        console.error(
-          '[OrdersService] Failed to delete order after stock failure:',
-          error
-        );
-      } else {
-        console.log(
-          '[OrdersService] Order deleted after stock reservation failure:',
-          orderId
-        );
-      }
-    } catch (error) {
-      console.error(
-        '[OrdersService] Exception deleting order after stock failure:',
-        error
-      );
     }
   }
 
@@ -506,7 +339,7 @@ export class OrdersService {
       // Restore stock when order is cancelled or refused
       if (status === 'cancelled' || status === 'refused') {
         try {
-          const { error: stockError } = await (this.supabaseService
+          const { error: stockError } = await (this.supabaseAuthService
             .getClient() as any)
             .rpc('restore_stock_for_order', { p_order_id: orderId });
 
@@ -562,7 +395,7 @@ export class OrdersService {
       // Restore stock when order is refused (this method is typically used for refused orders)
       if (status === 'cancelled' || status === 'refused') {
         try {
-          const { error: stockError } = await (this.supabaseService
+          const { error: stockError } = await (this.supabaseAuthService
             .getClient() as any)
             .rpc('restore_stock_for_order', { p_order_id: orderId });
 
@@ -620,30 +453,39 @@ export class OrdersService {
     };
     dropoff: Address;
   }): Promise<void> {
-    await this.supabaseService.upsertOrderDelivery({
-      order_id: params.orderId,
-      provider: params.best.providerId,
-      quote_amount_minor: params.best.totalAmount,
-      currency: params.best.currency,
-      eta_minutes: params.best.etaMinutes ?? null,
-      pickup: {
-        line1: params.pickup.line1,
-        postal_code: params.pickup.postal_code,
-        city: params.pickup.city,
-        country_code: params.pickup.country_code,
-        lat: params.pickup.lat ?? null,
-        lng: params.pickup.lng ?? null,
-      },
-      dropoff: {
-        line1: params.dropoff.line1,
-        postal_code: params.dropoff.postalCode,
-        city: params.dropoff.city,
-        country_code: params.dropoff.countryCode,
-        lat: params.dropoff.coordinates?.lat ?? null,
-        lng: params.dropoff.coordinates?.lng ?? null,
-      },
-      raw: params.best.raw ?? null,
-    });
+    // Delivery quotes are written through a SECURITY DEFINER RPC: it only
+    // accepts orders still awaiting payment and refuses once a courier is
+    // assigned, so order_deliveries needs no anon RLS policies.
+    const { error } = await (this.supabaseService.getClient() as any).rpc(
+      'save_order_delivery',
+      {
+        p: {
+          order_id: params.orderId,
+          provider: params.best.providerId,
+          quote_amount_minor: params.best.totalAmount,
+          currency: params.best.currency,
+          eta_minutes: params.best.etaMinutes ?? null,
+          pickup: {
+            line1: params.pickup.line1,
+            postal_code: params.pickup.postal_code,
+            city: params.pickup.city,
+            country_code: params.pickup.country_code,
+            lat: params.pickup.lat ?? null,
+            lng: params.pickup.lng ?? null,
+          },
+          dropoff: {
+            line1: params.dropoff.line1,
+            postal_code: params.dropoff.postalCode,
+            city: params.dropoff.city,
+            country_code: params.dropoff.countryCode,
+            lat: params.dropoff.coordinates?.lat ?? null,
+            lng: params.dropoff.coordinates?.lng ?? null,
+          },
+          raw: params.best.raw ?? null,
+        },
+      }
+    );
+    if (error) throw error;
   }
 
   getOrdersByStatus(status: OrderStatus): Observable<Order[]> {

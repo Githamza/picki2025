@@ -288,8 +288,12 @@ serve(async (req: Request) => {
           html: baseHtml,
         });
         finalDataRecord = asRecord(baseData) ?? {};
-        // Ensure menu starts as array for subsequent calls.
-        ensureMenuArray(finalDataRecord);
+        // Force an empty menu for subsequent incremental calls. The base
+        // extractor's schema always includes `menu`, and strip is best-effort,
+        // so baseData.menu can arrive pre-populated. Categories are appended
+        // one-by-one below, so any menu here would break the categoryIndex
+        // invariant (categoryIndex must equal menu.length).
+        finalDataRecord['menu'] = [];
       }
 
       const menu = ensureMenuArray(finalDataRecord);

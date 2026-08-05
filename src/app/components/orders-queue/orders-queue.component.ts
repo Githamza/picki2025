@@ -4,7 +4,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { interval, Subscription } from 'rxjs';
-import { SupabaseService } from '../../services/supabase.service';
+import { SupabaseAuthService } from '../../services/supabase-auth.service';
 import { VendorService } from '../../services/vendor.service';
 
 interface QueueOrder {
@@ -268,7 +268,9 @@ interface QueueOrder {
   ],
 })
 export class OrdersQueueComponent implements OnInit, OnDestroy {
-  private supabaseService = inject(SupabaseService);
+  // Orders are vendor-scoped under RLS; the queue runs behind the admin
+  // guard, so it must query with the authenticated session.
+  private supabaseAuthService = inject(SupabaseAuthService);
   private vendorService = inject(VendorService);
 
   orders: QueueOrder[] = [];
@@ -317,7 +319,7 @@ export class OrdersQueueComponent implements OnInit, OnDestroy {
     if (!vendor) return;
 
     try {
-      const { data, error } = await this.supabaseService
+      const { data, error } = await this.supabaseAuthService
         .getClient()
         .from('orders')
         .select('order_number, status, order_type, created_at')

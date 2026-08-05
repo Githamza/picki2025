@@ -19,7 +19,9 @@ export const environment = {
     // url: 'http://127.0.0.1:54321',
     url: 'https://ajblxmolmmvvnobpzzhr.supabase.co',
     anonKey:
+
       // Local anon key printed by `npx supabase start`.
+      // 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
       // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqYmx4bW9sbW12dm5vYnB6emhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzMjA0OTgsImV4cCI6MjA2Mzg5NjQ5OH0.UFjEo9qpZEChFedWxJEw1vgYrHrd4sFfBi_ZSKiiO9E',
   },

@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
   // Fetch vendor
   const { data: vendor, error: vendorError } = await supabase
     .from('vendors')
-    .select('id, business_name, country, national_id, paygreen_onboarding_completed')
+    .select('id, business_name, country, paygreen_onboarding_completed')
     .eq('id', vendorId)
     .single();
 
@@ -95,8 +95,16 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // The SIRET lives in vendor_private_info, not on the public vendors row
+  const { data: privateInfo } = await supabase
+    .from('vendor_private_info')
+    .select('national_id')
+    .eq('vendor_id', vendorId)
+    .maybeSingle();
+  const vendorNationalId = privateInfo?.national_id ?? null;
+
   // Validate national_id
-  if (!vendor.national_id) {
+  if (!vendorNationalId) {
     return json(
       { error: 'Le numéro SIRET est requis pour créer un compte PayGreen marketplace' },
       { status: 400 }
@@ -174,7 +182,7 @@ Deno.serve(async (req: Request) => {
     // Create shop via PayGreen API
     const shopBody = {
       name: vendor.business_name,
-      national_id: vendor.national_id,
+      national_id: vendorNationalId,
       commercial_name: vendor.business_name,
       address: {
         line_1: metadata.street,

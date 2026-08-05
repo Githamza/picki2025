@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { from, Observable, combineLatest, forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { SupabaseService } from './supabase.service';
+import { SupabaseAuthService } from './supabase-auth.service';
 import { CategoryService } from './category.service';
 import { CustomisationService } from './customisation.service';
 import { VendorService } from './vendor.service';
@@ -41,6 +42,7 @@ export interface Product {
 })
 export class ProductService {
   private supabaseService = inject(SupabaseService);
+  private supabaseAuthService = inject(SupabaseAuthService);
   private categoryService = inject(CategoryService);
   private customisationService = inject(CustomisationService);
   private vendorService = inject(VendorService);
@@ -184,11 +186,13 @@ export class ProductService {
     );
   }
 
+  // Complement writes are admin operations and must run on the authenticated
+  // client — RLS only allows the vendor's own admins to modify complements.
   createProductComplement(
     complementData: DatabaseProductComplementInsert
   ): Observable<ProductComplement> {
     return from(
-      this.supabaseService.createProductComplement(complementData)
+      this.supabaseAuthService.createProductComplement(complementData)
     ).pipe(map((complement) => this.mapToProductComplement(complement)));
   }
 
@@ -197,12 +201,17 @@ export class ProductService {
     complementData: Partial<DatabaseProductComplementInsert>
   ): Observable<ProductComplement> {
     return from(
-      this.supabaseService.updateProductComplement(complementId, complementData)
+      this.supabaseAuthService.updateProductComplement(
+        complementId,
+        complementData
+      )
     ).pipe(map((complement) => this.mapToProductComplement(complement)));
   }
 
   deleteProductComplement(complementId: string): Observable<void> {
-    return from(this.supabaseService.deleteProductComplement(complementId));
+    return from(
+      this.supabaseAuthService.deleteProductComplement(complementId)
+    );
   }
 
   // Calculate the price for a complement based on custom pricing rules

@@ -823,17 +823,16 @@ export class ProductManagerComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (menus) => {
           console.log('Menus loaded successfully:', menus.length);
-          // Separate menus by step count
+          // Show all menus in the Formules tab, regardless of step count.
+          // (Previously, menus with exactly 1 step were split into
+          // `singleStepMenus`, which is never rendered — hiding them entirely.)
+          this.menus = menus;
+
+          // Kept for compatibility with code that syncs this array (e.g.
+          // optimistic availability toggles); no longer used to hide menus.
           this.singleStepMenus = menus.filter((menu) => {
-            // Check if menu has exactly 1 step
             const stepCount = menu.step_count || menu.steps?.length || 0;
             return stepCount === 1;
-          });
-
-          this.menus = menus.filter((menu) => {
-            // Check if menu has more than 1 step
-            const stepCount = menu.step_count || menu.steps?.length || 0;
-            return stepCount !== 1; // Show menus with 0 steps or 2+ steps
           });
         },
         error: (error) => {

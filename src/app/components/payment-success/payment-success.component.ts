@@ -7,21 +7,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Store } from '@ngrx/store';
-import { AppState, CartItem } from '../../store/models/app.state';
+import { AppState } from '../../store/models/app.state';
 import { clearCart } from '../../store/actions/cart.actions';
-import { selectCartItems } from '../../store/selectors/cart.selectors';
 import { OrdersService } from '../../services/orders.service';
-import { Order, OrderItem } from '../../models/order.model';
+import { Order } from '../../models/order.model';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
-import { SupabaseService } from '../../services/supabase.service';
-import { PaymentService } from '../../services/payment.service';
-import { take, firstValueFrom, interval, Subscription } from 'rxjs';
+import { PaygreenConfigService } from '../../services/paygreen-config.service';
+import { interval, Subscription } from 'rxjs';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { EmailService } from '../../services/email.service';
 import { MapLocationViewerComponent } from '../../shared/components/map-location-viewer/map-location-viewer.component';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
-import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
 
 @Component({
   selector: 'app-payment-success',
@@ -656,8 +653,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   private store = inject(Store<AppState>);
   private ordersService = inject(OrdersService);
   private diningPreferenceService = inject(DiningPreferenceService);
-  private supabaseService = inject(SupabaseService);
-  private paymentService = inject(PaymentService);
+  private paygreenConfig = inject(PaygreenConfigService);
   private vendorNavigation = inject(VendorNavigationService);
   private vendorService = inject(VendorService);
   private emailService = inject(EmailService);
@@ -720,11 +716,8 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     // Start auto-refresh with 10-second interval
     this.autoRefreshSubscription = interval(10000).subscribe(() => {
       console.log('Auto-refreshing order status...');
+      // Refreshes the order and, when active, the delivery info in one call
       this.refreshOrderStatus();
-      // Also refresh delivery info if applicable
-      if (this.deliveryRefreshActive) {
-        this.refreshDeliveryInfo();
-      }
     });
   }
 
@@ -732,8 +725,18 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     if (!this.orderId) return;
 
     try {
-      // Fetch the latest order details
-      const updatedOrder = await this.ordersService.getOrderById(this.orderId);
+      // One status call returns both the order and its delivery row
+      const { order: updatedOrder, delivery } =
+        await this.ordersService.getOrderStatusPublic(this.orderId);
+
+      if (delivery && this.deliveryRefreshActive) {
+        this.deliveryInfo = delivery;
+        this.updateEtaRemaining();
+        const st = String(delivery.status || '').toLowerCase();
+        if (st === 'delivered' || st === 'cancelled') {
+          this.deliveryRefreshActive = false;
+        }
+      }
 
       if (updatedOrder) {
         console.log('Order status updated:', updatedOrder.status);
@@ -758,7 +761,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
   private async loadDeliveryInfo(orderId: string) {
     try {
-      const delivery = await this.supabaseService.getOrderDeliveryByOrderId(
+      const { delivery } = await this.ordersService.getOrderStatusPublic(
         orderId
       );
       this.deliveryInfo = delivery || undefined;
@@ -767,26 +770,6 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       this.deliveryRefreshActive = !!delivery;
     } catch (e) {
       console.error('Failed to load delivery info:', e);
-    }
-  }
-
-  private async refreshDeliveryInfo() {
-    if (!this.orderId) return;
-    try {
-      const delivery = await this.supabaseService.getOrderDeliveryByOrderId(
-        this.orderId
-      );
-      if (delivery) {
-        this.deliveryInfo = delivery;
-        this.updateEtaRemaining();
-        // Stop refreshing if delivered or cancelled
-        const st = String(delivery.status || '').toLowerCase();
-        if (st === 'delivered' || st === 'cancelled') {
-          this.deliveryRefreshActive = false;
-        }
-      }
-    } catch (e) {
-      console.error('Error refreshing delivery info:', e);
     }
   }
 
@@ -820,435 +803,84 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         status
       );
 
-      let paymentDetails: any = null;
-      let paymentProvider = '';
-      let paymentId = '';
-      let orderId = '';
+      // Server-side confirmation: the confirm-payment edge function verifies
+      // the payment with the provider, flips the order to 'paid', records the
+      // payment row, advances the delivery status and claims the confirmation
+      // email flag. The order tables carry no anon RLS policies anymore, so
+      // none of this can be done from the browser.
+      let result: Awaited<
+        ReturnType<OrdersService['confirmPayment']>
+      > = null;
 
-      // Retrieve payment details from the payment provider
-      try {
-        if (poId) {
-          // PayGreen relies on ?status=authorized
-          if (status !== 'authorized' && status !== 'succeeded') {
-            console.error('PayGreen payment was not successful:', status);
-            this.paymentDetailsError = true;
-            this.isProcessing = false;
-            return;
-          }
-
-          paymentProvider = 'paygreen';
-          paymentId = poId;
-
-          // Get current vendor for payment details retrieval
-          const currentVendor = this.vendorService.getCurrentVendor();
-          if (!currentVendor) {
-            console.error('No vendor available for PayGreen payment details');
-            throw new Error('Vendor context missing for payment verification');
-          }
-
-          paymentDetails = await firstValueFrom(
-            this.paymentService.getPayGreenPayment(currentVendor.id, poId)
-          );
-          console.log('PayGreen payment details:', paymentDetails);
-
-          // Store payment details for template
-          this.paymentDetails = paymentDetails;
-
-          // Get order ID from payment reference
-          orderId =
-            paymentDetails.metadata?.reference || paymentDetails.reference;
-          // Update delivery row status after payment authorised - only if not already progressed
-          try {
-            if (orderId) {
-              await this.updateDeliveryStatusIfNeeded(
-                orderId,
-                'payment_authorized'
-              );
-            }
-          } catch (e) {
-            console.warn(
-              'Failed to update delivery status post-payment (PG):',
-              e
-            );
-          }
-        } else if (sessionId) {
-          paymentProvider = 'stripe';
-          paymentId = sessionId;
-          paymentDetails = await firstValueFrom(
-            this.paymentService.getStripeSession(sessionId)
-          );
-          console.log('Stripe payment details:', paymentDetails);
-
-          // Store payment details for template
-          this.paymentDetails = paymentDetails;
-
-          // Get order ID from payment metadata
-          orderId = paymentDetails.metadata?.orderId;
-
-          // Stripe Checkout should only land here on success_url, but we still verify the session.
-          const stripeStatus = String(paymentDetails.status || '').toLowerCase();
-          if (stripeStatus && stripeStatus !== 'paid' && stripeStatus !== 'succeeded') {
-            console.error('Stripe session not paid:', stripeStatus);
-            this.paymentDetailsError = true;
-            this.isProcessing = false;
-            return;
-          }
-
-          // Update delivery row status after payment succeeded (Stripe) - only if not already progressed
-          try {
-            if (orderId) {
-              await this.updateDeliveryStatusIfNeeded(
-                orderId,
-                'payment_succeeded'
-              );
-            }
-          } catch (e) {
-            console.warn(
-              'Failed to update delivery status post-payment (Stripe):',
-              e
-            );
-          }
+      if (poId) {
+        // PayGreen redirects back with ?status=
+        if (status !== 'authorized' && status !== 'succeeded') {
+          console.error('PayGreen payment was not successful:', status);
+          this.paymentDetailsError = true;
+          return;
         }
-      } catch (error) {
-        console.error('Error retrieving payment details:', error);
+
+        const currentVendor = this.vendorService.getCurrentVendor();
+        if (!currentVendor) {
+          console.error('No vendor available for PayGreen payment details');
+          throw new Error('Vendor context missing for payment verification');
+        }
+
+        result = await this.ordersService.confirmPayment({
+          provider: 'paygreen',
+          poId,
+          vendorId: currentVendor.id,
+          apiUrl: this.paygreenConfig.getApiUrl(),
+          isSandbox: this.paygreenConfig.useSandboxCredentials(),
+        });
+      } else if (sessionId) {
+        result = await this.ordersService.confirmPayment({
+          provider: 'stripe',
+          sessionId,
+        });
+      }
+
+      if (!result?.order) {
+        console.error('Payment confirmation failed');
         this.paymentDetailsError = true;
+        return;
       }
 
-      if (orderId) {
-        // Store the order ID for status updates
-        this.orderId = orderId;
+      const order = result.order;
+      this.orderId = order.id;
+      this.orderDetails = order;
+      this.orderNumber = order.orderNumber;
+      this.paymentDetails = result.payment;
 
-        // Retrieve the existing order using the reference
-        try {
-          const existingOrder = await this.ordersService.getOrderById(orderId);
-          if (existingOrder) {
-            console.log('Retrieved existing order:', existingOrder);
+      // Send confirmation email; the server already claimed the sent flag,
+      // so a reloaded success page will not send a duplicate.
+      await this.sendConfirmationEmail(order, result.emailAlreadySent);
 
-            // Store order details for template
-            this.orderDetails = existingOrder;
+      // Clear the cart after successful order confirmation
+      this.store.dispatch(clearCart());
 
-            // Update order status to 'paid' after successful payment only if existing order status is 'initiated'
-            if (existingOrder.status === 'initiated') {
-              await this.ordersService.updateOrderStatus(orderId, 'paid');
-              console.log(
-                'Order status updated to paid after successful payment'
-              );
+      // Clear dining preference
+      this.diningPreferenceService.resetPreference();
 
-              // Update the order details for display
-              this.orderDetails.status = 'paid';
-            }
+      // Start auto-refresh after successfully loading order
+      this.startOrderStatusRefresh();
 
-            // Set order number for display
-            this.orderNumber = existingOrder.orderNumber;
-
-            // Send confirmation email
-            await this.sendConfirmationEmail(existingOrder);
-
-            // Check if payment record already exists
-            if (paymentDetails) {
-              try {
-                const existingPayment =
-                  await this.supabaseService.getPaymentByOrderId(orderId);
-
-                if (!existingPayment) {
-                  const payment = await this.supabaseService.createPayment({
-                    provider: paymentProvider as 'paygreen' | 'stripe',
-                    provider_payment_id: paymentId,
-                    amount: paymentDetails.amount,
-                    currency: paymentDetails.currency,
-                    status: 'pending',
-                    order_id: orderId,
-                    metadata: {
-                      orderNumber: existingOrder.orderNumber,
-                    },
-                  });
-                  console.log('Created payment record:', payment);
-                } else {
-                  console.log(
-                    'Payment record already exists:',
-                    existingPayment
-                  );
-                }
-              } catch (paymentError) {
-                console.log(
-                  'No existing payment found, creating new payment record'
-                );
-                try {
-                  const payment = await this.supabaseService.createPayment({
-                    provider: paymentProvider as 'paygreen' | 'stripe',
-                    provider_payment_id: paymentId,
-                    amount: paymentDetails.amount,
-                    currency: paymentDetails.currency,
-                    status: 'pending',
-                    order_id: orderId,
-                    metadata: {
-                      orderNumber: existingOrder.orderNumber,
-                    },
-                  });
-                  console.log('Created payment record:', payment);
-                } catch (createPaymentError) {
-                  console.error(
-                    'Error creating payment record:',
-                    createPaymentError
-                  );
-                }
-              }
-            }
-
-            // Clear the cart after successful order confirmation
-            this.store.dispatch(clearCart());
-
-            // Clear dining preference
-            this.diningPreferenceService.resetPreference();
-
-            // Start auto-refresh after successfully loading order
-            this.startOrderStatusRefresh();
-
-            // If delivery order, load delivery info
-            if (existingOrder.orderType === 'delivery') {
-              await this.loadDeliveryInfo(orderId);
-            }
-
-            return; // Exit successfully
-          }
-        } catch (error) {
-          console.error('Error retrieving order by ID:', error);
+      // If delivery order, show delivery info
+      if (order.orderType === 'delivery') {
+        if (result.delivery) {
+          this.deliveryInfo = result.delivery;
+          this.updateEtaRemaining();
+          this.deliveryRefreshActive = true;
+        } else {
+          await this.loadDeliveryInfo(order.id);
         }
       }
-
-      // Fallback to the old flow if no order reference found
-      console.log(
-        'No order reference found, falling back to cart data creation'
-      );
-      await this.fallbackOrderCreation(
-        paymentDetails,
-        paymentProvider,
-        paymentId
-      );
     } catch (error) {
       console.error('Error processing payment success:', error);
+      this.paymentDetailsError = true;
     } finally {
       this.isProcessing = false;
     }
-  }
-
-  private async fallbackOrderCreation(
-    paymentDetails: any,
-    paymentProvider: string,
-    paymentId: string
-  ) {
-    // Generate order number
-    this.orderNumber = this.generateOrderNumber();
-
-    if (paymentDetails && paymentDetails.metadata) {
-      // Create order from payment metadata
-      const metadata = paymentDetails.metadata;
-
-      // Create order items from payment metadata
-      const orderItems: OrderItem[] =
-        metadata.orderItems?.map((item: any) => ({
-          productId: item.productId,
-          productName: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          options: item.options || [],
-          vendorId: item.vendorId,
-        })) || [];
-
-      // Calculate scheduled time if needed
-      let scheduledDateTime: Date | undefined;
-      if (
-        metadata.timing === 'later' &&
-        metadata.scheduledDate &&
-        metadata.scheduledTime
-      ) {
-        scheduledDateTime = new Date(metadata.scheduledDate);
-        // Parse time string in HH:MM format
-        const [hours, minutes] = metadata.scheduledTime.split(':').map(Number);
-        scheduledDateTime.setHours(hours, minutes, 0, 0);
-      }
-
-      // Create order object
-      const order: Order = {
-        id: '', // Will be generated by database
-        orderNumber: this.orderNumber,
-        customer: {
-          firstName: metadata.customerFirstName || 'Guest',
-          lastName: metadata.customerLastName || 'User',
-          email: paymentDetails.customerEmail || 'guest@example.com',
-          phone: metadata.customerPhone || '',
-        },
-        items: orderItems,
-        totalAmount: paymentDetails.amount,
-        status: 'paid',
-        orderType: metadata.diningPreference || 'take-away',
-        timing: metadata.timing || 'asap',
-        scheduledTime: scheduledDateTime,
-        tableNumber: metadata.tableNumber,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        notes: metadata.notes || '',
-      };
-
-      console.log('Order to be created from payment data:', order);
-
-      // Save order to database
-      const createdOrder = await this.ordersService.addOrder(order);
-      console.log('Created order:', createdOrder);
-
-      // Store order details for template
-      if (createdOrder) {
-        this.orderDetails = createdOrder;
-
-        // Send confirmation email
-        await this.sendConfirmationEmail(createdOrder);
-
-        // If delivery order, load delivery info
-        if (createdOrder.orderType === 'delivery') {
-          await this.loadDeliveryInfo(createdOrder.id);
-        }
-      }
-
-      // Create payment record
-      if (createdOrder) {
-        const payment = await this.supabaseService.createPayment({
-          provider: paymentProvider as 'paygreen' | 'stripe',
-          provider_payment_id: paymentId,
-          amount: paymentDetails.amount,
-          currency: paymentDetails.currency,
-          status: 'completed',
-          order_id: createdOrder.id,
-          metadata: {
-            orderNumber: this.orderNumber,
-          },
-        });
-        console.log('Created payment record:', payment);
-      }
-    } else {
-      // Fallback to cart data if payment details are not available
-      console.log('No payment details available, falling back to cart data');
-
-      const cartItems = await new Promise<CartItem[]>((resolve) => {
-        this.store
-          .select(selectCartItems)
-          .pipe(take(1))
-          .subscribe((items) => resolve(items));
-      });
-
-      if (cartItems.length > 0) {
-        // Get dining preference
-        const diningPrefData =
-          this.diningPreferenceService.diningPreferenceData();
-        const diningPref = diningPrefData?.preference || 'take-away';
-        const timing = diningPrefData?.timing || 'asap';
-        const scheduledDate = diningPrefData?.scheduledDate;
-        const scheduledTime = diningPrefData?.scheduledTime;
-
-        console.log('Dining preference data:', diningPrefData);
-
-        // Calculate scheduled time if needed
-        let scheduledDateTime: Date | undefined;
-        if (timing === 'later' && scheduledDate && scheduledTime) {
-          scheduledDateTime = new Date(scheduledDate);
-          // Parse time string in HH:MM format
-          const [hours, minutes] = scheduledTime.split(':').map(Number);
-          scheduledDateTime.setHours(hours, minutes, 0, 0);
-        }
-
-        // Create order items
-        const orderItems: OrderItem[] = cartItems.map((item) => ({
-          productId: item.product.id.toString(),
-          productName: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price,
-          tvaRate: item.product.tvaRate ?? getDefaultVatRate(this.vendorService.getCurrentVendor()?.country),
-          options: [],
-          vendorId: item.product.vendorId,
-        }));
-
-        // Calculate total
-        const totalAmount = cartItems.reduce(
-          (sum, item) => sum + item.product.price * item.quantity,
-          0
-        );
-
-        // Create order object
-        const order: Order = {
-          id: '', // Will be generated by database
-          orderNumber: this.orderNumber,
-          customer: {
-            firstName: 'Guest',
-            lastName: 'User',
-            email: 'guest@example.com',
-            phone: '',
-          },
-          items: orderItems,
-          totalAmount,
-          status: 'paid',
-          orderType: diningPref as any,
-          timing: timing as any,
-          scheduledTime: scheduledDateTime,
-          tableNumber: diningPref === 'eat-in' ? '1' : undefined,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          notes: '',
-        };
-
-        console.log('Order to be created from cart:', order);
-
-        // Save order to database
-        const createdOrder = await this.ordersService.addOrder(order);
-        console.log('Created order:', createdOrder);
-
-        // Store order details for template
-        if (createdOrder) {
-          this.orderDetails = createdOrder;
-
-          // Send confirmation email
-          await this.sendConfirmationEmail(createdOrder);
-
-          // If delivery order, load delivery info
-          if (createdOrder.orderType === 'delivery') {
-            await this.loadDeliveryInfo(createdOrder.id);
-          }
-        }
-
-        // Create payment record
-        if (paymentId && createdOrder) {
-          const payment = await this.supabaseService.createPayment({
-            provider: paymentProvider as 'paygreen' | 'stripe',
-            provider_payment_id: paymentId,
-            amount: totalAmount,
-                    currency: this.vendorService.getCurrentCurrency(),
-            status: 'completed',
-            order_id: createdOrder.id,
-            metadata: {
-              orderNumber: this.orderNumber,
-            },
-          });
-          console.log('Created payment:', payment);
-        }
-      } else {
-        console.log('No cart items found and no payment data available');
-      }
-    }
-
-    // Clear the cart after successful order creation
-    this.store.dispatch(clearCart());
-
-    // Clear dining preference
-    this.diningPreferenceService.resetPreference();
-  }
-
-  private generateOrderNumber(): string {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0');
-    return `${year}${month}${day}-${random}`;
   }
 
   navigateHome() {
@@ -1336,91 +968,10 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     );
   }
 
-  private async updateDeliveryStatusIfNeeded(
-    orderId: string,
-    newStatus: string
-  ) {
+
+  private async sendConfirmationEmail(order: Order, emailAlreadySent: boolean) {
     try {
-      // First, check if delivery information already exists
-      const existingDelivery =
-        await this.supabaseService.getOrderDeliveryByOrderId(orderId);
-
-      if (!existingDelivery) {
-        // No delivery record exists yet, safe to create/update
-        console.log(
-          'No existing delivery record found, updating status to:',
-          newStatus
-        );
-        await this.supabaseService.updateOrderDeliveryAfterCreation(orderId, {
-          status: newStatus,
-        });
-        return;
-      }
-
-      const currentStatus = existingDelivery.status;
-      console.log(
-        'Existing delivery status:',
-        currentStatus,
-        '| Proposed new status:',
-        newStatus
-      );
-
-      // Define status hierarchy - only update if current status is at an early stage
-      const earlyStages = [
-        'created',
-        'pending',
-        'payment_pending',
-        'waiting_payment',
-        'payment_authorized',
-        'payment_succeeded',
-        null,
-        undefined,
-      ];
-
-      // Define advanced stages that should not be overwritten
-      const advancedStages = [
-        'assigned',
-        'en_route_to_pickup',
-        'arrived_at_pickup',
-        'in_transit',
-        'en_route_to_dropoff',
-        'delivered',
-        'cancelled',
-        'returned',
-        'split',
-        'reassigning',
-      ];
-
-      if (earlyStages.includes(currentStatus)) {
-        // Current status is still early, safe to update
-        console.log('Current status is early stage, updating to:', newStatus);
-        await this.supabaseService.updateOrderDeliveryAfterCreation(orderId, {
-          status: newStatus,
-        });
-      } else if (advancedStages.includes(currentStatus)) {
-        // Current status is advanced, don't overwrite
-        console.log(
-          'Current status is advanced stage, skipping update to avoid overwriting progress'
-        );
-      } else {
-        // Unknown status, log but don't update to be safe
-        console.log(
-          'Unknown current status, skipping update to be safe:',
-          currentStatus
-        );
-      }
-    } catch (error) {
-      console.error('Error checking/updating delivery status:', error);
-      // If there's an error checking, don't update to be safe
-    }
-  }
-
-  private async sendConfirmationEmail(order: Order) {
-    try {
-      // Check if confirmation email has already been sent
-      const emailAlreadySent =
-        await this.supabaseService.checkConfirmationEmailSent(order.id);
-
+      // The confirm-payment function reports and claims the sent flag
       if (emailAlreadySent) {
         console.log(
           'Confirmation email already sent for order:',
@@ -1451,18 +1002,6 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
       if (emailResult.success) {
         console.log('Order confirmation email sent successfully');
-
-        // Mark email as sent in the database
-        try {
-          await this.supabaseService.markConfirmationEmailSent(order.id);
-          console.log(
-            'Marked confirmation email as sent for order:',
-            order.orderNumber
-          );
-        } catch (markError) {
-          console.error('Failed to mark email as sent:', markError);
-          // Don't throw - the email was sent successfully even if we failed to mark it
-        }
       } else {
         console.error('Failed to send confirmation email:', emailResult.error);
       }

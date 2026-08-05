@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { VendorService } from '../../../../services/vendor.service';
+import { SupabaseAuthService } from '../../../../services/supabase-auth.service';
 import { StripeService } from '../../../../services/stripe.service';
 import { PaygreenBackendService } from '../../../../services/paygreen-backend.service';
 import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
@@ -712,6 +713,7 @@ export interface PaymentProviderStatus {
 export class PaiementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private vendorService = inject(VendorService);
+  private supabaseAuthService = inject(SupabaseAuthService);
   private stripeService = inject(StripeService);
   private paygreenBackendService = inject(PaygreenBackendService);
   private dataService = inject(RestaurantInfoDataService);
@@ -749,9 +751,17 @@ export class PaiementComponent implements OnInit {
       this.paygreenCity.set(info.address.city || '');
       this.paygreenPostalCode.set(info.address.postal_code || '');
     }
-    // Pre-fill SIRET from vendor
-    if (info?.vendor?.national_id) {
-      this.paygreenSiret.set(info.vendor.national_id);
+    // Pre-fill SIRET from vendor_private_info (vendor-scoped table)
+    const vendorForSiret = this.vendorService.getCurrentVendor();
+    if (vendorForSiret) {
+      this.supabaseAuthService
+        .getVendorNationalId(vendorForSiret.id)
+        .then((nationalId) => {
+          if (nationalId && !this.paygreenSiret()) {
+            this.paygreenSiret.set(nationalId);
+          }
+        })
+        .catch(() => undefined);
     }
 
     this.loadPaymentProvidersStatus();

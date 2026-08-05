@@ -70,10 +70,24 @@ function extractOuterHtmlByAnyDataTestId(
     if (element) return { matchedTestId: testId, outerHTML: element.outerHTML };
   }
 
+  // Diagnostics: distinguish a bot wall / interstitial from a genuinely empty
+  // or restructured page so failures are actionable instead of opaque.
+  const testIdCount = (root.querySelectorAll('[data-testid]') ?? []).length;
+  const titleNode = root.querySelector('title');
+  const pageTitle =
+    (titleNode as { text?: string } | null)?.text?.trim().slice(0, 120) ?? '';
+  const looksBlocked = /captcha|access denied|are you a robot|unusual traffic|verify you are human/i.test(
+    input.slice(0, 5000)
+  );
+
   throw new Error(
     `Expected one of these elements was not found in scraped HTML: ${testIds
       .map((t) => `[data-testid="${t}"]`)
-      .join(', ')}`
+      .join(', ')}` +
+      ` (htmlLength=${input.length}, dataTestIdCount=${testIdCount}` +
+      (pageTitle ? `, title="${pageTitle}"` : '') +
+      (looksBlocked ? ', likelyBotWallOrCaptcha=true' : '') +
+      ')'
   );
 }
 
@@ -240,10 +254,29 @@ export async function uploadJsonToStorage(params: {
   if (error) throw error;
 }
 
+// Uber Eats store URLs are geo-prefixed, e.g.
+// https://www.ubereats.com/be/store/... -> 'be'. US URLs have no prefix
+// (https://www.ubereats.com/store/...). Return the ISO 3166-1 alpha-2 code
+// (lowercase, as it appears in the path and as Firecrawl accepts it) so the
+// scrape runs from the right country — a mismatched geo yields a redirect or
+// interstitial page that lacks the store container.
+export function parseUberEatsCountryCode(url: string): string | undefined {
+  try {
+    const segments = new URL(url).pathname.split('/').filter(Boolean);
+    const first = segments[0]?.toLowerCase() ?? '';
+    // A country prefix is a 2-letter segment (the 'store'/'feed' route roots
+    // are longer, so any 2-letter first segment is a country code).
+    return /^[a-z]{2}$/.test(first) ? first : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function firecrawlScrapeMarkdownAndHtml(
   url: string
 ): Promise<{ markdown: string; html: string }> {
   const apiKey = requireEnv('FIRECRAWL_API_KEY');
+  const country = parseUberEatsCountryCode(url);
 
   const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
     method: 'POST',
@@ -257,13 +290,16 @@ export async function firecrawlScrapeMarkdownAndHtml(
       // onlyMainContent can sometimes exclude wrapper nodes, so keep full HTML.
       onlyMainContent: false,
       formats: ['rawHtml'],
-      maxAge: 3600000,
-      actions: [
-        {
-          type: 'wait',
-          milliseconds: 3000,
-        },
-      ],
+      // Never serve a cached scrape: Uber Eats bot-walls can be cached, so a
+      // single bad response would otherwise be replayed on every retry.
+      maxAge: 0,
+      // Uber Eats bot-walls datacenter IPs; the enhanced anti-bot proxy is
+      // required to get the hydrated store page.
+      proxy: 'enhanced',
+      // Scrape from the store's own country so we don't get geo-redirected.
+      ...(country ? { location: { country } } : {}),
+      // Give the SPA time to hydrate the store container before capturing HTML.
+      waitFor: 5000,
     }),
   });
 

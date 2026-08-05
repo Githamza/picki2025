@@ -9,7 +9,16 @@
 ------------------------------------------------------------
 -- 1) Discount type enum + coupons table
 ------------------------------------------------------------
-CREATE TYPE public.coupon_discount_type AS ENUM ('percentage', 'fixed');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'coupon_discount_type' AND n.nspname = 'public'
+  ) THEN
+    CREATE TYPE public.coupon_discount_type AS ENUM ('percentage', 'fixed');
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.coupons (
   id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
@@ -42,6 +51,7 @@ CREATE TABLE IF NOT EXISTS public.coupons (
 
 CREATE INDEX IF NOT EXISTS idx_coupons_vendor_id ON public.coupons(vendor_id);
 
+DROP TRIGGER IF EXISTS trg_coupons_updated_at ON public.coupons;
 CREATE TRIGGER trg_coupons_updated_at
   BEFORE UPDATE ON public.coupons
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -51,18 +61,21 @@ CREATE TRIGGER trg_coupons_updated_at
 ------------------------------------------------------------
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS coupons_select_policy ON public.coupons;
 CREATE POLICY coupons_select_policy ON public.coupons
   FOR SELECT TO authenticated
   USING (vendor_id IN (
     SELECT vendor_id FROM public.vendor_admin_users WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS coupons_insert_policy ON public.coupons;
 CREATE POLICY coupons_insert_policy ON public.coupons
   FOR INSERT TO authenticated
   WITH CHECK (vendor_id IN (
     SELECT vendor_id FROM public.vendor_admin_users WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS coupons_update_policy ON public.coupons;
 CREATE POLICY coupons_update_policy ON public.coupons
   FOR UPDATE TO authenticated
   USING (vendor_id IN (
@@ -72,6 +85,7 @@ CREATE POLICY coupons_update_policy ON public.coupons
     SELECT vendor_id FROM public.vendor_admin_users WHERE id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS coupons_delete_policy ON public.coupons;
 CREATE POLICY coupons_delete_policy ON public.coupons
   FOR DELETE TO authenticated
   USING (vendor_id IN (
@@ -112,6 +126,7 @@ BEGIN
   RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_orders_redeem_coupon ON public.orders;
 CREATE TRIGGER trg_orders_redeem_coupon
   BEFORE INSERT OR UPDATE OF status ON public.orders
   FOR EACH ROW EXECUTE FUNCTION public.fn_redeem_coupon_on_order();

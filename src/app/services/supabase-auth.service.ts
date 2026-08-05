@@ -866,6 +866,95 @@ export class SupabaseAuthService implements OnDestroy {
     if (error) throw error;
   }
 
+  // Product complement management (admin operations)
+  async createProductComplement(
+    complementData: Database['public']['Tables']['product_complements']['Insert']
+  ) {
+    const { data, error } = await this.supabaseAuth
+      .from('product_complements')
+      .insert(complementData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateProductComplement(
+    complementId: string,
+    complementData: Database['public']['Tables']['product_complements']['Update']
+  ) {
+    const { data, error } = await this.supabaseAuth
+      .from('product_complements')
+      .update(complementData)
+      .eq('id', complementId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteProductComplement(complementId: string) {
+    const { error } = await this.supabaseAuth
+      .from('product_complements')
+      .delete()
+      .eq('id', complementId);
+
+    if (error) throw error;
+  }
+
+  // Storage (admin operations: product/category/banner/logo images).
+  // Runs on the authenticated client so storage RLS can require a session.
+  async uploadImage(
+    file: File,
+    bucket: string = 'productsophotos',
+    folder?: string
+  ): Promise<string> {
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = folder ? `${folder}/${fileName}` : fileName;
+
+    const { error } = await this.supabaseAuth.storage
+      .from(bucket)
+      .upload(filePath, file);
+
+    if (error) {
+      throw error;
+    }
+
+    // Get the public URL
+    const { data: urlData } = this.supabaseAuth.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  }
+
+  async deleteImage(
+    url: string,
+    bucket: string = 'productsophotos'
+  ): Promise<void> {
+    // Extract file path from URL (supports vendor subdirectories)
+    const marker = `/${bucket}/`;
+    const bucketIndex = url.indexOf(marker);
+    if (bucketIndex === -1) {
+      console.warn(
+        'deleteImage: could not extract path from URL, skipping delete:',
+        url
+      );
+      return;
+    }
+    const filePath = url.substring(bucketIndex + marker.length);
+
+    const { error } = await this.supabaseAuth.storage
+      .from(bucket)
+      .remove([filePath]);
+
+    if (error) {
+      throw error;
+    }
+  }
+
   // Banner management (admin operations)
   async getBanners(vendorId?: string) {
     let query = this.supabaseAuth
@@ -1181,19 +1270,38 @@ export class SupabaseAuthService implements OnDestroy {
     return data;
   }
 
+  // The SIRET lives in vendor_private_info (vendor-scoped RLS), not on the
+  // publicly readable vendors row.
   async updateVendorNationalId(vendorId: string, nationalId: string) {
-    const { data, error } = await this.supabaseAuth
-      .from('vendors')
-      .update({
-        national_id: nationalId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', vendorId)
+    const { data, error } = await (this.supabaseAuth as any)
+      .from('vendor_private_info')
+      .upsert(
+        {
+          vendor_id: vendorId,
+          national_id: nationalId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'vendor_id' }
+      )
       .select()
       .single();
 
     if (error) throw error;
     return data;
+  }
+
+  async getVendorNationalId(vendorId: string): Promise<string | null> {
+    const { data, error } = await (this.supabaseAuth as any)
+      .from('vendor_private_info')
+      .select('national_id')
+      .eq('vendor_id', vendorId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching vendor national id:', error);
+      return null;
+    }
+    return data?.national_id ?? null;
   }
 
   async getPaygreenCredentials(vendorId: string): Promise<{

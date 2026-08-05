@@ -8,7 +8,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { SupabaseService } from '../../../services/supabase.service';
+import { SupabaseAuthService } from '../../../services/supabase-auth.service';
+import { compressImage } from '../../utils/image-compression';
 
 @Component({
   selector: 'app-image-upload',
@@ -234,7 +235,7 @@ export class ImageUploadComponent implements ControlValueAccessor {
   @Input() bucket = 'productsophotos';
   @Input() folder?: string;
 
-  private supabaseService = inject(SupabaseService);
+  private supabaseService = inject(SupabaseAuthService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
@@ -288,22 +289,26 @@ export class ImageUploadComponent implements ControlValueAccessor {
       return;
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      this.snackBar.open(
-        'La taille du fichier ne doit pas dépasser 5MB',
-        'Fermer',
-        {
-          duration: 5000,
-        }
-      );
-      return;
-    }
-
     try {
       this.uploading.set(true);
       this.uploadProgress.set(0);
+
+      // Downscale/re-encode before upload so heavy phone photos
+      // never reach the bucket (max 1600px, JPEG for photos).
+      const compressedFile = await compressImage(file);
+
+      // Validate file size after compression (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (compressedFile.size > maxSize) {
+        this.snackBar.open(
+          'La taille du fichier ne doit pas dépasser 5MB',
+          'Fermer',
+          {
+            duration: 5000,
+          }
+        );
+        return;
+      }
 
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
@@ -324,7 +329,7 @@ export class ImageUploadComponent implements ControlValueAccessor {
 
       // Upload new image
       const imageUrl = await this.supabaseService.uploadImage(
-        file,
+        compressedFile,
         this.bucket,
         this.folder
       );

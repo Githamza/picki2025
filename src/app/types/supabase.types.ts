@@ -1429,7 +1429,6 @@ export type Database = {
           stripe_account_id: string | null
           stripe_onboarding_completed: boolean | null
           updated_at: string | null
-          national_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -1464,7 +1463,6 @@ export type Database = {
           service_fee_rate_percent?: number
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
-          national_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1500,7 +1498,6 @@ export type Database = {
           service_fee_rate_percent?: number
           stripe_account_id?: string | null
           stripe_onboarding_completed?: boolean | null
-          national_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

@@ -1,6 +1,7 @@
 {
   "imports": {
-    "ubereats": "./_shared/ubereats.ts"
+    "ubereats": "./_shared/ubereats.ts",
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.111.0"
   }
 }
 

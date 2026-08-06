@@ -49,7 +49,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 1 — Layout foundation
 
-- [ ] **T6: `LayoutService` with `formFactor` signal**
+- [x] **T6: `LayoutService` with `formFactor` signal**
   - **Description:** `src/app/services/layout.service.ts`: signals `formFactor()` (`phone | tablet-portrait | tablet-landscape | kiosk`), `isLandscape()`, `isTouch()` from `BreakpointObserver` + orientation media query. `kiosk` wired but constant-false until Phase 6. Unit spec covering the breakpoint→formFactor matrix.
   - Acceptance: spec covers all four factors + orientation flips.
   - Verify: `ng test --include='**/layout.service.spec.ts'` green.

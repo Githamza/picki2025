@@ -71,6 +71,8 @@ Discovered while building the baseline against the running app:
 2. **Checkout dialog label says "Continuer vers le paiement" even for pay-at-counter vendors** — misleading copy for the counter branch. Fix in Phase 2 chrome/copy pass (FR6 no-dead-ends spirit).
 3. **User-info dialog form fields render the floating label over the filled value, and labels show doubled asterisks ("Nom \*\*")** — visible in probe screenshots. Material form-field styling defect; fix in Phase 2.
 4. **The e2e banner title initially collided with the welcome `h1`** (strict-mode flake) — locators now pin heading level. Keep seeded strings distinct from UI strings when extending the seed.
+5. **PRODUCTION BUG — order-number collisions.** `generateOrderNumber()` (`cart-details-sheet.component.ts:1248`, duplicated in `cart-details-page`) produces `YYMMDD-` + a 3-digit random, and `orders.order_number` has a unique constraint. Two orders the same day collide with probability that grows with volume (~4% for an order placed when 40 already exist); on collision the insert fails and the customer's checkout dies silently. Surfaced by parallel e2e journeys. **Fix requires Ask-first approval** (order-submission logic): retry-on-conflict or a longer/unique suffix. E2e mitigates by truncating orders in `e2e/global-setup.ts`.
+6. **Karma suite compiles again** — `product.service.spec.ts` type errors repaired (typed-mock casts). 52 tests: 47 pass, 5 pre-existing runtime failures in component `should create` specs that hit real Supabase/fetch (unmocked TestBed) — out of scope, listed for a later cleanup.
 
 ## Open Questions
 

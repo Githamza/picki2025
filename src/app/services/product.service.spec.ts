@@ -3,7 +3,12 @@ import { ProductService } from './product.service';
 import { SupabaseService } from './supabase.service';
 import { CategoryService } from './category.service';
 import { CustomisationService } from './customisation.service';
+import { Customisation } from '../models/customisation.interface';
 import { of } from 'rxjs';
+
+// The Supabase query builders give these service methods exact row types;
+// the lightweight mocks below intentionally carry only the fields the
+// ProductService mapping reads, hence the ReturnType casts at the spy sites.
 
 describe('ProductService', () => {
   let service: ProductService;
@@ -76,7 +81,9 @@ describe('ProductService', () => {
       ];
 
       // Setup spies
-      mockSupabaseService.getProducts.and.returnValue(Promise.resolve(mockProducts));
+      mockSupabaseService.getProducts.and.returnValue(
+        Promise.resolve(mockProducts) as unknown as ReturnType<SupabaseService['getProducts']>
+      );
       mockCategoryService.getCategories.and.returnValue(of(mockCategories));
       mockCustomisationService.getProductCustomisations.and.returnValue(of([]));
 
@@ -113,18 +120,20 @@ describe('ProductService', () => {
 
       // Mock customisations
       const mockCustomisations = [
-        { 
-          id: 1, 
-          name: 'Size', 
+        {
+          id: 1,
+          name: 'Size',
           options: [
-            { id: 1, name: 'Small', price: 0 },
-            { id: 2, name: 'Large', price: 2 }
+            { id: 1, name: 'Small', price_adjustment: 0 },
+            { id: 2, name: 'Large', price_adjustment: 2 }
           ]
         }
-      ];
+      ] as unknown as Customisation[];
 
       // Setup spies
-      mockSupabaseService.getProductById.and.returnValue(Promise.resolve(mockProduct));
+      mockSupabaseService.getProductById.and.returnValue(
+        Promise.resolve(mockProduct) as unknown as ReturnType<SupabaseService['getProductById']>
+      );
       mockCustomisationService.getProductCustomisations.and.returnValue(of(mockCustomisations));
 
       // Call the method
@@ -167,7 +176,9 @@ describe('ProductService', () => {
       ];
 
       // Setup spies
-      mockSupabaseService.getAllProducts.and.returnValue(Promise.resolve(mockProducts));
+      mockSupabaseService.getAllProducts.and.returnValue(
+        Promise.resolve(mockProducts) as unknown as ReturnType<SupabaseService['getAllProducts']>
+      );
       mockCategoryService.getCategories.and.returnValue(of(mockCategories));
       mockCustomisationService.getProductCustomisations.and.returnValue(of([]));
 

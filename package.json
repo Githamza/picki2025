@@ -53,6 +53,7 @@
     "@angular/cli": "^20.3.7",
     "@angular/compiler-cli": "^20.3.7",
     "@capacitor/cli": "^8.5.0",
+    "@playwright/test": "^1.62.1",
     "@types/jasmine": "~5.1.0",
     "@types/react": "^19.2.13",
     "autoprefixer": "^10.4.21",

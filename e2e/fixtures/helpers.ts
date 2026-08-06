@@ -1,0 +1,115 @@
+import { expect, type Page } from '@playwright/test';
+import { E2E_VENDOR } from './vendor';
+
+/**
+ * Journey helpers shared by journey and layout specs.
+ *
+ * Note on the real flow (discovered against the running app):
+ * diningPreferenceGuard always allows navigation — landing goes straight
+ * to the category grid, and the dining preference is collected inside the
+ * checkout dialog (needsPreferenceStep) unless the customer visited the
+ * welcome screen first. Helpers follow that real flow.
+ *
+ * Selectors prefer user-visible text/roles; tighten as FR8 (a11y) lands.
+ */
+
+/** Block payment-provider origins; return a collector of leaked URLs. */
+export async function blockPaymentProviders(page: Page): Promise<string[]> {
+  const leaked: string[] = [];
+  await page.route(/stripe\.com|paygreen\.fr/, (route) => {
+    leaked.push(route.request().url());
+    return route.abort();
+  });
+  return leaked;
+}
+
+/** Land on the storefront → redirected to the category grid. */
+export async function gotoStorefront(page: Page): Promise<void> {
+  await page.goto(E2E_VENDOR.storefrontPath);
+  await expect(page).toHaveURL(/promotional-banner/);
+  await expect(
+    page.getByRole('heading', { name: E2E_VENDOR.categories.burgers })
+  ).toBeVisible();
+}
+
+/** Open the welcome screen (dining preference) directly. */
+export async function gotoWelcomeScreen(page: Page): Promise<void> {
+  await page.goto(`${E2E_VENDOR.storefrontPath}/dining-preference`);
+  // level: 1 — the seeded banner renders its title as a second (h3) heading
+  // with the same text once the async banner fetch lands.
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: new RegExp(`Bienvenue chez ${E2E_VENDOR.businessName}`),
+    })
+  ).toBeVisible();
+}
+
+/** Category grid → a category's product grid. */
+export async function openCategory(page: Page, category: string): Promise<void> {
+  await page.getByRole('heading', { name: category }).click();
+  await expect(page).toHaveURL(/\/products/);
+}
+
+/** Product grid → product page → add to cart. */
+export async function addSimpleProductToCart(page: Page): Promise<void> {
+  await page.getByText(E2E_VENDOR.products.simple.name).first().click();
+  await expect(page).toHaveURL(/\/product\//);
+  await page.getByRole('button', { name: /ajouter/i }).click();
+}
+
+/** Open the cart sheet via the floating badge. */
+export async function openCartSheet(page: Page): Promise<void> {
+  await page.locator('app-cart-badge button').click();
+  await expect(
+    page.getByRole('button', { name: /valider ma commande/i })
+  ).toBeVisible();
+}
+
+/**
+ * Checkout through the pay-at-counter branch.
+ * The dialog first asks for the dining preference (take-away / asap),
+ * then the customer details; both steps confirm with "Confirmer".
+ */
+export async function checkoutPayAtCounter(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /valider ma commande/i }).click();
+
+  const dialog = page.getByRole('dialog');
+
+  // Step 1 — dining preference (skipped if already chosen this session).
+  const takeAway = dialog.getByRole('button', { name: /emporter/i });
+  if (await takeAway.isVisible().catch(() => false)) {
+    await takeAway.click();
+    // asap ("Tout de suite") is selectable 24/7 with the seeded hours.
+    const asap = dialog.getByText(/tout de suite/i);
+    if (await asap.isVisible().catch(() => false)) {
+      await asap.click();
+    }
+    await dialog.getByRole('button', { name: /confirmer/i }).click();
+  }
+
+  // Step 2 — customer details.
+  await expect(
+    dialog.getByRole('heading', { name: /informations de commande/i })
+  ).toBeVisible();
+  await dialog.getByLabel(/^nom/i).fill(E2E_VENDOR.customer.nom);
+  await dialog.getByLabel(/prenom/i).fill(E2E_VENDOR.customer.prenom);
+  await dialog.getByLabel(/email/i).fill(E2E_VENDOR.customer.email);
+  await dialog.getByLabel(/telephone/i).fill(E2E_VENDOR.customer.phone);
+  // Label reads "paiement" even for pay-at-counter vendors (UX nit, see
+  // tasks/plan.md findings) — the click still routes to the counter branch.
+  await dialog
+    .getByRole('button', { name: /continuer vers le paiement/i })
+    .click();
+
+  await expect(page).toHaveURL(/successPayment/, { timeout: 15_000 });
+}
+
+/** Assert the page shell has no horizontal overflow at the current viewport. */
+export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  const overflow = await page.evaluate(() => {
+    const doc = document.documentElement;
+    return doc.scrollWidth - doc.clientWidth;
+  });
+  expect(overflow, 'horizontal overflow (px)').toBeLessThanOrEqual(0);
+}

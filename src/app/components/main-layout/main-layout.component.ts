@@ -54,6 +54,13 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   // LayoutService is the storefront's single source of layout truth (FR1)
   readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
 
+  // FR2: the persistent category rail exists only on landscape form factors;
+  // phone and tablet-portrait navigate via the horizontal scroller.
+  readonly showRail = computed(() => {
+    const factor = this.layout.formFactor();
+    return factor === 'tablet-landscape' || factor === 'kiosk';
+  });
+
   menuOpened = true;
 
   // Use the cart badge visibility service

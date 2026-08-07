@@ -125,6 +125,9 @@
   overflow-x: hidden;
 }
 
+/* Phase-5 hook: the content area becomes a two-column grid
+   (main | cart-panel) when the persistent cart lands. Named area
+   reserved now so that change is additive. */
 .content-area {
   display: flex;
   flex-direction: column;

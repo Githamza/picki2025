@@ -84,7 +84,7 @@
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav
       [mode]="isPhone() ? 'over' : 'side'"
-      [opened]="menuOpened && !isPhone()"
+      [opened]="menuOpened && showRail()"
       class="sidenav mat-elevation-z1"
       [class.mat-rounded-medium]="!isPhone()"
     >

@@ -132,6 +132,13 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   // Responsive signals (LayoutService is the storefront's layout truth)
   readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
 
+  // FR2: horizontal category scroller on portrait form factors (the
+  // landscape shell provides the persistent rail instead).
+  readonly showHorizontalMenu = computed(() => {
+    const factor = this.layout.formFactor();
+    return factor === 'phone' || factor === 'tablet-portrait';
+  });
+
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   private subscriptions = new Subscription();
 

@@ -126,7 +126,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 3 — Responsive layouts (FR2)
 
-- [ ] **T15: Responsive storefront shell**
+- [x] **T15: Responsive storefront shell**
   - **Description:** `main-layout` per FR2: persistent left category rail on tablet-landscape/kiosk (replaces sidenav-over), horizontal scroller stays on portrait/phone; content area grid prepared for the Phase-5 cart panel (grid-template with an empty named area — no cart work now).
   - Acceptance: rail visible without scroll at 1194×834 and 1920×1080; phone/portrait unchanged.
   - Verify: layout specs + baseline in all projects.

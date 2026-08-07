@@ -1,0 +1,72 @@
+.step-section {
+  border-radius: var(--mat-sys-corner-large, 12px);
+  background-color: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  overflow: hidden;
+
+  &--active {
+    background-color: var(--mat-sys-surface-container);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  .step-name {
+    flex-shrink: 0;
+  }
+
+  .step-status {
+    margin-left: auto;
+  }
+
+  .step-choice {
+    margin-left: auto;
+    color: var(--mat-sys-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .step-edit {
+    color: var(--mat-sys-primary);
+    font: var(--mat-sys-label-large);
+  }
+}
+
+.step-state-icon {
+  color: var(--mat-sys-outline);
+
+  .step-section--satisfied & {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.step-description {
+  margin: 0;
+  padding: 0 16px;
+}
+
+.selection-hint {
+  margin: 8px 16px;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-primary);
+}
+
+.options-container {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

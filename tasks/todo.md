@@ -182,7 +182,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 4b — Multi-step redesign (FR4d)
 
-- [ ] **T21: Shared `step-section` component**
+- [x] **T21: Shared `step-section` component**
   - **Description:** Extract the per-step engine from the tab content into `add-product-multi-step/step-section/`: option cards, selection state, single/multi-select validation, constraint countdown ("Encore 1"), price delta display. Consumes existing NgRx multi-step store; no store changes yet.
   - Acceptance: renders any current step type identically to the tab content, behind a temporary flag/branch.
   - Verify: unit spec for constraint countdown; baseline multi-step flow green.

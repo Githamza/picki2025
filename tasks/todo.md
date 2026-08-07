@@ -168,7 +168,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `styles.scss`, `app.config.ts` (transition skip predicate), templates of the four surfaces (≤5 files)
   - Dependencies: T18 · **Size: M**
 
-- [ ] **T20: Transition + reduced-motion specs**
+- [x] **T20: Transition + reduced-motion specs**
   - **Description:** `e2e/journeys/transitions.spec.ts`: assert `view-transition-name` presence on key elements and journey completion with `reducedMotion: 'reduce'` context (no transition pseudo-elements).
   - Acceptance: green in all projects.
   - Verify: `npx playwright test e2e/journeys/transitions.spec.ts` ×3.
@@ -176,7 +176,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Dependencies: T19 · **Size: S**
 
 ### Checkpoint — Gate 4
-- [ ] Transition + reduced-motion specs green; baseline green
+- [x] Transition + reduced-motion specs green; baseline green
 
 ---
 

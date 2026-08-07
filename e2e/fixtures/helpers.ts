@@ -77,8 +77,14 @@ export async function checkoutPayAtCounter(page: Page): Promise<void> {
   const dialog = page.getByRole('dialog');
 
   // Step 1 — dining preference (skipped if already chosen this session).
+  // waitFor with timeout instead of isVisible(): the dialog renders async
+  // and an instant visibility probe races it (surfaced by reduced-motion).
   const takeAway = dialog.getByRole('button', { name: /emporter/i });
-  if (await takeAway.isVisible().catch(() => false)) {
+  const hasPreferenceStep = await takeAway
+    .waitFor({ state: 'visible', timeout: 4000 })
+    .then(() => true)
+    .catch(() => false);
+  if (hasPreferenceStep) {
     await takeAway.click();
     // asap ("Tout de suite") is selectable 24/7 with the seeded hours.
     const asap = dialog.getByText(/tout de suite/i);

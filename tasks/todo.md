@@ -203,7 +203,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `multi-step-product.model.ts`, `multi-step-product.reducer.ts`, `multi-step-product.effects.ts`, reducer spec
   - Dependencies: T22 · **Size: M**
 
-- [ ] **T24: Multi-step journey specs**
+- [x] **T24: Multi-step journey specs**
   - **Description:** `e2e/journeys/multi-step.spec.ts` against the seeded menu product: required single-select auto-advance; multi-select min/max countdown enforcement; collapse-to-choice; "modifier" reopens with selection preserved; disabled CTA navigates to first incomplete; order completes; cart shows steps via `cart-item-steps-tree`.
   - Acceptance: green in all four viewport projects.
   - Verify: ×3 consecutive runs.
@@ -211,4 +211,4 @@ Run order is top-to-bottom; dependencies noted per task.
   - Dependencies: T23 · **Size: M**
 
 ### Checkpoint — Gate 4b (redesign complete)
-- [ ] Full e2e suite green ×3; `npm run build` clean; `npm run android:sync` succeeds; SPEC success criteria 1–3, 6, 9–11, 13–14 verified; **human review**
+- [x] Full e2e suite green ×3; `npm run build` clean; `npm run android:sync` succeeds; SPEC success criteria 1–3, 6, 9–11, 13–14 verified; **human review** ← YOU ARE HERE

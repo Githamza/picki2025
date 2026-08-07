@@ -26,11 +26,7 @@ import {
   startWith,
   skip,
 } from 'rxjs/operators';
-import {
-  BreakpointObserver,
-  Breakpoints,
-  LayoutModule,
-} from '@angular/cdk/layout';
+import { LayoutModule } from '@angular/cdk/layout';
 
 // Material imports
 import { MatTabsModule } from '@angular/material/tabs';
@@ -123,7 +119,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private store = inject(Store<AppState>);
   private vendorNavigation = inject(VendorNavigationService);
-  private breakpointObserver = inject(BreakpointObserver);
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
   private router = inject(ActivatedRoute);
@@ -186,18 +181,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   );
 
   // Add mobile detection observable
-  isMobile$: Observable<boolean>;
 
-  constructor() {
-    // Add mobile detection
-    this.isMobile$ = this.breakpointObserver
-      .observe([Breakpoints.Handset])
-      .pipe(
-        map((result) => result.matches),
-        startWith(false),
-        distinctUntilChanged()
-      );
-  }
 
   // Combined observable for showing add-to-cart section
   showAddToCartSection$ = combineLatest([

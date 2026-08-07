@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,9 +13,7 @@ import {
   ProductStepOption,
 } from '../../../models/multi-step-product.model';
 import { MatBadgeModule } from '@angular/material/badge';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { map } from 'rxjs/operators';
-import { Subscription } from 'rxjs';
+import { LayoutService } from '../../../services/layout.service';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 @Component({
@@ -33,7 +31,7 @@ import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
   templateUrl: './product-option-card.component.html',
   styleUrls: ['./product-option-card.component.scss'],
 })
-export class ProductOptionCardComponent implements OnInit, OnDestroy {
+export class ProductOptionCardComponent {
   @Input() option!: ProductStepOption;
   @Input() step!: ProductStep;
   @Input() isSelected: boolean = false;
@@ -52,10 +50,9 @@ export class ProductOptionCardComponent implements OnInit, OnDestroy {
 
   private store = inject(Store<AppState>);
   private productService = inject(ProductService);
-  private breakpointObserver = inject(BreakpointObserver);
-  private subscription = new Subscription();
+  private layout = inject(LayoutService);
 
-  isMobile = false;
+  readonly isMobile = computed(() => this.layout.formFactor() === 'phone');
 
   onCardClick(): void {
     if (!this.isDisabled && this.option.isAvailable) {
@@ -99,26 +96,10 @@ export class ProductOptionCardComponent implements OnInit, OnDestroy {
     return this.option.optionType === 'component';
   }
 
-  ngOnInit(): void {
-    // Detect if we're on mobile (handset)
-    this.subscription.add(
-      this.breakpointObserver
-        .observe(Breakpoints.Handset)
-        .pipe(map((result) => result.matches))
-        .subscribe((isMobile) => {
-          this.isMobile = isMobile;
-        })
-    );
-  }
-
-  ngOnDestroy(): void {
-    this.subscription.unsubscribe();
-  }
-
   // Handle image click to open zoom dialog (only on mobile)
   onImageClick(event: Event): void {
     // Only prevent card selection and zoom on mobile
-    if (this.isMobile) {
+    if (this.isMobile()) {
       event.stopPropagation();
       if (this.option.imageUrl) {
         this.imageClicked.emit({

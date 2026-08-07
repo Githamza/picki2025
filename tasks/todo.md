@@ -43,7 +43,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Dependencies: T4 · **Size: S**
 
 ### Checkpoint — Gate 0
-- [x] Full e2e suite green 3× consecutively; `npm run build` clean; **human review before Phase 1** ← YOU ARE HERE
+- [x] Full e2e suite green 3× consecutively; `npm run build` clean; **human review before Phase 1**
 
 ---
 
@@ -70,7 +70,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `main-layout.component.{ts,html,scss}`, `product-grid.component.{ts,html}`, `category-grid.component.ts`
   - Dependencies: T6, T7 · **Size: M**
 
-- [ ] **T9: Migrate multi-step consumers to `LayoutService`**
+- [x] **T9: Migrate multi-step consumers to `LayoutService`**
   - **Description:** Same mechanical migration for `add-product-multi-step` and `product-option-card` (their `isMobile` subscriptions). No template redesign here — that's Phase 4b.
   - Acceptance: no behavior change; baseline green.
   - Verify: full e2e suite.
@@ -78,7 +78,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Dependencies: T8 · **Size: S**
 
 ### Checkpoint — Gate 1
-- [ ] Baseline green; storefront fills 1920×1080; `grep -rn "BreakpointObserver" src/app/components` hits only admin components
+- [x] Baseline green; storefront fills 1920×1080; `grep -rn "BreakpointObserver" src/app/components` hits only admin components
 
 ---
 

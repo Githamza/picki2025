@@ -18,7 +18,7 @@
         <div
           class="option-image"
           *ngIf="option.imageUrl"
-          [class.mobile-only-zoom]="isMobile"
+          [class.mobile-only-zoom]="isMobile()"
           (click)="onImageClick($event)"
         >
           <img [src]="option.imageUrl" [alt]="option.name" />

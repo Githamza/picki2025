@@ -29,6 +29,9 @@ async function setTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
 }
 
 async function expectNoAAViolations(page: Page): Promise<void> {
+  // Under full-suite parallel load the dev server slows down; scanning a
+  // half-loaded screen produces phantom violations. Settle first.
+  await page.waitForLoadState('networkidle');
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

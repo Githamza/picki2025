@@ -112,7 +112,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `product-grid.component.{html,scss}`, `category-grid.component.{html,scss}`
   - Dependencies: T12 · **Size: M**
 
-- [ ] **T14: axe AA scan**
+- [x] **T14: axe AA scan**
   - **Description:** Add `@axe-core/playwright` (dev dep — confirm at install). `e2e/layout/a11y.spec.ts` scans each journey screen, light + dark, asserting zero WCAG 2.1 AA violations. Fix violations found (contrast, alt, focus).
   - Acceptance: zero AA violations both themes on all journey screens.
   - Verify: `npx playwright test e2e/layout/a11y.spec.ts` green.

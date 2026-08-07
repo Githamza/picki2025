@@ -35,7 +35,11 @@ import { VendorService } from '../../services/vendor.service';
         {{ error }}
       </div>
 
-      <div class="chips-container" *ngIf="categories$ | async as categories">
+      <mat-chip-listbox
+        class="chips-container"
+        aria-label="Filtrer par catégorie"
+        *ngIf="categories$ | async as categories"
+      >
         <mat-chip-option
           (click)="selectAllProducts()"
           [selected]="(selectedCategoryId$ | async) === null"
@@ -66,7 +70,7 @@ import { VendorService } from '../../services/vendor.service';
           </ng-template>
           {{ category.name }}
         </mat-chip-option>
-      </div>
+      </mat-chip-listbox>
     </div>
   `,
   styles: [

@@ -83,6 +83,7 @@
           mat-fab
           color="primary"
           class="add-to-order-fab"
+          [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
           [disabled]="isEffectivelyOutOfStock(product)"
           (click)="addToCart(product)"
           [matTooltip]="
@@ -149,6 +150,7 @@
           mat-mini-fab
           color="primary"
           class="add-button"
+          [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
           [disabled]="isEffectivelyOutOfStock(product)"
           (click)="addToCart(product); $event.stopPropagation()"
           [matTooltip]="

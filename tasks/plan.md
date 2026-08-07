@@ -74,6 +74,8 @@ Discovered while building the baseline against the running app:
 5. **PRODUCTION BUG (FIXED 2026-08-07) — order-number collisions.** `generateOrderNumber()` produced `YYMMDD-` + a 3-digit random against the `orders.order_number` unique constraint; same-day collisions silently killed checkouts. **Fix (user-approved):** suffix widened to 6 digits and both duplicated implementations replaced by the shared `src/app/shared/utils/order-number.util.ts` (5 unit tests). Residual daily-collision odds at 500 orders/day: ~0.01% per order. E2e still truncates orders per run (`e2e/global-setup.ts`) for determinism.
 6. **Karma suite compiles again** — `product.service.spec.ts` type errors repaired (typed-mock casts). 52 tests: 47 pass, 5 pre-existing runtime failures in component `should create` specs that hit real Supabase/fetch (unmocked TestBed) — out of scope, listed for a later cleanup.
 
+7. **Watch item — rare a11y flake under load.** After transition-freeze + networkidle settling, ~1 run in 7 still failed one a11y scan (details lost with cleared test-results). If it recurs, capture `error-context.md` before re-running; suspect image-load timing on the product grid.
+
 ## Open Questions
 
 - Browser support floor (SPEC Open Question 1) — proceeding on Angular defaults; un-animated fallback for older Safari.

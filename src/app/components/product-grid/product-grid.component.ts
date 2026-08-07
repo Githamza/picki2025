@@ -43,6 +43,7 @@ import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { CachedImageDirective } from '../../shared/directives/cached-image.directive';
+import { ViewTransitionNameDirective } from '../../shared/directives/view-transition-name.directive';
 
 @Component({
   selector: 'app-product-grid',
@@ -60,6 +61,7 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
     HorizontalCategoryMenuComponent,
     VendorCurrencyPipe,
     CachedImageDirective,
+    ViewTransitionNameDirective,
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.scss'],

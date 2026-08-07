@@ -154,7 +154,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 4 — View transitions (FR3)
 
-- [ ] **T18: `appViewTransitionName` directive**
+- [x] **T18: `appViewTransitionName` directive**
   - **Description:** `src/app/shared/directives/view-transition-name.directive.ts`; replace the inline `style="view-transition-name"` usages in `product-grid.component.html` (lines 9, 40, 106). No-op when API unsupported.
   - Acceptance: existing two transitions behave as before via the directive.
   - Verify: manual nav check; baseline green.

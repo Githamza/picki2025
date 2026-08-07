@@ -6,7 +6,7 @@
 }
 
 <div class="product-grid-container">
-  <div style="view-transition-name: product-grid-page">
+  <div appViewTransitionName="product-grid-page">
     @if (selectedCategory$ | async; as category) {
     <div class="category-header">
       <div class="category-header-content">
@@ -38,7 +38,7 @@
   <div
     class="product-grid desktop-layout"
     [style.--columns]="gridColumns()"
-    style="view-transition-name: product-grid"
+    appViewTransitionName="product-grid"
   >
     @for (product of filteredProducts(); track product.id) {
     <mat-card
@@ -105,7 +105,7 @@
   @if (isPhone()) {
   <div
     class="product-list mobile-layout"
-    style="view-transition-name: product-grid"
+    appViewTransitionName="product-grid"
   >
     @for (product of filteredProducts(); track product.id) {
     <div

@@ -6,6 +6,11 @@
   flex-direction: column;
   background-color: var(--mat-sys-surface-container-low);
   position: relative;
+  /* Was a global html/body cap; the storefront now fills wide screens,
+     the admin dashboard keeps its capped, centered layout. */
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .floating-menu-button {

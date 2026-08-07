@@ -56,7 +56,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/services/layout.service.ts`, `src/app/services/layout.service.spec.ts`
   - Dependencies: Gate 0 · **Size: S**
 
-- [ ] **T7: Remove global max-width cap**
+- [x] **T7: Remove global max-width cap**
   - **Description:** Delete `max-width: 1440px` from `html, body` (`src/styles.scss:29`); re-scope an equivalent cap to the admin shell only (`admin-layout`). Add a layout spec asserting the storefront fills 1920×1080.
   - Acceptance: storefront content spans full width at `kiosk-landscape`; admin unchanged at 1440.
   - Verify: e2e layout specs green; visual check of admin.

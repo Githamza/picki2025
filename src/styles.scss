@@ -22,10 +22,12 @@
   border-radius: 12px;
 }
 /* Global styles for Material 3 */
+/* No max-width here: the storefront must fill kiosk-sized screens
+   (SPEC.md FR1). The admin shell keeps its own 1440px cap in
+   admin-layout.component.scss. */
 html,
 body {
   height: 100%;
-  max-width: 1440px;
   margin: auto;
 }
 

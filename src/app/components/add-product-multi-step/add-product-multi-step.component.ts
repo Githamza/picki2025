@@ -65,12 +65,6 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
 import { ActivatedRoute } from '@angular/router';
 
-// Interface for summary data
-interface StepSummary {
-  step: ProductStep;
-  selectedOptions: ProductStepOption[];
-}
-
 // Interface to track customization selections per option
 interface OptionCustomisationSelection {
   optionId: number;
@@ -147,76 +141,18 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     MultiStepProductSelectors.selectIsConfigurationComplete
   );
   totalPrice$ = this.store.select(MultiStepProductSelectors.selectTotalPrice);
-  previousStepsSummary$ = this.store.select(
-    MultiStepProductSelectors.selectPreviousStepsSummary
-  );
-
-  // Scroll shell (FR4d): visible sections exclude the synthetic summary
-  // step (deleted outright in the store by T23).
-  visibleSteps$ = this.steps$.pipe(
-    map((steps) => steps.filter((step) => step.stepType !== 'summary'))
-  );
+  // Scroll shell (FR4d): every store step renders as a section.
+  visibleSteps$ = this.steps$;
 
   activeStepId$ = combineLatest([this.steps$, this.currentStepIndex$]).pipe(
     map(([steps, index]) => (index !== null ? steps[index]?.id ?? null : null)),
     distinctUntilChanged()
   );
 
-  // Summary data observable for the summary step
-  summaryData$ = combineLatest([this.steps$, this.stepSelections$]).pipe(
-    map(([steps, selections]): StepSummary[] => {
-      return steps
-        .filter(
-          (step) =>
-            step.stepType !== 'summary' &&
-            selections[step.id]?.selectedOptionIds?.length > 0
-        )
-        .map((step): StepSummary => {
-          const availableOptions = this.getAvailableOptions(step);
-          return {
-            step,
-            selectedOptions:
-              selections[step.id]?.selectedOptionIds
-                ?.map((optionId) =>
-                  availableOptions.find((option) => option.id === optionId)
-                )
-                .filter((option): option is ProductStepOption => !!option) || [],
-          };
-        });
-    })
-  );
-
-  // Add mobile detection observable
-
-
-  // Combined observable for showing add-to-cart section
-  showAddToCartSection$ = combineLatest([
-    this.isConfigurationComplete$,
-    this.steps$,
-    this.currentStepIndex$,
-    this.currentStep$,
-  ]).pipe(
-    map(([isComplete, steps, currentIndex, currentStep]) => {
-      // Track current step as visited
-      if (currentIndex !== null && steps.length > 0) {
-        this.visitedSteps.add(currentIndex);
-      }
-
-      // Check if all steps have been visited
-      const allStepsVisited = this.areAllStepsVisited(steps.length);
-
-      // Check if current step is summary step
-      const isOnSummaryStep = currentStep?.stepType === 'summary';
-
-      // Show if user is on summary step OR (all required steps are complete OR all steps have been visited)
-      return isOnSummaryStep && isComplete && allStepsVisited;
-    })
-  );
 
   // Local state
   stepForms: { [stepId: number]: FormGroup } = {};
   quantity: number = 1;
-  visitedSteps: Set<number> = new Set(); // Track which steps have been visited
   comment = signal(''); // Comment for the menu
 
   // Track customisation selections for each step option
@@ -262,18 +198,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         this.cartQuantityMap = map;
       });
 
-    // Mark initial step as visited
-    this.currentStepIndex$
-      .pipe(
-        takeUntil(this.destroy$),
-        filter((index) => index !== null)
-      )
-      .subscribe((index) => {
-        if (index !== null) {
-          this.visitedSteps.add(index);
-        }
-      });
-
     // Auto-scroll the newly active section into view (skip initial load)
     this.activeStepId$
       .pipe(takeUntil(this.destroy$), skip(1))
@@ -290,7 +214,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.visitedSteps.clear(); // Clear visited steps tracking
     this.optionCustomisationSelections.clear(); // Clear customisation selections
     this.store.dispatch(MultiStepProductActions.resetConfiguration());
   }
@@ -365,14 +288,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         selectedOptionIds,
       })
     );
-  }
-
-  // Navigation methods
-  onStepChange(stepIndex: number): void {
-    console.log('onStepChange', stepIndex);
-    // Track the step as visited
-    this.visitedSteps.add(stepIndex);
-    this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
   }
 
   goNext(): void {
@@ -475,6 +390,20 @@ if (category) {
     this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
   }
 
+  /** Disabled add-to-cart tap → jump to the first incomplete step (FR4d). */
+  goToFirstIncompleteStep(): void {
+    combineLatest([this.steps$, this.stepSelections$])
+      .pipe(take(1))
+      .subscribe(([steps, selections]) => {
+        const index = steps.findIndex(
+          (step) => !(selections[step.id]?.isValid ?? false)
+        );
+        if (index >= 0) {
+          this.activateStep(index);
+        }
+      });
+  }
+
   getAvailableOptions(step: ProductStep): ProductStepOption[] {
     return step.options.filter((option) => option.isAvailable);
   }
@@ -572,11 +501,6 @@ if (category) {
     } else {
       return form.get('options')?.get(optionId.toString())?.value || false;
     }
-  }
-
-  // Check if all steps have been visited
-  areAllStepsVisited(totalSteps: number): boolean {
-    return totalSteps > 0 && this.visitedSteps.size >= totalSteps;
   }
 
   // Open image zoom dialog

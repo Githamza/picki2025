@@ -92,37 +92,19 @@ export const multiStepProductReducer = createReducer(
         };
       });
 
-      // Create summary step
-      const summaryStepId = Math.max(...sortedSteps.map((s) => s.id)) + 1;
-      const summaryStep: ProductStep = {
-        id: summaryStepId,
-        productId: baseProduct.id,
-        name: 'Résumé de votre commande',
-        displayOrder: Math.max(...sortedSteps.map((s) => s.displayOrder)) + 1,
-        stepType: 'summary',
-        description: "Vérifiez vos choix avant d'ajouter au panier",
-        isRequired: false,
-        minSelections: 0,
-        maxSelections: 0,
-        options: [],
-      };
-
-      // Add summary step selection (always valid)
-      selections[summaryStepId] = {
-        stepId: summaryStepId,
-        selectedOptionIds: [],
-        isValid: false,
-      };
-
-      // Combine original steps with summary step
-      const allSteps = [...sortedSteps, summaryStep];
+      // FR4d: no synthetic summary step — completion is purely "every
+      // real step's selection is valid", and the scroll shell's collapsed
+      // sections are the recap.
+      const isComplete = sortedSteps.every(
+        (step) => selections[step.id]?.isValid || false
+      );
 
       const configuration: MultiStepProductConfiguration = {
         baseProduct,
-        steps: allSteps,
+        steps: sortedSteps,
         selections,
         currentStepIndex: 0,
-        isComplete: false,
+        isComplete,
         totalPrice: baseProduct.price || 0,
       };
 
@@ -153,30 +135,11 @@ export const multiStepProductReducer = createReducer(
       Math.min(stepIndex, state.configuration.steps.length - 1)
     );
 
-    // Check if the current step is a summary step and mark it as valid
-    const currentStep = state.configuration.steps[clampedIndex];
-    let updatedSelections = { ...state.configuration.selections };
-    let isComplete = state.configuration.isComplete;
-
-    if (currentStep && currentStep.stepType === 'summary') {
-      updatedSelections[currentStep.id] = {
-        ...updatedSelections[currentStep.id],
-        isValid: true,
-      };
-
-      // Recalculate isComplete when arriving at summary step
-      isComplete = state.configuration.steps.every(
-        (s) => updatedSelections[s.id]?.isValid || false
-      );
-    }
-
     return {
       ...state,
       configuration: {
         ...state.configuration,
         currentStepIndex: clampedIndex,
-        selections: updatedSelections,
-        isComplete,
       },
     };
   }),
@@ -189,30 +152,11 @@ export const multiStepProductReducer = createReducer(
       state.configuration.steps.length - 1
     );
 
-    // Check if the next step is a summary step and mark it as valid
-    const nextStep = state.configuration.steps[nextIndex];
-    let updatedSelections = { ...state.configuration.selections };
-    let isComplete = state.configuration.isComplete;
-
-    if (nextStep && nextStep.stepType === 'summary') {
-      updatedSelections[nextStep.id] = {
-        ...updatedSelections[nextStep.id],
-        isValid: true,
-      };
-
-      // Recalculate isComplete when arriving at summary step
-      isComplete = state.configuration.steps.every(
-        (s) => updatedSelections[s.id]?.isValid || false
-      );
-    }
-
     return {
       ...state,
       configuration: {
         ...state.configuration,
         currentStepIndex: nextIndex,
-        selections: updatedSelections,
-        isComplete,
       },
     };
   }),

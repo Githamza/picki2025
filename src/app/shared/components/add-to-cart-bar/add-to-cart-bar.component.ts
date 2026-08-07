@@ -24,4 +24,13 @@ export class AddToCartBarComponent {
   @Output() decrement = new EventEmitter<void>();
   @Output() remove = new EventEmitter<void>();
   @Output() addToCart = new EventEmitter<void>();
+  /** Emitted when the main button is tapped while disabled — hosts use it
+   *  to navigate to whatever is blocking (FR4d: no dead taps). */
+  @Output() disabledClick = new EventEmitter<void>();
+
+  onBarClick(): void {
+    if (this.disabled) {
+      this.disabledClick.emit();
+    }
+  }
 }

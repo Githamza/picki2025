@@ -311,14 +311,14 @@ export class MultiStepProductEffects {
   // Map database step types to our interface types
   private mapStepType(
     dbStepType: string
-  ): 'single-select' | 'multi-select' | 'summary' {
+  ): 'single-select' | 'multi-select' | 'text-input' {
     switch (dbStepType) {
       case 'single-select':
         return 'single-select';
       case 'multi-select':
         return 'multi-select';
       case 'text_input':
-        return 'summary'; // Map text input to summary for display purposes
+        return 'text-input';
       case 'required':
         // Handle legacy or incorrectly set "required" step type
         // "required" refers to whether the step is mandatory, not the selection type

@@ -53,6 +53,13 @@
     }
   }
 
+  .add-to-cart-button.visually-disabled {
+    /* aria-disabled instead of [disabled]: the tap must still fire so the
+       host can navigate to the blocking step (FR4d: no dead taps). */
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
   .add-to-cart-button {
     flex: 1;
     font-size: 1.2rem;

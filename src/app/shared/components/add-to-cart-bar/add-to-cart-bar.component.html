@@ -28,8 +28,9 @@
     mat-flat-button
     color="primary"
     class="add-to-cart-button"
-    (click)="addToCart.emit()"
-    [disabled]="disabled"
+    (click)="disabled ? disabledClick.emit() : addToCart.emit()"
+    [class.visually-disabled]="disabled"
+    [attr.aria-disabled]="disabled"
   >
     <div class="button-content">
       <span class="button-text">{{ buttonText }}</span>

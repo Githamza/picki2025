@@ -196,7 +196,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `add-product-multi-step.component.{ts,html,scss}`
   - Dependencies: T21 · **Size: M**
 
-- [ ] **T23: Delete `summary` step type; disabled-CTA navigation**
+- [x] **T23: Delete `summary` step type; disabled-CTA navigation**
   - **Description:** Remove `'summary'` from `multi-step-product.model.ts:6`, reducer (`:102,161,197`), effects (`:314,321` — text-input steps get their own `text-input` step type + reducer path). Recap UI is gone (collapsed headers replace it). Disabled add-to-cart tap scrolls to first incomplete section.
   - Acceptance: `grep -rn "'summary'" src/app` → zero; text-input steps still work; comment + add-to-cart bar unchanged.
   - Verify: reducer/effects unit specs via `--include`; full e2e suite.

@@ -186,11 +186,8 @@ export class RegularProductViewComponent
         filter((steps) => steps.length > 0)
       )
       .subscribe((steps) => {
-        const nonSummarySteps = steps.filter(
-          (step) => step.stepType !== 'summary'
-        );
-        if (nonSummarySteps.length === 1) {
-          this.currentStep = nonSummarySteps[0];
+        if (steps.length === 1) {
+          this.currentStep = steps[0];
           this.stepOptions = this.currentStep.options || [];
         }
       });

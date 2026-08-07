@@ -92,12 +92,18 @@
     </mat-sidenav>
 
     <mat-sidenav-content class="content-area">
-      <div class="main-content mat-rounded-medium">
-        <router-outlet></router-outlet>
+      <div class="content-with-cart">
+        <div class="main-content mat-rounded-medium">
+          <router-outlet></router-outlet>
+        </div>
+        <!-- FR6/FR7: persistent cart panel on landscape form factors -->
+        @if (showRail()) {
+          <app-cart-panel class="cart-panel-host"></app-cart-panel>
+        }
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
-  @if (showCartBadge$ | async) {
+  @if ((showCartBadge$ | async) && !showRail()) {
     <app-cart-badge></app-cart-badge>
   }
 </div>

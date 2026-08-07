@@ -24,6 +24,7 @@ import { AppState } from '../../store/models/app.state';
 import * as CategoryActions from '../../store/actions/category.actions';
 import { PromotionalBannerComponent } from "../promotional-banner/promotional-banner.component";
 import { LayoutService } from '../../services/layout.service';
+import { CartPanelComponent } from '../cart-panel/cart-panel.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -34,6 +35,7 @@ import { LayoutService } from '../../services/layout.service';
     ...materialComponents,
     CategoryMenuComponent,
     CartBadgeComponent,
+    CartPanelComponent,
 ],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss'],

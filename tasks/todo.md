@@ -212,3 +212,18 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ### Checkpoint — Gate 4b (redesign complete)
 - [x] Full e2e suite green ×3; `npm run build` clean; `npm run android:sync` succeeds; SPEC success criteria 1–3, 6, 9–11, 13–14 verified; **human review** ← YOU ARE HERE
+
+---
+
+## Kiosk push (T25–T34) — status
+
+- [x] **T25: cart-content extraction** (commit 8f80a65)
+- [x] **T26: CheckoutService** (commit f68fb26)
+- [x] **T27: Persistent cart panel on landscape**
+- [ ] **T28: Delete CartDetailsPageComponent**
+- [ ] **T29: kiosk_enabled migration + types + seed + admin toggle**
+- [ ] **T30: KioskModeService + kiosk chrome**
+- [ ] **T31: Attract screen + idle reset**
+- [ ] **T32: Kiosk pay-at-counter + order-number confirmation**
+- [ ] **T33: Kiosk multi-step shell**
+- [ ] **T34: Capacitor kiosk affordances**

@@ -125,9 +125,24 @@
   overflow-x: hidden;
 }
 
-/* Phase-5 hook: the content area becomes a two-column grid
-   (main | cart-panel) when the persistent cart lands. Named area
-   reserved now so that change is additive. */
+/* Two-column content: main | persistent cart panel (landscape). */
+.content-with-cart {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+
+  .main-content {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .cart-panel-host {
+    flex: 0 0 340px;
+    width: 340px;
+    min-height: 0;
+  }
+}
+
 .content-area {
   display: flex;
   flex-direction: column;

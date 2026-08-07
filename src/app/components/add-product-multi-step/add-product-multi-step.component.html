@@ -1,268 +1,97 @@
-<div
-  class="multi-step-container"
-  *ngIf="configuration$ | async as configuration"
->
-  <!-- Product Header -->
-  <div class="product-header" *ngIf="baseProduct$ | async as product">
-    <div class="product-info-card">
-      <div class="product-header-content">
-        <h2 class="product-title">{{ product.name }}</h2>
-        <h3 class="product-subtitle">Configuration du menu</h3>
+@if (configuration$ | async; as configuration) {
+  <div class="multi-step-container">
+    <!-- Product Header — title only; the running total lives in the
+         add-to-cart bar (FR4d: price appears exactly once per view) -->
+    @if (baseProduct$ | async; as product) {
+      <div class="product-header">
+        <h2 class="product-title storefront-section-title">
+          {{ product.name }}
+        </h2>
       </div>
-      <div class="price-infof">
-        <span
-          class="total-price"
-          [style.visibility]="
-            ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
-          "
-        >
-          Total: {{ (totalPrice$ | async) || 0 | vendorCurrency }}
-        </span>
-      </div>
+    }
+
+    <!-- Scrolling shell (FR4d): steps are vertical sections; a completed
+         section collapses to its header + chosen options. No tabs, no
+         summary step — the page itself is the recap. -->
+    <div class="steps-scroll">
+      @for (step of (visibleSteps$ | async) || []; track step.id; let i = $index) {
+        <app-step-section
+          [id]="'step-section-' + step.id"
+          [step]="step"
+          [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
+          [active]="(activeStepId$ | async) === step.id"
+          [outOfStockOptionIds]="outOfStockIdsFor(step)"
+          (optionClicked)="onOptionClicked($event)"
+          (imageClicked)="onImageClicked($event)"
+          (edit)="activateStep(i)"
+        ></app-step-section>
+      }
     </div>
-  </div>
 
-  <!-- Main Tab Group -->
-  <mat-tab-group
-    #tabGroup
-    [selectedIndex]="currentStepIndex$ | async"
-    (selectedIndexChange)="onStepChange($event)"
-    class="multi-step-tabs"
-  >
-    <mat-tab *ngFor="let step of steps$ | async; let i = index">
-      <ng-template mat-tab-label>
-        <div class="step-label">
-          <span class="step-title">{{ step.name }}</span>
-          <span class="step-requirements" *ngIf="step.isRequired">*</span>
-        </div>
-      </ng-template>
-
-      <!-- Step Content -->
-      <div class="step-content">
-        <span class="product-title">{{ step.name }}</span>
-        <div class="step-description" *ngIf="step.description">
-          <p>{{ step.description }}</p>
-        </div>
-
-        <div class="selection-info">
-          <ng-container *ngIf="step.stepType === 'single-select'">
-            <p class="selection-hint">Choisissez une option</p>
-          </ng-container>
-          <ng-container *ngIf="step.stepType === 'multi-select'">
-            <p class="selection-hint">
-              Choisissez {{ step.minSelections }} à
-              {{ step.maxSelections }} options
-            </p>
-          </ng-container>
-        </div>
-
-        <!-- Single Select Options -->
-        <div
-          *ngIf="
-            step.stepType === 'single-select' &&
-            getStepForm(step.id) as stepForm
-          "
-          [formGroup]="stepForm"
-          class="options-container"
-        >
-          <mat-list class="option-cards-list">
-            <app-product-option-card
-              *ngFor="let option of getAvailableOptions(step)"
-              [option]="option"
-              [step]="step"
-              [isSelected]="isOptionSelected(step, option.id)"
-              [isDisabled]="
-                !option.isAvailable || isOptionEffectivelyOutOfStock(option)
-              "
-              [isOutOfStock]="isOptionEffectivelyOutOfStock(option)"
-              (optionClicked)="onOptionClicked($event)"
-              (imageClicked)="onImageClicked($event)"
-            ></app-product-option-card>
-          </mat-list>
-
-          <!-- Hidden form control for validation -->
-          <input type="hidden" formControlName="selectedOption" />
-        </div>
-
-        <!-- Multi Select Options -->
-        <div
-          *ngIf="
-            step.stepType === 'multi-select' && getStepForm(step.id) as stepForm
-          "
-          [formGroup]="stepForm"
-          class="options-container"
-        >
-          <mat-list class="option-cards-list">
-            <app-product-option-card
-              *ngFor="let option of getAvailableOptions(step)"
-              [option]="option"
-              [step]="step"
-              [isSelected]="isOptionSelected(step, option.id)"
-              [isDisabled]="
-                !option.isAvailable || isOptionEffectivelyOutOfStock(option)
-              "
-              [isOutOfStock]="isOptionEffectivelyOutOfStock(option)"
-              (optionClicked)="onOptionClicked($event)"
-              (imageClicked)="onImageClicked($event)"
-            ></app-product-option-card>
-          </mat-list>
-
-          <!-- Hidden form controls for validation -->
-          <div formGroupName="options" class="hidden-form-controls">
-            <input
-              *ngFor="let option of getAvailableOptions(step)"
-              type="hidden"
-              [formControlName]="option.id.toString()"
-            />
-          </div>
-        </div>
-
-        <!-- Summary Step -->
-        <div *ngIf="step.stepType === 'summary'" class="summary-container">
-          <div
-            class="summary-content"
-            *ngIf="summaryData$ | async as summaryData"
+    <!-- Comment (optional) once the configuration is complete -->
+    @if (isConfigurationComplete$ | async) {
+      <div class="comment-section">
+        <mat-form-field class="comment-field">
+          <mat-label>Commentaires (optionnel)</mat-label>
+          <textarea
+            matInput
+            [ngModel]="comment()"
+            (ngModelChange)="comment.set($event)"
+            placeholder="Ex: Sans sauce épicée, cuisson bien cuite, légumes à part..."
+            rows="3"
+            maxlength="500"
           >
-            <div class="summary-header">
-              <mat-icon class="summary-header-icon">receipt_long</mat-icon>
-              <span class="summary-header-title">Récapitulatif</span>
-            </div>
-
-            <div class="summary-items">
-              <div
-                *ngFor="let item of summaryData; let i = index"
-                class="summary-row"
-                [style.animation-delay]="i * 60 + 'ms'"
-              >
-                <div class="summary-row-header">
-                  <span class="summary-step-index">{{ i + 1 }}</span>
-                  <span class="summary-step-name">{{ item.step.name }}</span>
-                </div>
-                <div class="summary-options">
-                  <div
-                    *ngFor="let option of item.selectedOptions"
-                    class="summary-option-chip"
-                  >
-                    <mat-icon class="chip-icon">check_circle</mat-icon>
-                    <span class="chip-label">{{ option.name }}</span>
-                    <span
-                      *ngIf="option.priceAdjustment !== 0"
-                      class="chip-price"
-                      [class.positive]="option.priceAdjustment > 0"
-                      [class.negative]="option.priceAdjustment < 0"
-                    >
-                      {{ option.priceAdjustment > 0 ? "+" : ""
-                      }}{{ option.priceAdjustment | vendorCurrency }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="summary-total"
-              [style.visibility]="
-                ((totalPrice$ | async) || 0) > 0 ? 'visible' : 'hidden'
-              "
-            >
-              <span class="summary-total-label">Total</span>
-              <span class="summary-total-amount">{{
-                (totalPrice$ | async) || 0 | vendorCurrency
-              }}</span>
-            </div>
-          </div>
-        </div>
+          </textarea>
+          <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
+        </mat-form-field>
       </div>
-    </mat-tab>
-  </mat-tab-group>
+    }
 
-  <!-- Comment Section (when all steps are visited or configuration is complete) -->
-  <div class="comment-section" *ngIf="showAddToCartSection$ | async">
-    <mat-form-field class="comment-field">
-      <mat-label>Commentaires (optionnel)</mat-label>
-      <textarea
-        matInput
-        [ngModel]="comment()"
-        (ngModelChange)="comment.set($event)"
-        placeholder="Ex: Sans sauce épicée, cuisson bien cuite, légumes à part..."
-        rows="3"
-        maxlength="500"
-      >
-      </textarea>
-      <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
-    </mat-form-field>
+    <!-- Always-visible bar: disabled until required steps are satisfied.
+         Tapping it while disabled navigates to the first missing choice. -->
+    <app-add-to-cart-bar
+      [quantity]="quantity"
+      [totalPrice]="((totalPrice$ | async) || 0) * quantity"
+      [buttonText]="'Ajouter'"
+      [stockLimitReached]="isStockLimitReached()"
+      [stockQuantity]="baseProductStockQuantity"
+      [cartQuantityForProduct]="cartQuantityForBaseProduct"
+      [disabled]="!(isConfigurationComplete$ | async)"
+      (increment)="incrementQuantity()"
+      (decrement)="decrementQuantity()"
+      (remove)="removeItem()"
+      (addToCart)="addToCart()"
+    ></app-add-to-cart-bar>
   </div>
-  <!-- Summary of Previous Steps -->
-
-  <div
-    class="step-actions"
-    [ngClass]="{ 'bottom-up': (showAddToCartSection$ | async) }"
-  >
-    <button
-      mat-button
-      (click)="goPrevious()"
-      [disabled]="!(canGoPrevious$ | async)"
-      class="previous-btn"
-    >
-      Retour
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-
-    <div class="spacer"></div>
-
-    <!-- Next Button (not on last step) -->
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="goNext()"
-      [disabled]="!(canGoNext$ | async)"
-      *ngIf="!(isLastStep$ | async)"
-      class="next-btn"
-    >
-      Étape suivante
-      <mat-icon>arrow_forward</mat-icon>
-    </button>
-  </div>
-  <!-- Quantity Controls and Add to Cart Section (when all steps are visited or configuration is complete) -->
-  <app-add-to-cart-bar
-    *ngIf="showAddToCartSection$ | async"
-    [quantity]="quantity"
-    [totalPrice]="((totalPrice$ | async) || 0) * quantity"
-    [buttonText]="'Ajouter'"
-    [stockLimitReached]="isStockLimitReached()"
-    [stockQuantity]="baseProductStockQuantity"
-    [cartQuantityForProduct]="cartQuantityForBaseProduct"
-    [disabled]="!(isConfigurationComplete$ | async)"
-    (increment)="incrementQuantity()"
-    (decrement)="decrementQuantity()"
-    (remove)="removeItem()"
-    (addToCart)="addToCart()"
-  ></app-add-to-cart-bar>
-</div>
+}
 
 <!-- Loading State -->
-<div class="loading-container" *ngIf="loading$ | async">
-  <mat-card class="loading-card">
-    <mat-card-content>
-      <div class="loading-content">
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Chargement du menu...</p>
-      </div>
-    </mat-card-content>
-  </mat-card>
-</div>
+@if (loading$ | async) {
+  <div class="loading-container">
+    <mat-card class="loading-card">
+      <mat-card-content>
+        <div class="loading-content">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Chargement du menu...</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
 
 <!-- Error State -->
-<div class="error-container" *ngIf="error$ | async as error">
-  <mat-card class="error-card">
-    <mat-card-content>
-      <div class="error-content">
-        <mat-icon color="warn">error</mat-icon>
-        <p>{{ error }}</p>
-        <button mat-button color="primary" (click)="ngOnInit()">
-          Réessayer
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-</div>
+@if (error$ | async; as error) {
+  <div class="error-container">
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon color="warn">error</mat-icon>
+          <p>{{ error }}</p>
+          <button mat-button color="primary" (click)="ngOnInit()">
+            Réessayer
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

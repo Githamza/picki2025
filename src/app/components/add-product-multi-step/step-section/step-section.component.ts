@@ -94,9 +94,15 @@ export class StepSectionComponent {
     this.step().isRequired ? 'Obligatoire' : 'Optionnel'
   );
 
-  readonly hint = computed(() =>
-    selectionHint(this.step(), this.selectedOptionIds().length)
-  );
+  readonly hint = computed(() => {
+    const count = this.selectedOptionIds().length;
+    // The zero-state prompt duplicates the vendor's own description when
+    // one exists — only the live countdown adds information then.
+    if (count === 0 && this.step().description) {
+      return '';
+    }
+    return selectionHint(this.step(), count);
+  });
 
   readonly selectedNames = computed(() =>
     this.selectedOptions()

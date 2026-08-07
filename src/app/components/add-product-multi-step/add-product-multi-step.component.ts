@@ -5,7 +5,6 @@ import {
   inject,
   signal,
   Input,
-  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -29,7 +28,6 @@ import {
 import { LayoutModule } from '@angular/cdk/layout';
 
 // Material imports
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -43,7 +41,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatRippleModule } from '@angular/material/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatTabGroup } from '@angular/material/tabs';
 import { MatDialog } from '@angular/material/dialog';
 
 // Store imports
@@ -59,6 +56,7 @@ import {
 } from '../../models/multi-step-product.model';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { ProductOptionCardComponent } from './product-option-card/product-option-card.component';
+import { StepSectionComponent } from './step-section/step-section.component';
 import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
 import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData, CustomisationSelectionResult } from './customisation-selection-dialog/customisation-selection-dialog.component';
 import { ProductService, Product } from '../../services/product.service';
@@ -86,7 +84,6 @@ interface OptionCustomisationSelection {
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    MatTabsModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
@@ -102,6 +99,7 @@ interface OptionCustomisationSelection {
     MatFormFieldModule,
     LayoutModule,
     ProductOptionCardComponent,
+    StepSectionComponent,
     VendorCurrencyPipe,
     AddToCartBarComponent,
   ],
@@ -111,9 +109,6 @@ interface OptionCustomisationSelection {
 export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   // Add input property to receive product ID from parent
   @Input() productId!: number;
-
-  // ViewChild to access the tab group
-  @ViewChild('tabGroup', { static: false }) tabGroup!: MatTabGroup;
 
   private destroy$ = new Subject<void>();
   private fb = inject(FormBuilder);
@@ -154,6 +149,17 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   totalPrice$ = this.store.select(MultiStepProductSelectors.selectTotalPrice);
   previousStepsSummary$ = this.store.select(
     MultiStepProductSelectors.selectPreviousStepsSummary
+  );
+
+  // Scroll shell (FR4d): visible sections exclude the synthetic summary
+  // step (deleted outright in the store by T23).
+  visibleSteps$ = this.steps$.pipe(
+    map((steps) => steps.filter((step) => step.stepType !== 'summary'))
+  );
+
+  activeStepId$ = combineLatest([this.steps$, this.currentStepIndex$]).pipe(
+    map(([steps, index]) => (index !== null ? steps[index]?.id ?? null : null)),
+    distinctUntilChanged()
   );
 
   // Summary data observable for the summary step
@@ -268,20 +274,17 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Setup auto-scroll for mobile when step changes
-    // combineLatest([this.currentStepIndex$, this.isMobile$])
-    //   .pipe(
-    //     takeUntil(this.destroy$),
-    //     filter(([stepIndex, isMobile]) => stepIndex !== null && isMobile),
-    //     // Skip the first emission to avoid scrolling on initial load
-    //     skip(1)
-    //   )
-    //   .subscribe(() => {
-    //     // Use setTimeout to ensure the DOM has updated after the step change
-    //     setTimeout(() => {
-    //       this.scrollToCurrentStep();
-    //     }, 150);
-    //   });
+    // Auto-scroll the newly active section into view (skip initial load)
+    this.activeStepId$
+      .pipe(takeUntil(this.destroy$), skip(1))
+      .subscribe((stepId) => {
+        if (stepId === null) return;
+        setTimeout(() => {
+          document
+            .getElementById(`step-section-${stepId}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      });
   }
 
   ngOnDestroy(): void {
@@ -455,6 +458,23 @@ if (category) {
     return this.stepForms[stepId] || null;
   }
 
+  selectedIdsFor(
+    stepId: number,
+    selections: { [stepId: number]: { selectedOptionIds: number[] } } | null
+  ): number[] {
+    return selections?.[stepId]?.selectedOptionIds ?? [];
+  }
+
+  outOfStockIdsFor(step: ProductStep): number[] {
+    return step.options
+      .filter((option) => this.isOptionEffectivelyOutOfStock(option))
+      .map((option) => option.id);
+  }
+
+  activateStep(stepIndex: number): void {
+    this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
+  }
+
   getAvailableOptions(step: ProductStep): ProductStepOption[] {
     return step.options.filter((option) => option.isAvailable);
   }
@@ -574,60 +594,6 @@ if (category) {
     this.openImageZoom(event.imageUrl, event.imageName);
   }
 
-  // Helper method to scroll to current tab content
-  private scrollToCurrentStep(): void {
-    if (!this.tabGroup) return;
-
-    // Get the selected tab index
-    const selectedIndex = this.tabGroup.selectedIndex;
-    if (selectedIndex === null || selectedIndex === undefined) return;
-
-    // Find the tab label to ensure the tab name is visible
-    const tabLabels = document.querySelectorAll('.mat-mdc-tab');
-    const activeTabLabel = tabLabels[selectedIndex] as HTMLElement;
-
-    if (!activeTabLabel) return;
-
-    // Account for sticky elements
-    const stickyHeaderHeight = 39; // .step-actions sticky bar
-    const additionalOffset = 190; // Extra padding for visibility
-    const totalOffset = stickyHeaderHeight + additionalOffset;
-
-    // Try to find scrollable parent container
-    let scrollableContainer: HTMLElement | null = null;
-    let parent = activeTabLabel.parentElement;
-    
-    while (parent && parent !== document.body) {
-      const overflow = window.getComputedStyle(parent).overflowY;
-      if (overflow === 'auto' || overflow === 'scroll') {
-        scrollableContainer = parent;
-        break;
-      }
-      parent = parent.parentElement;
-    }
-
-    if (scrollableContainer) {
-      // Scroll within container
-      const containerRect = scrollableContainer.getBoundingClientRect();
-      const elementRect = activeTabLabel.getBoundingClientRect();
-      const relativeTop = elementRect.top - containerRect.top;
-      const targetScrollTop = scrollableContainer.scrollTop + relativeTop - totalOffset;
-
-      scrollableContainer.scrollTo({
-        top: targetScrollTop,
-        behavior: 'smooth'
-      });
-    } else {
-      // Scroll the window
-      const elementRect = activeTabLabel.getBoundingClientRect();
-      const absoluteTop = window.pageYOffset + elementRect.top;
-      
-      window.scrollTo({
-        top: absoluteTop - totalOffset,
-        behavior: 'smooth'
-      });
-    }
-  }
 
   // Customisation handling methods
   private getCustomisationKey(stepId: number, optionId: number): string {

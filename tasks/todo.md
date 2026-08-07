@@ -189,7 +189,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `step-section.component.{ts,html,scss}` + spec
   - Dependencies: Gate 4 · **Size: M**
 
-- [ ] **T22: Scrolling-page shell replaces tabs**
+- [x] **T22: Scrolling-page shell replaces tabs**
   - **Description:** Rebuild `add-product-multi-step` template: vertical `step-section`s; completed sections collapse to "✓ Nom — choix (modifier)"; auto-scroll to next incomplete on satisfy; single-select auto-advances; `mat-tab-group` deleted; "Obligatoire/Optionnel" labels replace `*`; step name and price each rendered once.
   - Acceptance: FR4d scroll-shell rules all hold on phone/tablet-portrait viewports.
   - Verify: multi-step journey e2e (T24 spec drafted alongside); manual check.

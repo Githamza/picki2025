@@ -96,6 +96,13 @@ import { VendorService } from '../../services/vendor.service';
         min-width: min-content;
       }
 
+      /* mat-chip-listbox renders an inner chip-set that wraps by default,
+         stacking chips into rows on mobile. Force a single scrollable
+         line (the host handles overflow-x). */
+      .chips-container ::ng-deep .mdc-evolution-chip-set__chips {
+        flex-wrap: nowrap;
+      }
+
       .loader-container {
         display: flex;
         justify-content: center;

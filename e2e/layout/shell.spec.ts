@@ -25,11 +25,18 @@ test.describe('shell — category navigation per form factor', () => {
   }, testInfo) => {
     await gotoStorefront(page);
     await openCategory(page, E2E_VENDOR.categories.burgers);
-    const scrollerVisible = await page
-      .locator('app-horizontal-category-menu')
-      .isVisible();
+    const scroller = page.locator('app-horizontal-category-menu');
+    const scrollerVisible = await scroller.isVisible();
     expect(scrollerVisible).toBe(
       !LANDSCAPE_PROJECTS.includes(testInfo.project.name)
     );
+
+    if (scrollerVisible) {
+      // Chips must stay on one scrollable line, never stack (review fix).
+      const flexWrap = await scroller
+        .locator('.mdc-evolution-chip-set__chips')
+        .evaluate((el) => getComputedStyle(el).flexWrap);
+      expect(flexWrap).toBe('nowrap');
+    }
   });
 });

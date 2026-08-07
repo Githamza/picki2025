@@ -130,7 +130,14 @@ test.describe('multi-step product — scroll shell', () => {
     await accompaniments.getByText('Frites', { exact: true }).click();
     await accompaniments.getByText('Salade', { exact: true }).click();
 
-    // Dessert is optional — add directly.
+    // Choosing on the LAST step collapses it and reveals the comment area.
+    await section(page, 'Dessert').getByText('Cookie', { exact: true }).click();
+    await expect(header(page, 'Dessert')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    await expect(page.locator('.comment-section')).toBeVisible();
+
     const addButton = page.locator('.add-to-cart-button');
     await expect(addButton).not.toHaveClass(/visually-disabled/);
     await addButton.click();
@@ -145,5 +152,6 @@ test.describe('multi-step product — scroll shell', () => {
     await itemTitle.click();
     await expect(sheet.getByText('Classique').first()).toBeVisible();
     await expect(sheet.getByText('Frites').first()).toBeVisible();
+    await expect(sheet.getByText('Cookie').first()).toBeVisible();
   });
 });

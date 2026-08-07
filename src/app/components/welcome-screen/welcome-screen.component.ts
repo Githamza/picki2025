@@ -23,7 +23,6 @@ import {
   type Vendor,
 } from '../../services/vendor.service';
 import { Coordinates } from '../../services/delivery/delivery.types';
-import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
 
 @Component({
   selector: 'app-welcome-screen',
@@ -32,7 +31,6 @@ import { PromotionalBannerComponent } from '../promotional-banner/promotional-ba
     ...materialComponents,
     MapLocationPickerComponent,
     DiningPreferenceSelectorComponent,
-    PromotionalBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './welcome-screen.component.html',

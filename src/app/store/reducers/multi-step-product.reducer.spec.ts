@@ -87,11 +87,12 @@ describe('multiStepProductReducer (FR4d — no summary step)', () => {
     expect(state.configuration!.totalPrice).toBe(14);
   });
 
-  it('nextStep clamps to the last real step', () => {
+  it('nextStep can move one past the last step (all sections collapsed)', () => {
     let state = initialized();
     state = multiStepProductReducer(state, MultiStepProductActions.nextStep());
     state = multiStepProductReducer(state, MultiStepProductActions.nextStep());
     state = multiStepProductReducer(state, MultiStepProductActions.nextStep());
-    expect(state.configuration!.currentStepIndex).toBe(1);
+    // Clamps at steps.length, not length - 1: the "nothing active" state.
+    expect(state.configuration!.currentStepIndex).toBe(2);
   });
 });

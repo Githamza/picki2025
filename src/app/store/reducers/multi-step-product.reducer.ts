@@ -130,9 +130,12 @@ export const multiStepProductReducer = createReducer(
   on(MultiStepProductActions.setCurrentStep, (state, { stepIndex }) => {
     if (!state.configuration) return state;
 
+    // steps.length (one past the end) is a valid resting state: no step
+    // is active, every section is collapsed (FR4d — the last step closes
+    // after its choice so the comment/add-to-cart area is revealed).
     const clampedIndex = Math.max(
       0,
-      Math.min(stepIndex, state.configuration.steps.length - 1)
+      Math.min(stepIndex, state.configuration.steps.length)
     );
 
     return {
@@ -149,7 +152,7 @@ export const multiStepProductReducer = createReducer(
 
     const nextIndex = Math.min(
       state.configuration.currentStepIndex + 1,
-      state.configuration.steps.length - 1
+      state.configuration.steps.length
     );
 
     return {

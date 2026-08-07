@@ -6,11 +6,6 @@
   line-height: 26px !important;
   background-color: var(--mat-sys-primary) !important;
 }
-@media (max-width: 768px) {
-  .margins-mobile {
-    margin-right: 20px;
-  }
-}
 .option-card {
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -156,7 +151,10 @@
 
       .option-image {
         width: 100%;
-        height: 120px;
+        /* Square crop: flatters food photography at tile width and keeps
+           tile heights uniform regardless of source aspect ratio. */
+        aspect-ratio: 1 / 1;
+        height: auto;
         overflow: hidden;
         display: flex;
         align-items: center;
@@ -204,10 +202,11 @@
         flex: 1;
 
         .option-name {
-          font-weight: 700;
-          font-size: 1.1rem;
-          color: var(--mat-on-surface);
+          font-weight: 600;
+          font: var(--mat-sys-title-small);
+          color: var(--mat-sys-on-surface);
           margin-bottom: 4px;
+          overflow-wrap: anywhere;
         }
 
         .option-description {
@@ -323,106 +322,5 @@
   }
 }
 
-// Mobile responsive styles
-@media (max-width: 768px) {
-  .option-card {
-    mat-card-content {
-      .option-card-content {
-        flex-direction: row;
-        align-items: center;
-        padding: 8px;
-        gap: 12px;
-        min-height: 80px;
-
-        .option-image {
-          width: 48px;
-          height: 48px;
-          flex-shrink: 0;
-          border-radius: 6px;
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 6px;
-          }
-
-          &.fallback {
-            mat-icon {
-              font-size: 24px;
-              height: 24px;
-              width: 24px;
-            }
-          }
-        }
-
-        .option-info {
-          flex: 1;
-          padding: 0;
-          text-align: left;
-
-          .option-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 2px;
-            line-height: 1.2;
-          }
-
-          .option-description {
-            font-size: 0.75rem;
-            margin-bottom: 4px;
-            line-height: 1.2;
-          }
-
-          .option-type-badge {
-            margin-bottom: 0;
-
-            .badge {
-              font-size: 0.6rem;
-              padding: 1px 6px;
-            }
-          }
-        }
-
-        .option-actions {
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 4px;
-          padding: 0;
-
-          .option-price {
-            flex: none;
-
-            .price-adjustment {
-              font-size: 0.8rem;
-              padding: 4px 8px;
-              white-space: nowrap;
-            }
-          }
-
-          .add-separately-btn {
-            margin-left: 0;
-
-            mat-icon {
-              font-size: 16px;
-              height: 16px;
-              width: 16px;
-            }
-          }
-        }
-
-        .selection-indicator {
-          position: absolute;
-          top: 4px;
-          right: 4px;
-
-          mat-icon {
-            font-size: 20px;
-            height: 20px;
-            width: 20px;
-          }
-        }
-      }
-    }
-  }
-}
+// Tile layout is identical at every form factor (review decision):
+// the step-section grid controls tile size, not per-card media queries.

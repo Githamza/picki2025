@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
@@ -13,6 +14,7 @@ import {
   ProductStep,
   ProductStepOption,
 } from '../../../models/multi-step-product.model';
+import { LayoutService } from '../../../services/layout.service';
 import { ProductOptionCardComponent } from '../product-option-card/product-option-card.component';
 
 /**
@@ -61,6 +63,8 @@ export function selectionHint(step: ProductStep, selectedCount: number): string 
   styleUrl: './step-section.component.scss',
 })
 export class StepSectionComponent {
+  private readonly layout = inject(LayoutService);
+
   readonly step = input.required<ProductStep>();
   readonly selectedOptionIds = input<number[]>([]);
   readonly active = input(false);
@@ -71,6 +75,18 @@ export class StepSectionComponent {
   readonly imageClicked = output<{ imageUrl: string; imageName: string }>();
   /** Header tap on a collapsed section — parent re-activates the step. */
   readonly edit = output<void>();
+
+  /** Option tiles per row: 2 on phone, 3 tablet-portrait, 4 landscape+. */
+  readonly optionColumns = computed(() => {
+    switch (this.layout.formFactor()) {
+      case 'phone':
+        return 2;
+      case 'tablet-portrait':
+        return 3;
+      default:
+        return 4;
+    }
+  });
 
   readonly availableOptions = computed(() =>
     this.step().options.filter((option) => option.isAvailable)

@@ -33,7 +33,7 @@
       <p class="selection-hint" role="status">{{ hint() }}</p>
     }
 
-    <div class="options-container">
+    <div class="options-container" [style.--option-columns]="optionColumns()">
       @for (option of availableOptions(); track option.id) {
         <app-product-option-card
           [option]="option"

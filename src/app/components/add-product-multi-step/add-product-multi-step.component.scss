@@ -10,7 +10,6 @@
   padding: 32px;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 64px);
 
   .product-header {
     margin-bottom: 24px;
@@ -494,8 +493,7 @@
     top: 0;
     z-index: 1000;
     padding: 8px;
-    min-height: 90vh;
-    padding-bottom: 80px;
+    padding-bottom: 24px;
 
     .multi-step-tabs {
       .step-content {

@@ -80,3 +80,51 @@ Discovered while building the baseline against the running app:
 
 - Browser support floor (SPEC Open Question 1) — proceeding on Angular defaults; un-animated fallback for older Safari.
 - Gate 2 design review medium: screenshots in the PR, or a live walkthrough?
+
+---
+
+## Extension: Kiosk push (SPEC.md Phases 5–8), added 2026-08-08
+
+Task numbering continues from T24. Same gates discipline; per-task commits.
+
+**Stated assumption (flagged for user veto):** SPEC decides kiosk activation
+via `vendors.kiosk_enabled`, but doesn't say what a kiosk-enabled vendor's
+*phone* customers see. Interpretation implemented: kiosk mode activates only
+when `kiosk_enabled = true` AND the device form factor is landscape
+(mounted-tablet posture). Phones and portrait tablets always get the normal
+storefront.
+
+### Phase 5 — cart extraction + persistent panel (FR7)
+- T25: `shared/components/cart-content` extracted from the sheet's inline
+  template (items, qty controls, accessories, coupon, totals, CTA as
+  outputs); sheet becomes a thin wrapper. Suite green = no behavior change.
+- T26: `CheckoutService` — checkout()/processPayment moved verbatim out of
+  the sheet so both wrappers can submit; sheet delegates. Payment call
+  paths untouched (boundary).
+- T27: Persistent cart panel on tablet-landscape/kiosk in main-layout's
+  reserved grid area; cart badge hidden there; landscape journey e2e goes
+  through the panel.
+- T28: Delete CartDetailsPageComponent + its commented route (pre-approved).
+
+### Phase 6 — kiosk mode (FR4)
+- T29: Migration `vendors.kiosk_enabled boolean not null default false` +
+  regenerated types + seeded kiosk vendor (`e2e-kiosk`, online payments ON
+  to later prove the counter-forcing) + admin toggle in restaurant-info.
+  Anon read already covered by the existing "active vendors" policy.
+- T30: KioskModeService (activation per assumption above; session state;
+  wires LayoutService.kioskMode + .kiosk-mode root class) + kiosk chrome
+  (no theme toggle, cancel-order affordance).
+- T31: Attract screen (banners loop, "Touchez pour commander") + 60s idle →
+  20s countdown dialog → cart clear + reset. Never during checkout dialog.
+
+### Phase 7 — counter checkout + combo shell (FR4a, FR4b)
+- T32: Kiosk checkout forces pay-at-counter even with online payments
+  enabled; full-screen order-number confirmation with auto-return to
+  attract; e2e asserts zero payment-provider calls for the kiosk vendor.
+- T33: Kiosk multi-step shell: one step-section per screen, "Étape X sur
+  N" progress, recap strip, explicit "Passer" on optional steps.
+
+### Phase 8 — Capacitor (FR5)
+- T34: @capacitor/screen-orientation + keep-awake + status-bar (platform-
+  guarded), Android back-button policy. Device verification is manual —
+  flagged to user at the end.

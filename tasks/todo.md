@@ -105,7 +105,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `theme.scss`, `styles.scss`, `main-layout.component.{html,scss}`
   - Dependencies: T11 · **Size: M**
 
-- [ ] **T13: Imagery-forward product cards + category tiles**
+- [x] **T13: Imagery-forward product cards + category tiles**
   - **Description:** Restyle `product-grid` cards (photo leads, name+price beneath, M3 corners) and `category-grid` tiles. Keep add-to-cart affordance for no-customization products in mind (FR6, lands Phase 3+).
   - Acceptance: cards match Design Direction; stock/unavailable states legible; both themes pass contrast.
   - Verify: baseline green; manual review both themes.

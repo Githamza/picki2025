@@ -19,12 +19,14 @@
 
 .category-card {
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: var(--mat-sys-corner-large, 12px);
   overflow: hidden;
   transition: all 0.2s ease;
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: var(--mat-sys-surface-container-low);
+  border-color: var(--mat-sys-outline-variant);
 
   &:hover {
     box-shadow: var(--mat-sys-level3);
@@ -37,7 +39,8 @@
 
   .category-image-container {
     width: 100%;
-    height: 200px;
+    aspect-ratio: 16 / 10;
+    height: auto;
     overflow: hidden;
     background: var(--mat-sys-surface-container-low);
 

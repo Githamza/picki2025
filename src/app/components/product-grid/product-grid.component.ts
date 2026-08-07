@@ -139,6 +139,11 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     return factor === 'phone' || factor === 'tablet-portrait';
   });
 
+  // FR2 column counts for the card grid (phone renders the list layout)
+  readonly gridColumns = computed(() =>
+    this.layout.formFactor() === 'tablet-portrait' ? 3 : 4
+  );
+
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   private subscriptions = new Subscription();
 

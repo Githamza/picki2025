@@ -10,7 +10,7 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else {
-    <div class="category-grid">
+    <div class="category-grid" [style.--columns]="columns()">
       @for (category of (categories$ | async) || []; track category.id) {
         <mat-card
           class="category-card"

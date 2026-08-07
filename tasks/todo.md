@@ -133,7 +133,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `main-layout.component.{ts,html,scss}`, `category-menu.component.{ts,html,scss}`
   - Dependencies: Gate 2 · **Size: M**
 
-- [ ] **T16: Grid columns per form factor**
+- [x] **T16: Grid columns per form factor**
   - **Description:** Drive `--columns` from `formFactor` per the FR2 table (category 2/3/4/4, product 1–2/2–3/3–4/3), replacing `auto-fill minmax` and hardcoded queries.
   - Acceptance: column counts match FR2 at each viewport.
   - Verify: `e2e/layout/columns.spec.ts` (new) green in all four projects.

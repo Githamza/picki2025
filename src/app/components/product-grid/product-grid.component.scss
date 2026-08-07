@@ -54,7 +54,8 @@
 /* Desktop Card Layout */
 .product-grid.desktop-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  /* --columns is set from LayoutService.formFactor (FR2) */
+  grid-template-columns: repeat(var(--columns, 4), 1fr);
   gap: 24px;
 }
 

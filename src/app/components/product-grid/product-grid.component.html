@@ -37,6 +37,7 @@
   @if (!isPhone()) {
   <div
     class="product-grid desktop-layout"
+    [style.--columns]="gridColumns()"
     style="view-transition-name: product-grid"
   >
     @for (product of filteredProducts(); track product.id) {

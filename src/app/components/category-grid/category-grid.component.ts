@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
@@ -13,6 +13,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 import { CachedImageDirective } from '../../shared/directives/cached-image.directive';
+import { LayoutService } from '../../services/layout.service';
 
 @Component({
   selector: 'app-category-grid',
@@ -25,6 +26,19 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
 export class CategoryGridComponent implements OnInit {
   private store = inject(Store<AppState>);
   private vendorNavigation = inject(VendorNavigationService);
+  private layout = inject(LayoutService);
+
+  // FR2 column counts: phone 2, tablet-portrait 3, landscape/kiosk 4
+  readonly columns = computed(() => {
+    switch (this.layout.formFactor()) {
+      case 'phone':
+        return 2;
+      case 'tablet-portrait':
+        return 3;
+      default:
+        return 4;
+    }
+  });
 
   categories$!: Observable<Category[]>;
   loading$!: Observable<boolean>;

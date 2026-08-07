@@ -310,16 +310,17 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       )
       .subscribe(([configuration]) => {
         if (configuration) {
-          // Create multiple dispatch calls for quantity > 1
-          for (let i = 0; i < this.quantity; i++) {
-            this.store.dispatch(
-              MultiStepProductActions.addMultiStepProductToCart({
-                configuration,
-                comment: this.comment().trim() || undefined,
-                optionCustomisationSelections: this.optionCustomisationSelections,
-              })
-            );
-          }
+          // One dispatch carrying the quantity. (Dispatching N times raced
+          // the effect's async metadata build and only the last add
+          // survived — the x2/x3 basket bug.)
+          this.store.dispatch(
+            MultiStepProductActions.addMultiStepProductToCart({
+              configuration,
+              quantity: this.quantity,
+              comment: this.comment().trim() || undefined,
+              optionCustomisationSelections: this.optionCustomisationSelections,
+            })
+          );
 const category = this.router.snapshot.paramMap.get('category');
 if (category) {
           // Navigate back to products or show success message

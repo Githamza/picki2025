@@ -123,6 +123,24 @@ test.describe('multi-step product — scroll shell', () => {
     );
   });
 
+  test('quantity x2 adds two to the basket', async ({ page }) => {
+    await openMenuProduct(page);
+    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
+    const accompaniments = section(page, 'Accompagnements');
+    await accompaniments.getByText('Frites', { exact: true }).click();
+    await accompaniments.getByText('Salade', { exact: true }).click();
+    await section(page, 'Dessert').getByText('Cookie', { exact: true }).click();
+
+    // Bump quantity to 2 in the bar, then add.
+    await page.locator('.quantity-button', { has: page.locator('mat-icon', { hasText: 'add' }) }).click();
+    await expect(page.locator('.add-to-cart-button')).toContainText('27,00');
+    await page.locator('.add-to-cart-button').click();
+
+    // The badge counts 2 items.
+    await expect(page).toHaveURL(/\/products/);
+    await expect(page.locator('app-cart-badge')).toContainText('(2)');
+  });
+
   test('completes, and the cart recaps the steps', async ({ page }) => {
     await openMenuProduct(page);
     await section(page, 'Burger').getByText('Classique', { exact: true }).click();

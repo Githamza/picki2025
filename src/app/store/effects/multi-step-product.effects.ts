@@ -3,6 +3,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of, from } from 'rxjs';
 import {
   catchError,
+  concatMap,
   map,
   exhaustMap,
   switchMap,
@@ -98,9 +99,12 @@ export class MultiStepProductEffects {
   addMultiStepProductToCart$ = createEffect(() =>
     this.actions$.pipe(
       ofType(MultiStepProductActions.addMultiStepProductToCart),
-      withLatestFrom(this.store.select(selectMultiStepConfiguration)),
-      switchMap(([action, configuration]) => {
-        const { comment, optionCustomisationSelections } = action;
+      // concatMap + the action's own configuration: reading the store's
+      // latest here raced the reducer nulling it on success, and
+      // switchMap cancelled in-flight adds.
+      concatMap((action) => {
+        const { configuration, comment, optionCustomisationSelections } =
+          action;
         if (!configuration) {
           return of(
             MultiStepProductActions.addMultiStepProductToCartFailure({
@@ -117,7 +121,7 @@ export class MultiStepProductEffects {
             // Create cart item with multi-step metadata
             const cartItem = {
               product: configuration.baseProduct,
-              quantity: 1,
+              quantity: action.quantity ?? 1,
               metadata,
               totalPrice: configuration.totalPrice,
             };

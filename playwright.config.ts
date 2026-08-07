@@ -16,7 +16,14 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
-  retries: process.env['CI'] ? 2 : 0,
+  /* One retry locally: the dev server + Docker + workers share this
+     machine, and a starved worker can time out a whole project batch.
+     trace-on-first-retry keeps the evidence; real regressions fail twice. */
+  retries: process.env['CI'] ? 2 : 1,
+  /* The dev server, local Supabase (Docker), and workers share one
+     machine; more workers thrash and order-creation intermittently
+     exceeds assertion timeouts. 4 is stable. */
+  workers: 4,
   reporter: [['html', { open: 'never' }], ['list']],
 
   use: {

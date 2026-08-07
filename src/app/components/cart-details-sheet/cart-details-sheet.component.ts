@@ -321,7 +321,7 @@ import { AppliedCoupon } from '../../models/coupon.model';
         top: 12px;
         right: 12px;
         z-index: 10;
-        background: var(--mat-sys-surface, #fff);
+        background: var(--mat-sys-surface);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
       .sheet-title {
@@ -521,7 +521,7 @@ import { AppliedCoupon } from '../../models/coupon.model';
       }
       .empty-cart {
         text-align: center;
-        color: #888;
+        color: var(--mat-sys-on-surface-variant);
         margin: 24px 0;
       }
       .checkout-btn {

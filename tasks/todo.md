@@ -91,7 +91,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `product-grid.component.scss` + storefront shell SCSS
   - Dependencies: Gate 1 · **Size: S**
 
-- [ ] **T11: Token purge — product detail & sheets**
+- [x] **T11: Token purge — product detail & sheets**
   - **Description:** Same purge for `product-add`, `regular-product-view`, `add-product-multi-step`, `product-option-card`, `cart-details-sheet` (inline styles in TS), `product-details-sheet`.
   - Acceptance: `grep -rn '#[0-9a-fA-F]\{3,6\}' <storefront scss>` → zero.
   - Verify: grep gate; manual light/dark check; baseline green.

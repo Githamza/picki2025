@@ -13,7 +13,7 @@
 
 .product-header {
   margin-bottom: 24px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
   padding-bottom: 16px;
 
   h1 {
@@ -102,18 +102,18 @@
     font-size: 1.1rem;
     font-weight: 500;
     margin-bottom: 8px;
-    color: #444;
+    color: var(--mat-sys-on-surface);
   }
 
   .product-long-description {
     font-size: 0.95rem;
     line-height: 1.6;
-    color: #666;
+    color: var(--mat-sys-on-surface-variant);
   }
 
   .product-description {
     line-height: 1.6;
-    color: #555;
+    color: var(--mat-sys-on-surface-variant);
     font-size: 1rem;
   }
 }

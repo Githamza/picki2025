@@ -2,27 +2,26 @@
 <div class="layout-container">
   <mat-toolbar color="primary" class="toolbar mat-elevation-z2">
     <!-- Restaurant Logo and Name -->
-    <div
-      class="brand-section"
-      *ngIf="currentVendor$ | async as vendor"
-      (click)="gotoRestaurantHomepage()"
-    >
-      <img
-        *ngIf="vendor.logo_url"
-        [src]="vendor.logo_url"
-        [alt]="vendor.business_name + ' logo'"
-        class="restaurant-logo"
-        [title]="vendor.business_name"
-      />
-      <mat-icon
-        *ngIf="!vendor.logo_url"
-        class="restaurant-logo-fallback"
-        [title]="vendor.business_name"
-      >
-        restaurant
-      </mat-icon>
-      <span class="restaurant-name">{{ vendor.business_name }}</span>
-    </div>
+    @if (currentVendor$ | async; as vendor) {
+      <div class="brand-section" (click)="gotoRestaurantHomepage()">
+        @if (vendor.logo_url) {
+          <img
+            [src]="vendor.logo_url"
+            [alt]="vendor.business_name + ' logo'"
+            class="restaurant-logo"
+            [title]="vendor.business_name"
+          />
+        } @else {
+          <mat-icon
+            class="restaurant-logo-fallback"
+            [title]="vendor.business_name"
+          >
+            restaurant
+          </mat-icon>
+        }
+        <span class="restaurant-name">{{ vendor.business_name }}</span>
+      </div>
+    }
 
     <span class="toolbar-spacer"></span>
 
@@ -34,7 +33,7 @@
       aria-label="Changer la préférence de restauration"
     >
       <span class="preference-text">{{
-        diningPreferenceService.getDiningPreferenceText(!(isHandset$ | async))
+        diningPreferenceService.getDiningPreferenceText(!isPhone())
       }}</span>
       <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
     </button>
@@ -62,10 +61,10 @@
   </mat-toolbar>
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav
-      [mode]="(isHandset$ | async) ? 'over' : 'side'"
-      [opened]="menuOpened && !(isHandset$ | async)"
+      [mode]="isPhone() ? 'over' : 'side'"
+      [opened]="menuOpened && !isPhone()"
       class="sidenav mat-elevation-z1"
-      [class.mat-rounded-medium]="!(isHandset$ | async)"
+      [class.mat-rounded-medium]="!isPhone()"
     >
       <app-category-menu></app-category-menu>
     </mat-sidenav>
@@ -76,5 +75,7 @@
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
-  <app-cart-badge *ngIf="showCartBadge$ | async"></app-cart-badge>
+  @if (showCartBadge$ | async) {
+    <app-cart-badge></app-cart-badge>
+  }
 </div>

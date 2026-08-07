@@ -1,11 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { map } from 'rxjs/operators';
 
 import { AppState } from '../../store/models/app.state';
 import * as CategorySelectors from '../../store/selectors/category.selectors';
@@ -22,18 +20,15 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
   imports: [CommonModule, MatCardModule, MatProgressSpinnerModule, CachedImageDirective],
   templateUrl: './category-grid.component.html',
   styleUrls: ['./category-grid.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryGridComponent implements OnInit {
   private store = inject(Store<AppState>);
   private vendorNavigation = inject(VendorNavigationService);
-  private breakpointObserver = inject(BreakpointObserver);
 
   categories$!: Observable<Category[]>;
   loading$!: Observable<boolean>;
   error$!: Observable<string | null>;
-  isHandset$ = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
 

@@ -1,10 +1,15 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, Router } from '@angular/router';
 import { materialComponents } from '../../material.components';
 import { CategoryMenuComponent } from '../category-menu/category-menu.component';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { map } from 'rxjs/operators';
 import { CartBadgeComponent } from '../cart-badge/cart-badge.component';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
 import { RestaurantStatusService } from '../../services/restaurant-status.service';
@@ -18,6 +23,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../../store/models/app.state';
 import * as CategoryActions from '../../store/actions/category.actions';
 import { PromotionalBannerComponent } from "../promotional-banner/promotional-banner.component";
+import { LayoutService } from '../../services/layout.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -31,9 +37,10 @@ import { PromotionalBannerComponent } from "../promotional-banner/promotional-ba
 ],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
-  private breakpointObserver = inject(BreakpointObserver);
+  private layout = inject(LayoutService);
   protected diningPreferenceService = inject(DiningPreferenceService);
   private vendorNavigation = inject(VendorNavigationService);
   private restaurantStatusService = inject(RestaurantStatusService);
@@ -44,10 +51,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   private subscription = new Subscription();
 
-  // Use BreakpointObserver for responsive design (material design 3 way)
-  isHandset$ = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
+  // LayoutService is the storefront's single source of layout truth (FR1)
+  readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
 
   menuOpened = true;
 

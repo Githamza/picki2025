@@ -63,7 +63,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/styles.scss`, `src/app/components/admin-layout/admin-layout.component.scss`, `e2e/layout/overflow.spec.ts`
   - Dependencies: T6 · **Size: S**
 
-- [ ] **T8: Migrate layout shell + grids to `LayoutService`**
+- [x] **T8: Migrate layout shell + grids to `LayoutService`**
   - **Description:** Replace direct `BreakpointObserver` in `main-layout`, `product-grid`, `category-grid` with `LayoutService`. Convert touched components to `inject()` + OnPush + `@if/@for` per SPEC code style. Behavior identical (this task is mechanical, not visual).
   - Acceptance: no behavior change — baseline suite green; components OnPush.
   - Verify: full e2e suite; `npm run build`.

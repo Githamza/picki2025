@@ -1,5 +1,5 @@
 <!-- Horizontal category menu for mobile only -->
-@if (isHandset$ | async) {
+@if (isPhone()) {
 <div class="mobile-category-menu">
   <app-horizontal-category-menu></app-horizontal-category-menu>
 </div>
@@ -34,7 +34,7 @@
   </div>
 
   <!-- Desktop Card Layout -->
-  @if (!(isHandset$ | async)) {
+  @if (!isPhone()) {
   <div
     class="product-grid desktop-layout"
     style="view-transition-name: product-grid"
@@ -100,7 +100,7 @@
   }
 
   <!-- Mobile List Layout -->
-  @if (isHandset$ | async) {
+  @if (isPhone()) {
   <div
     class="product-list mobile-layout"
     style="view-transition-name: product-grid"

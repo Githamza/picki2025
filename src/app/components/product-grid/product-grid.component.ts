@@ -37,7 +37,7 @@ import { UtilsService } from '../../shared/utils.service';
 import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
 import { HorizontalCategoryMenuComponent } from '../horizontal-category-menu/horizontal-category-menu.component';
 import { CategoryGridComponent } from '../category-grid/category-grid.component';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { LayoutService } from '../../services/layout.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
@@ -66,7 +66,7 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductGridComponent implements OnInit, OnDestroy {
-  private breakpointObserver = inject(BreakpointObserver);
+  private layout = inject(LayoutService);
   private vendorNavigation = inject(VendorNavigationService);
   private vendorService = inject(VendorService);
   private route = inject(ActivatedRoute);
@@ -129,10 +129,8 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     });
   });
 
-  // Responsive signals
-  isHandset$ = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
+  // Responsive signals (LayoutService is the storefront's layout truth)
+  readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   private subscriptions = new Subscription();

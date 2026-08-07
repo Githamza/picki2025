@@ -39,6 +39,7 @@ import { VendorService } from '../../services/vendor.service';
 import { Product, ProductService } from '../../services/product.service';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
+import { generateOrderNumber } from '../../shared/utils/order-number.util';
 import {
   addToCart,
   incrementCartItem,
@@ -965,7 +966,7 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
       }
 
       // Generate order number
-      const orderNumber = this.generateOrderNumber();
+      const orderNumber = generateOrderNumber();
 
       // Create order items
       const orderItems: OrderItem[] = items.map((item) => {
@@ -1243,17 +1244,6 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
       'Fermer',
       { duration: 6000 }
     );
-  }
-
-  private generateOrderNumber(): string {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0');
-    return `${year}${month}${day}-${random}`;
   }
 
   changeDiningPreference(): void {

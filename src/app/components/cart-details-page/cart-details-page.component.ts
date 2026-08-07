@@ -41,6 +41,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
 import { SupabaseService } from '../../services/supabase.service';
 import { getDefaultVatRate } from '../../shared/utils/vat-rates.util';
+import { generateOrderNumber } from '../../shared/utils/order-number.util';
 
 @Component({
   selector: 'app-cart-details-page',
@@ -658,7 +659,7 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
       }
 
       // Generate order number
-      const orderNumber = this.generateOrderNumber();
+      const orderNumber = generateOrderNumber();
 
       // Create order items
       const orderItems: OrderItem[] = items.map((item) => {
@@ -947,17 +948,6 @@ export class CartDetailsPageComponent implements OnInit, OnDestroy {
       }
       this.isCheckingOut = false;
     }
-  }
-
-  private generateOrderNumber(): string {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0');
-    return `${year}${month}${day}-${random}`;
   }
 
   private async validateCartStock(

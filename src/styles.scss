@@ -125,11 +125,33 @@ body {
 ::view-transition-old(product-add) {
   animation-duration: 0.3s;
   animation-name: move-out;
+  animation-timing-function: var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
 }
 
 ::view-transition-new(product-add) {
   animation-name: move-in;
   animation-duration: 0.2s;
+  animation-timing-function: var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* FR3: shared-element morphs (clicked tile/card -> destination hero).
+   M3 medium duration + emphasized easing. */
+::view-transition-group(category-hero),
+::view-transition-group(product-hero),
+::view-transition-group(cart-badge) {
+  animation-duration: 0.3s;
+  animation-timing-function: var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* FR3: reduced motion disables every view-transition animation outright.
+   The router additionally calls skipTransition() (app.config.ts). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 

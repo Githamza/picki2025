@@ -2,6 +2,7 @@
   <button
     *ngIf="cartCount$ | async as count; else nothing"
     class="cart-badge"
+    appViewTransitionName="cart-badge"
     mat-fab
     extended
     aria-label="View cart"

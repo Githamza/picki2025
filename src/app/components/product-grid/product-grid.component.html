@@ -16,6 +16,7 @@
             [ngSrc]="category.imageUrl"
             [alt]="category.name + ' category'"
             class="category-image"
+            appViewTransitionName="category-hero"
             width="80"
             height="80"
             priority
@@ -46,7 +47,7 @@
       [class.out-of-stock]="isEffectivelyOutOfStock(product)"
       appearance="outlined"
       (click)="
-        !isEffectivelyOutOfStock(product) && addToCart(product);
+        !isEffectivelyOutOfStock(product) && addToCart(product, $event);
         $event.stopPropagation()
       "
     >
@@ -111,7 +112,7 @@
     <div
       class="product-list-item"
       [class.out-of-stock]="isEffectivelyOutOfStock(product)"
-      (click)="!isEffectivelyOutOfStock(product) && addToCart(product)"
+      (click)="!isEffectivelyOutOfStock(product) && addToCart(product, $event)"
     >
       <div class="product-image-container">
         <img

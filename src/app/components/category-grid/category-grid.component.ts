@@ -54,7 +54,12 @@ export class CategoryGridComponent implements OnInit {
 
   }
 
-  selectCategory(category: Category) {
+  selectCategory(category: Category, event?: Event) {
+    // Name only the clicked tile's image so it morphs into the product
+    // grid's category header (view-transition names must be unique).
+    const img = (event?.currentTarget as HTMLElement | undefined)?.querySelector('img');
+    img?.style.setProperty('view-transition-name', 'category-hero');
+
     this.store.dispatch(
       CategoryActions.selectCategory({ categoryId: category.id })
     );

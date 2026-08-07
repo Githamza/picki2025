@@ -161,7 +161,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: directive + spec, `product-grid.component.html`
   - Dependencies: Gate 3 · **Size: S**
 
-- [ ] **T19: Named transitions for the four key moves + reduced-motion**
+- [x] **T19: Named transitions for the four key moves + reduced-motion**
   - **Description:** Category→grid, card→detail (image morph), add-to-cart→badge, cart open/close. M3 motion durations/easing. Global `@media (prefers-reduced-motion: reduce)` kill-switch. Skip transition on same-grid navigation.
   - Acceptance: four moves animate; none animate under reduced motion; nav works in a no-VT browser profile.
   - Verify: manual + T20 specs.

@@ -225,7 +225,11 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     return product.stockQuantity - cartQty <= 0;
   }
 
-  addToCart(product: Product) {
+  addToCart(product: Product, event?: Event) {
+    // Morph source: the clicked card's image becomes the product hero.
+    const img = (event?.currentTarget as HTMLElement | undefined)?.querySelector('img');
+    img?.style.setProperty('view-transition-name', 'product-hero');
+
     // Create a URL-friendly version of the product name
     const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
 

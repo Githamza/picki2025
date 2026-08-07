@@ -41,6 +41,7 @@ import { Customisation } from '../../../models/customisation.interface';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placeholder';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
+import { ViewTransitionNameDirective } from '../../../shared/directives/view-transition-name.directive';
 
 @Component({
   selector: 'app-regular-product-view',
@@ -58,6 +59,7 @@ import { AddToCartBarComponent } from '../../../shared/components/add-to-cart-ba
     FormsModule,
     VendorCurrencyPipe,
     AddToCartBarComponent,
+    ViewTransitionNameDirective,
   ],
   templateUrl: './regular-product-view.component.html',
   styleUrl: './regular-product-view.component.scss',

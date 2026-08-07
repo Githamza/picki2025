@@ -9,11 +9,12 @@ import { selectCartTotalCount } from '../../store/selectors/cart.selectors';
 import { AppState } from '../../store/models/app.state';
 import { CartDetailsSheetComponent } from '../cart-details-sheet/cart-details-sheet.component';
 import { Router, NavigationEnd } from '@angular/router';
+import { ViewTransitionNameDirective } from '../../shared/directives/view-transition-name.directive';
 
 @Component({
   selector: 'app-cart-badge',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, ViewTransitionNameDirective],
   templateUrl: './cart-badge.component.html',
   styleUrls: ['./cart-badge.component.scss'],
 })

@@ -47,7 +47,25 @@ registerLocaleData(localeFr);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withViewTransitions()),
+    provideRouter(
+      routes,
+      withViewTransitions({
+        onViewTransitionCreated: ({ transition, to, from }) => {
+          // FR3: honor reduced motion at the API level, not just in CSS.
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            transition.skipTransition();
+            return;
+          }
+          // Skip category-to-category hops inside the same grid: animating
+          // the grid onto itself reads as a flash, not motion.
+          const toUrl = to.toString();
+          const fromUrl = from.toString();
+          if (/\/products$/.test(toUrl) && /\/products$/.test(fromUrl)) {
+            transition.skipTransition();
+          }
+        },
+      })
+    ),
     provideAnimations(),
     provideAppInitializer(() => {
       inject(ClarityService).initialize();

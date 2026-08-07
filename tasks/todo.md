@@ -84,7 +84,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 2 — Restyle (Material 3, token-only)
 
-- [ ] **T10: Token purge — grids & layout**
+- [x] **T10: Token purge — grids & layout**
   - **Description:** Replace hardcoded hex with `--mat-sys-*` tokens in `product-grid`, `main-layout`-adjacent storefront SCSS. Tonal elevation (surface-container tiers) replaces box-shadow where present.
   - Acceptance: zero hex in the touched files; dark mode visually coherent.
   - Verify: grep the files; manual light/dark check; baseline green.

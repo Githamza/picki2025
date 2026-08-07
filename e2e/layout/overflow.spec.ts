@@ -27,6 +27,47 @@ test.describe('layout — storefront fills the viewport', () => {
   });
 });
 
+test.describe('layout — landscape reaches the primary action without shell scroll', () => {
+  // FR2 / T17: on landscape form factors the page shell must not scroll
+  // vertically to reach the primary CTA; long content scrolls internally.
+  const LANDSCAPE = ['tablet-landscape', 'kiosk-landscape'];
+  test.beforeEach(async () => {
+    test.skip(
+      !LANDSCAPE.includes(test.info().project.name),
+      'landscape-only guarantee'
+    );
+  });
+
+  async function expectNoShellScroll(page: import('@playwright/test').Page) {
+    const shell = await page.evaluate(() => ({
+      scrollHeight: document.documentElement.scrollHeight,
+      clientHeight: document.documentElement.clientHeight,
+    }));
+    expect(shell.scrollHeight).toBeLessThanOrEqual(shell.clientHeight + 1);
+  }
+
+  test('product page: add-to-cart bar in viewport without scrolling', async ({
+    page,
+  }) => {
+    await gotoStorefront(page);
+    await openCategory(page, E2E_VENDOR.categories.burgers);
+    await page.getByText(E2E_VENDOR.products.simple.name).first().click();
+    await expect(page.locator('.add-to-cart-button')).toBeInViewport();
+    await expectNoShellScroll(page);
+  });
+
+  test('category grid: shell does not scroll', async ({ page }) => {
+    await gotoStorefront(page);
+    await expectNoShellScroll(page);
+  });
+
+  test('product grid: shell does not scroll', async ({ page }) => {
+    await gotoStorefront(page);
+    await openCategory(page, E2E_VENDOR.categories.burgers);
+    await expectNoShellScroll(page);
+  });
+});
+
 test.describe('layout — no horizontal overflow', () => {
   test('welcome screen', async ({ page }) => {
     await gotoWelcomeScreen(page);

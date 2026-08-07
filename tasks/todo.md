@@ -140,7 +140,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `product-grid.component.{ts,scss}`, `category-grid.component.{ts,scss}`, `e2e/layout/columns.spec.ts`
   - Dependencies: T15 · **Size: S**
 
-- [ ] **T17: Landscape no-scroll guarantee**
+- [x] **T17: Landscape no-scroll guarantee**
   - **Description:** Ensure page shell never scrolls vertically on landscape to reach the primary action (FR2): sticky add-to-cart bar, internal scroll areas for grids. Fix violations the spec finds.
   - Acceptance: on `tablet-landscape` + `kiosk-landscape`, primary CTA in viewport on every journey screen without shell scroll.
   - Verify: extend `overflow.spec.ts` with vertical-shell assertion; suite green.
@@ -148,7 +148,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Dependencies: T16 · **Size: S**
 
 ### Checkpoint — Gate 3
-- [ ] Layout specs green all four projects; FR2 satisfied (product-detail modal deferred to Phase 5 per plan decision 7)
+- [x] Layout specs green all four projects; FR2 satisfied (product-detail modal deferred to Phase 5 per plan decision 7)
 
 ---
 

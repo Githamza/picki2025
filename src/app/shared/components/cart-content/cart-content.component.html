@@ -1,0 +1,167 @@
+<div class="cart-scroll">
+  @if (cartItems$ | async; as items) {
+    <div class="cart-list">
+      @for (item of (foodItems$ | async) || []; track item.product.id) {
+        <div class="cart-item">
+          @if (item.product.imageUrl) {
+            <img class="item-image" [src]="item.product.imageUrl" [alt]="item.product.name" />
+          } @else {
+            <mat-icon class="item-icon">shopping_bag</mat-icon>
+          }
+          <div class="item-content">
+            @if (item.metadata?.stepSelections?.length) {
+              <app-cart-item-steps-tree [steps]="item.metadata?.stepSelections">
+                <div stepsHeader class="item-title-row">
+                  <span class="item-title">{{ item.product.name }}</span>
+                  <div class="qty-controls" (click)="$event.stopPropagation()">
+                    @if (item.quantity > 1) {
+                      <button mat-icon-button class="qty-btn" (click)="onFoodDecrement(item.product.id)">
+                        <mat-icon>remove</mat-icon>
+                      </button>
+                    } @else {
+                      <button mat-icon-button class="qty-btn" (click)="onFoodRemove(item.product.id)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+                    <span class="qty-value">{{ item.quantity }}</span>
+                    <button mat-icon-button class="qty-btn" (click)="onFoodIncrement(item.product.id)">
+                      <mat-icon>add</mat-icon>
+                    </button>
+                  </div>
+                  <span
+                    class="item-price price-value"
+                    [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+                  >
+                    {{ getItemPrice(item) | vendorCurrency }}
+                  </span>
+                </div>
+              </app-cart-item-steps-tree>
+            } @else {
+              <div class="item-title-row">
+                <span class="item-title">{{ item.product.name }}</span>
+                <div class="qty-controls">
+                  @if (item.quantity > 1) {
+                    <button mat-icon-button class="qty-btn" (click)="onFoodDecrement(item.product.id)">
+                      <mat-icon>remove</mat-icon>
+                    </button>
+                  } @else {
+                    <button mat-icon-button class="qty-btn" (click)="onFoodRemove(item.product.id)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  }
+                  <span class="qty-value">{{ item.quantity }}</span>
+                  <button mat-icon-button class="qty-btn" (click)="onFoodIncrement(item.product.id)">
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </div>
+                <span
+                  class="item-price price-value"
+                  [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+                >
+                  {{ getItemPrice(item) | vendorCurrency }}
+                </span>
+              </div>
+            }
+            @if (item.comment) {
+              <div class="item-comment">
+                <mat-icon>comment</mat-icon>
+                {{ item.comment }}
+              </div>
+            }
+            @if (stockErrors().has(item.product.id)) {
+              <div class="stock-error-message">
+                Stock insuffisant, ajustez votre quantité ({{ stockErrors().get(item.product.id)?.available }} disponible(s))
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="empty-cart">Votre panier est vide.</div>
+  }
+</div>
+
+<div class="cart-actions">
+  <!-- Accessories strip - always visible -->
+  @if (availableAccessories().length > 0) {
+    <app-accessories-strip
+      [accessories]="availableAccessories()"
+      [cartAccessories]="(accessoryItems$ | async) || []"
+      (add)="onAccessoryAdded($event)"
+      (increment)="onAccessoryIncrement($event)"
+      (decrement)="onAccessoryDecrement($event)"
+      (remove)="onAccessoryRemove($event)"
+    />
+  }
+
+  @if (cartItems$ | async; as items) {
+    <!-- Selected accessories - above service fee -->
+    @for (item of (accessoryItems$ | async) || []; track item.product.id) {
+      <div class="accessory-fee-item">
+        <div class="fee-row-content">
+          <span class="accessory-item-emoji-inline">{{ item.product.iconEmoji || '📦' }}</span>
+          <span>{{ item.product.name }}</span>
+        </div>
+        <span
+          class="fee-price price-value"
+          [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
+        >{{ getItemPrice(item) | vendorCurrency }}</span>
+      </div>
+    }
+
+    @if (totals.subtotal() > 0) {
+      <app-coupon-input
+        class="coupon-input-row"
+        [applied]="appliedCoupon()"
+        [busy]="couponBusy()"
+        [error]="couponError()"
+        (apply)="onApplyCoupon($event)"
+        (remove)="onRemoveCoupon()"
+        (clearError)="couponError.set(null)"
+      />
+    }
+
+    @if (totals.discount() > 0) {
+      <div class="fee-row discount-row">
+        <div class="fee-row-content">
+          <mat-icon class="fee-icon discount-icon">redeem</mat-icon>
+          <span>Remise{{ appliedCoupon() ? ' (' + appliedCoupon()!.code + ')' : '' }}:</span>
+        </div>
+        <span class="fee-price price-value discount-value">
+          -{{ totals.discount() | vendorCurrency }}
+        </span>
+      </div>
+    }
+
+    @if (totals.deliveryFee(); as deliveryFee) {
+      <div class="fee-row">
+        <div class="fee-row-content">
+          <mat-icon class="fee-icon">local_shipping</mat-icon>
+          <span>Frais de livraison:</span>
+        </div>
+        <span class="fee-price price-value">{{ deliveryFee | vendorCurrency }}</span>
+      </div>
+    }
+
+    @if (totals.serviceFee(); as serviceFee) {
+      <div class="fee-row">
+        <div class="fee-row-content">
+          <mat-icon class="fee-icon">payments</mat-icon>
+          <span>Frais de service:</span>
+        </div>
+        <span class="fee-price price-value">{{ serviceFee | vendorCurrency }}</span>
+      </div>
+    }
+  }
+
+  <button
+    mat-flat-button
+    color="accent"
+    class="checkout-btn checkout-btn-validate"
+    [disabled]="(ordersSuspended$ | async) || restaurantStatusService.closedForDay()"
+    (click)="checkoutRequested.emit()"
+  >
+    Valider ma commande - {{ totals.total() | vendorCurrency }}
+  </button>
+</div>

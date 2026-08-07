@@ -9,15 +9,10 @@ import {
 } from '@angular/material/bottom-sheet';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
-import { CartItemStepsTreeComponent } from '../cart-item-steps-tree/cart-item-steps-tree.component';
-import { AccessoriesStripComponent } from '../accessories-strip/accessories-strip.component';
-import { CouponInputComponent } from '../coupon-input/coupon-input.component';
+import { CartContentComponent } from '../../shared/components/cart-content/cart-content.component';
 import {
   selectCartItems,
-  selectFoodItems,
-  selectAccessoryItems,
   selectAppliedCoupon,
 } from '../../store/selectors/cart.selectors';
 import { CartItem, AppState } from '../../store/models/app.state';
@@ -50,8 +45,6 @@ import {
   removeCoupon as removeCouponAction,
 } from '../../store/actions/cart.actions';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
-import { CouponService } from '../../services/coupon.service';
-import { CartTotalsService } from '../../services/cart-totals.service';
 import { AppliedCoupon } from '../../models/coupon.model';
 
 @Component({
@@ -61,11 +54,7 @@ import { AppliedCoupon } from '../../models/coupon.model';
     MatBottomSheetModule,
     MatIconModule,
     MatButtonModule,
-    MatDividerModule,
-    CartItemStepsTreeComponent,
-    AccessoriesStripComponent,
-    CouponInputComponent,
-    VendorCurrencyPipe,
+    CartContentComponent,
   ],
   template: `
     <div class="sheet">
@@ -106,190 +95,11 @@ import { AppliedCoupon } from '../../models/coupon.model';
         </div>
       }
 
-      <div class="sheet-scroll">
-        @if (cartItems$ | async; as items) {
-          <div class="cart-list">
-            @for (item of (foodItems$ | async) || []; track item.product.id) {
-              <div class="cart-item">
-                @if (item.product.imageUrl) {
-                  <img class="item-image" [src]="item.product.imageUrl" [alt]="item.product.name" />
-                } @else {
-                  <mat-icon class="item-icon">shopping_bag</mat-icon>
-                }
-                <div class="item-content">
-                  @if (item.metadata?.stepSelections?.length) {
-                    <app-cart-item-steps-tree
-                      [steps]="item.metadata?.stepSelections"
-                    >
-                      <div stepsHeader class="item-title-row">
-                        <span class="item-title">{{ item.product.name }}</span>
-                        <div class="qty-controls" (click)="$event.stopPropagation()">
-                          @if (item.quantity > 1) {
-                            <button mat-icon-button class="qty-btn" (click)="onFoodDecrement(item.product.id)">
-                              <mat-icon>remove</mat-icon>
-                            </button>
-                          } @else {
-                            <button mat-icon-button class="qty-btn" (click)="onFoodRemove(item.product.id)">
-                              <mat-icon>delete</mat-icon>
-                            </button>
-                          }
-                          <span class="qty-value">{{ item.quantity }}</span>
-                          <button mat-icon-button class="qty-btn" (click)="onFoodIncrement(item.product.id)">
-                            <mat-icon>add</mat-icon>
-                          </button>
-                        </div>
-                        <span
-                          class="item-price price-value"
-                          [style.visibility]="
-                            getItemPrice(item) > 0 ? 'visible' : 'hidden'
-                          "
-                        >
-                          {{ getItemPrice(item) | vendorCurrency }}
-                        </span>
-                      </div>
-                    </app-cart-item-steps-tree>
-                  } @else {
-                    <div class="item-title-row">
-                      <span class="item-title">{{ item.product.name }}</span>
-                      <div class="qty-controls">
-                        @if (item.quantity > 1) {
-                          <button mat-icon-button class="qty-btn" (click)="onFoodDecrement(item.product.id)">
-                            <mat-icon>remove</mat-icon>
-                          </button>
-                        } @else {
-                          <button mat-icon-button class="qty-btn" (click)="onFoodRemove(item.product.id)">
-                            <mat-icon>delete</mat-icon>
-                          </button>
-                        }
-                        <span class="qty-value">{{ item.quantity }}</span>
-                        <button mat-icon-button class="qty-btn" (click)="onFoodIncrement(item.product.id)">
-                          <mat-icon>add</mat-icon>
-                        </button>
-                      </div>
-                      <span
-                        class="item-price price-value"
-                        [style.visibility]="
-                          getItemPrice(item) > 0 ? 'visible' : 'hidden'
-                        "
-                      >
-                        {{ getItemPrice(item) | vendorCurrency }}
-                      </span>
-                    </div>
-                  }
-                  @if (item.comment) {
-                    <div class="item-comment">
-                      <mat-icon>comment</mat-icon>
-                      {{ item.comment }}
-                    </div>
-                  }
-                  @if (insufficientStockItems().has(item.product.id)) {
-                    <div class="stock-error-message">
-                      Stock insuffisant, ajustez votre quantité ({{ insufficientStockItems().get(item.product.id)?.available }} disponible(s))
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-
-        } @else {
-          <div class="empty-cart">Votre panier est vide.</div>
-        }
-      </div>
-
-      <div class="sheet-actions">
-        <!-- Accessories strip - always visible -->
-        @if (availableAccessories().length > 0) {
-          <app-accessories-strip
-            [accessories]="availableAccessories()"
-            [cartAccessories]="(accessoryItems$ | async) || []"
-            (add)="onAccessoryAdded($event)"
-            (increment)="onAccessoryIncrement($event)"
-            (decrement)="onAccessoryDecrement($event)"
-            (remove)="onAccessoryRemove($event)"
-          />
-        }
-
-        @if (cartItems$ | async; as items) {
-          <!-- Selected accessories - above service fee -->
-          @for (item of (accessoryItems$ | async) || []; track item.product.id) {
-            <div class="accessory-fee-item">
-              <div class="fee-row-content">
-                <span class="accessory-item-emoji-inline">{{ item.product.iconEmoji || '📦' }}</span>
-                <span>{{ item.product.name }}</span>
-              </div>
-              <span class="fee-price price-value"
-                [style.visibility]="getItemPrice(item) > 0 ? 'visible' : 'hidden'"
-              >{{ getItemPrice(item) | vendorCurrency }}</span>
-            </div>
-          }
-
-          @if (totals.subtotal() > 0) {
-            <app-coupon-input
-              class="coupon-input-row"
-              [applied]="appliedCoupon()"
-              [busy]="couponBusy()"
-              [error]="couponError()"
-              (apply)="onApplyCoupon($event)"
-              (remove)="onRemoveCoupon()"
-              (clearError)="couponError.set(null)"
-            />
-          }
-
-          @if (totals.discount() > 0) {
-            <div class="fee-row discount-row">
-              <div class="fee-row-content">
-                <mat-icon class="fee-icon discount-icon">redeem</mat-icon>
-                <span>Remise{{ appliedCoupon() ? ' (' + appliedCoupon()!.code + ')' : '' }}:</span>
-              </div>
-              <span class="fee-price price-value discount-value">
-                -{{ totals.discount() | vendorCurrency }}
-              </span>
-            </div>
-          }
-
-          @if (getDeliveryFee(items ?? []); as deliveryFee) {
-            <div class="fee-row">
-              <div class="fee-row-content">
-                <mat-icon class="fee-icon">local_shipping</mat-icon>
-                <span>Frais de livraison:</span>
-              </div>
-              <span class="fee-price price-value">{{
-                deliveryFee | vendorCurrency
-              }}</span>
-            </div>
-          }
-
-          @if (getServiceFee(items ?? []); as serviceFee) {
-            <div class="fee-row">
-              <div class="fee-row-content">
-                <mat-icon class="fee-icon">payments</mat-icon>
-                <span>Frais de service:</span>
-              </div>
-              <span class="fee-price price-value">{{
-                serviceFee | vendorCurrency
-              }}</span>
-            </div>
-          }
-        }
-        <!-- <button
-         matButton="tonal"
-          color="primary"
-          class="checkout-btn"
-          (click)="goToCartDetails()"
-        >
-          Modifier mon panier
-        </button>  -->
-        <button
-          mat-flat-button
-          color="accent"
-          class="checkout-btn checkout-btn-validate"
-          [disabled]="(ordersSuspended$ | async) || restaurantStatusService.closedForDay()"
-          (click)="checkout()"
-        >
-          Valider ma commande - {{  getTotal((cartItems$ | async) || []) | vendorCurrency }}
-        </button>
-      </div>
+      <!-- Shared cart body (FR7) — the persistent panel reuses it too -->
+      <app-cart-content
+        [stockErrors]="insufficientStockItems()"
+        (checkoutRequested)="checkout()"
+      />
     </div>
   `,
   styles: [
@@ -300,21 +110,6 @@ import { AppliedCoupon } from '../../models/coupon.model';
         flex-direction: column;
         max-height: 78vh;
         min-height: 0;
-      }
-      .sheet-scroll {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-      }
-      .sheet-actions {
-        position: sticky;
-        bottom: 0;
-        z-index: 2;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding: 12px 0 0 0;
-        border-top: 1px solid var(--mat-sys-outline-variant);
       }
       .close-btn {
         position: absolute;
@@ -356,242 +151,15 @@ import { AppliedCoupon } from '../../models/coupon.model';
       .dining-preference-button:hover .change-icon {
         opacity: 1;
       }
-      .cart-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .cart-item {
-        align-items: center;
-
-        display: flex;
-        gap: 12px;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--mat-sys-outline-variant);
-      }
-      .cart-item:last-child {
-        border-bottom: none;
-      }
-      .item-image {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        object-fit: cover;
-        flex-shrink: 0;
-      }
-      .item-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--mat-sys-on-surface-variant);
-        flex-shrink: 0;
-      }
-      .qty-controls {
-        display: flex;
-        align-items: center;
-        gap: 0;
-        flex-shrink: 0;
-      }
-      .qty-btn {
-        width: 28px;
-        height: 28px;
-        padding: 0;
-        --mdc-icon-button-state-layer-size: 28px;
-        --mdc-icon-button-icon-size: 18px;
-      }
-      .qty-btn mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-      }
-      .qty-value {
-        min-width: 20px;
-        text-align: center;
-        font-weight: 500;
-        font-size: 0.9em;
-      }
-      .item-content {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .item-title-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        gap: 16px;
-      }
-      .item-title-row > span:first-child {
-        flex: 1;
-        min-width: 0;
-      }
-      .item-title {
-        font-weight: 500;
-      }
-      .item-price {
-        font-weight: 400;
-        font-size: 0.85em;
-        color: var(--mat-sys-on-surface-variant);
-        margin-left: auto;
-        white-space: nowrap;
-        padding-left: 8px;
-        border-left: 1px solid var(--mat-sys-outline-variant);
-      }
-      .item-line {
-        color: var(--mat-sys-on-surface-variant);
-        font-size: 0.95em;
-      }
-      .price-value {
-        min-width: 96px;
-        text-align: right;
-      }
-      @media (max-width: 600px) {
-        .price-value {
-          min-width: auto;
-        }
-        .item-title-row {
-          gap: 4px;
-        }
-        .qty-controls + .item-price {
-          margin-left: 0;
-        }
-      }
-      .total-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: bold;
-        margin: 16px 0 0 0;
-        font-size: 1.1em;
-      }
-      .total-row-content {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .total-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-        color: var(--mat-sys-primary);
-      }
-      .fee-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin: 8px 0 0 0;
-        font-size: 0.95em;
-        color: var(--mat-sys-on-surface-variant);
-      }
-      .fee-row-content {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .fee-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-        color: var(--mat-sys-on-surface-variant);
-      }
-      .fee-price {
-        color: var(--mat-sys-on-surface);
-      }
-      .total-price {
-        color: var(--mat-primary);
-      }
-      .coupon-input-row {
-        display: block;
-        margin: 8px 0 4px 0;
-      }
-      .discount-row {
-        color: var(--mat-sys-tertiary);
-      }
-      .discount-icon {
-        color: var(--mat-sys-tertiary);
-      }
-      .discount-value {
-        color: var(--mat-sys-tertiary);
-        font-weight: 500;
-      }
-      .empty-cart {
-        text-align: center;
-        color: var(--mat-sys-on-surface-variant);
-        margin: 24px 0;
-      }
-      .checkout-btn {
-        width: 100%;
-        margin-top: 0;
-      }
-      .checkout-btn-validate {
-        font-weight: bold;
-        margin-top: 0;
-      }
-      .item-comment {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-style: italic;
-        color: var(--mat-sys-on-surface-variant);
-        font-size: 0.9em;
-      }
-      .item-comment mat-icon {
-        font-size: 16px;
-        height: 16px;
-        width: 16px;
-      }
-      .multi-step-details {
-        margin-top: 8px;
-        padding-left: 8px;
-        border-left: 2px solid var(--mat-sys-primary);
-      }
-      .step-detail {
-        margin-bottom: 4px;
-        font-size: 0.85em;
-        color: var(--mat-sys-on-surface-variant);
-      }
-      .step-name {
-        font-weight: 500;
-        color: var(--mat-sys-primary);
-      }
-      .option-name {
-        color: var(--mat-sys-on-surface);
-      }
-      .stock-error-message {
-        color: var(--mat-sys-error);
-        font-size: 0.85em;
-        padding: 4px 0 0 0;
-      }
-      .accessory-fee-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.95em;
-        padding: 4px 0;
-        color: var(--mat-sys-on-surface-variant);
-      }
-      .accessory-item-emoji-inline {
-        font-size: 18px;
-        margin-right: 4px;
-      }
-      /* delivery-summary removed: delivery fee is shown as a cart item */
     `,
   ],
 })
 export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   cartItems$: Observable<CartItem[]>;
-  foodItems$: Observable<CartItem[]>;
-  accessoryItems$: Observable<CartItem[]>;
   readonly diningPreferenceService = inject(DiningPreferenceService);
   private router = inject(Router);
   private vendorNavigation = inject(VendorNavigationService);
   private paymentService = inject(PaymentService);
-  private productService = inject(ProductService);
   private snackBar = inject(MatSnackBar);
   private bottomSheetRef = inject(MatBottomSheetRef<CartDetailsSheetComponent>);
   private dialog = inject(MatDialog);
@@ -600,43 +168,21 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
   readonly ordersSuspended$ = this.vendorService.ordersSuspended$;
-  private couponService = inject(CouponService);
-  protected totals = inject(CartTotalsService);
 
   // Track products with insufficient stock by product ID
   insufficientStockItems = signal<Map<number, { available: number; required: number }>>(new Map());
 
-  // Accessories
-  availableAccessories = signal<Product[]>([]);
-  private accessoriesSub?: Subscription;
-
-  // Coupon UI state
-  protected couponBusy = signal(false);
-  protected couponError = signal<string | null>(null);
+  // Coupon state (checkout math reads the applied coupon)
   protected appliedCoupon = signal<AppliedCoupon | undefined>(undefined);
   private couponSub?: Subscription;
 
   constructor(private store: Store<AppState>) {
     this.cartItems$ = this.store.select(selectCartItems);
-    this.foodItems$ = this.store.select(selectFoodItems);
-    this.accessoryItems$ = this.store.select(selectAccessoryItems);
-
-    effect(() => {
-      const pref = this.diningPreferenceService.diningPreference();
-      if (pref) {
-        this.loadAccessories(pref);
-      }
-    });
   }
 
   ngOnInit() {
     // Check if restaurant is closed for the day
     this.restaurantStatusService.refreshClosedForDay();
-
-    const pref = this.diningPreferenceService.diningPreference();
-    if (pref) {
-      this.loadAccessories(pref);
-    }
 
     this.couponSub = this.store
       .select(selectAppliedCoupon)
@@ -644,123 +190,19 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.accessoriesSub?.unsubscribe();
     this.couponSub?.unsubscribe();
   }
 
-  protected onApplyCoupon(code: string): void {
-    const vendor = this.vendorService.getCurrentVendor();
-    const subtotal = this.totals.subtotal();
-    if (!vendor?.id || subtotal <= 0) {
-      this.couponError.set('Ajoutez des produits avant d\'appliquer un code.');
-      return;
-    }
 
-    this.couponBusy.set(true);
-    this.couponError.set(null);
 
-    this.couponService
-      .validate({ vendorId: vendor.id, code, subtotal })
-      .subscribe({
-        next: (result) => {
-          this.couponBusy.set(false);
-          if (result.valid) {
-            this.store.dispatch(
-              applyCouponAction({
-                coupon: {
-                  couponId: result.couponId,
-                  code: result.code,
-                  discountType: result.discountType,
-                  discountAmount: result.discountAmount,
-                },
-              })
-            );
-            this.snackBar.open(`Code "${result.code}" appliqué.`, 'Fermer', {
-              duration: 3000,
-              panelClass: ['success-snackbar'],
-            });
-          } else {
-            this.couponError.set(this.couponFailureMessage(result.reason, result.minSubtotal));
-          }
-        },
-        error: () => {
-          this.couponBusy.set(false);
-          this.couponError.set('Validation impossible. Réessayez.');
-        },
-      });
-  }
 
-  protected onRemoveCoupon(): void {
-    this.store.dispatch(removeCouponAction());
-    this.couponError.set(null);
-  }
 
-  private couponFailureMessage(
-    reason:
-      | 'NOT_FOUND'
-      | 'INACTIVE'
-      | 'EXPIRED'
-      | 'EXHAUSTED'
-      | 'BELOW_MIN_SUBTOTAL',
-    minSubtotal?: number
-  ): string {
-    switch (reason) {
-      case 'EXPIRED':
-        return 'Ce code n\'est plus valide.';
-      case 'EXHAUSTED':
-        return 'Ce code a atteint son nombre maximum d\'utilisations.';
-      case 'INACTIVE':
-        return 'Ce code n\'est pas actif.';
-      case 'BELOW_MIN_SUBTOTAL':
-        return minSubtotal !== undefined
-          ? `Panier minimum requis : ${minSubtotal.toFixed(2)} ${this.vendorService.getCurrentCurrency() ?? ''}`.trim()
-          : 'Le panier ne respecte pas le minimum requis.';
-      case 'NOT_FOUND':
-      default:
-        return 'Code invalide.';
-    }
-  }
 
-  private loadAccessories(orderType: string) {
-    const vendorId = this.vendorService.getCurrentVendor()?.id;
-    if (!vendorId) return;
 
-    this.accessoriesSub?.unsubscribe();
-    this.accessoriesSub = this.productService
-      .getAccessories(vendorId, orderType)
-      .subscribe({
-        next: (accessories) => this.availableAccessories.set(accessories),
-        error: () => this.availableAccessories.set([]),
-      });
-  }
 
-  onFoodIncrement(productId: number) {
-    this.store.dispatch(incrementCartItem({ productId }));
-  }
 
-  onFoodDecrement(productId: number) {
-    this.store.dispatch(decrementCartItem({ productId }));
-  }
 
-  onFoodRemove(productId: number) {
-    this.store.dispatch(removeCartItem({ productId }));
-  }
 
-  onAccessoryAdded(product: Product) {
-    this.store.dispatch(addToCart({ product, quantity: 1 }));
-  }
-
-  onAccessoryIncrement(productId: number) {
-    this.store.dispatch(incrementCartItem({ productId }));
-  }
-
-  onAccessoryDecrement(productId: number) {
-    this.store.dispatch(decrementCartItem({ productId }));
-  }
-
-  onAccessoryRemove(productId: number) {
-    this.store.dispatch(removeCartItem({ productId }));
-  }
 
   getSubtotal(items: CartItem[]): number {
     return items.reduce((sum, item) => {
@@ -814,10 +256,6 @@ export class CartDetailsSheetComponent implements OnInit, OnDestroy {
     return total;
   }
 
-  getItemPrice(item: CartItem): number {
-    // totalPrice already includes quantity for multi-step products
-    return item.totalPrice || item.product.price * item.quantity;
-  }
 
   goToCartDetails() {
     this.close();

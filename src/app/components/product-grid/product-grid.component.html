@@ -23,7 +23,7 @@
         </div>
         }
         <div class="category-info">
-          <h2>{{ category.name }}</h2>
+          <h2 class="storefront-section-title">{{ category.name }}</h2>
           @if (category.description) {
           <p>{{ category.description }}</p>
           }
@@ -58,19 +58,19 @@
         [class.grayscale]="isEffectivelyOutOfStock(product)"
       />
       <mat-card-content>
-        <h3>{{ product.name }}</h3>
+        <h3 class="storefront-card-title">{{ product.name }}</h3>
         <p
-          class="price"
+          class="price storefront-price"
           [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
         >
           {{ product.price | vendorCurrency }}
         </p>
         @if (product.shortDescription) {
-        <p class="short-description">
+        <p class="short-description storefront-body">
           {{ product.shortDescription }}
         </p>
         } @else if (product.description) {
-        <p class="description">
+        <p class="description storefront-body">
           {{ product.description | slice : 0 : 60
           }}{{ product.description.length > 60 ? "..." : "" }}
         </p>
@@ -123,19 +123,19 @@
       </div>
 
       <div class="product-info">
-        <h3 class="product-name">{{ product.name }}</h3>
+        <h3 class="product-name storefront-card-title">{{ product.name }}</h3>
         <p
-          class="product-price"
+          class="product-price storefront-price"
           [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
         >
           {{ product.price | vendorCurrency }}
         </p>
         @if (product.shortDescription) {
-        <p class="product-description">
+        <p class="product-description storefront-body">
           {{ product.shortDescription }}
         </p>
         } @else if (product.description) {
-        <p class="product-description">
+        <p class="product-description storefront-body">
           {{ product.description | slice : 0 : 80
           }}{{ product.description.length > 80 ? "..." : "" }}
         </p>

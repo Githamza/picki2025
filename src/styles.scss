@@ -132,6 +132,38 @@ body {
   animation-duration: 0.2s;
 }
 
+
+/* ---------------------------------------------------------------------------
+   Storefront type scale (SPEC.md Design Direction / T12).
+   M3 typography tokens are the single source; the .kiosk-mode root class
+   (set by KioskModeService in the kiosk phase) steps display sizes up for
+   ~1m viewing distance.
+--------------------------------------------------------------------------- */
+.storefront-display {
+  font: var(--mat-sys-headline-medium);
+}
+.storefront-section-title {
+  font: var(--mat-sys-headline-small);
+}
+.storefront-card-title {
+  font: var(--mat-sys-title-medium);
+}
+.storefront-body {
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-on-surface-variant);
+}
+.storefront-price {
+  font: var(--mat-sys-title-medium);
+}
+
+.kiosk-mode {
+  .storefront-display { font: var(--mat-sys-display-small); }
+  .storefront-section-title { font: var(--mat-sys-headline-medium); }
+  .storefront-card-title { font: var(--mat-sys-title-large); }
+  .storefront-body { font: var(--mat-sys-body-large); }
+  .storefront-price { font: var(--mat-sys-title-large); }
+}
+
 /* Global snackbar styles */
 .success-snackbar {
   --mat-snackbar-container-color: var(--mat-sys-tertiary-container) !important;

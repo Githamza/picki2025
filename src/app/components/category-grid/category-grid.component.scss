@@ -61,14 +61,14 @@
 
     .category-name {
       margin: 0 0 8px 0;
-      font-size: 1.25rem;
+      /* type: .storefront-card-title */
       font-weight: 600;
       color: var(--mat-on-surface);
     }
 
     .category-description {
       margin: 0;
-      font-size: 0.9rem;
+      /* type: .storefront-body */
       color: var(--mat-on-surface-variant);
       line-height: 1.4;
       opacity: 0.8;
@@ -122,11 +122,11 @@
       padding: 12px;
 
       .category-name {
-        font-size: 1.1rem;
+        /* type: .storefront-card-title (media) */
       }
 
       .category-description {
-        font-size: 0.85rem;
+        /* type: .storefront-body (media) */
       }
     }
   }

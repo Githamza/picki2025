@@ -98,7 +98,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: the 6 listed component style files
   - Dependencies: T10 · **Size: M**
 
-- [ ] **T12: Type scale + storefront chrome**
+- [x] **T12: Type scale + storefront chrome**
   - **Description:** Define the revised type scale (M3 typography levels, stepping up at kiosk factor) in `theme.scss`/`styles.scss`; apply to toolbar, category/product titles. Collapse secondary toolbar actions on phone per Design Direction.
   - Acceptance: one visible title per screen region; toolbar fits 390px without wrapping.
   - Verify: baseline + layout specs; manual review.

@@ -38,26 +38,48 @@
       <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
     </button>
 
-    <!-- Restaurant Info Icon -->
-    <button
-      mat-icon-button
-      (click)="openRestaurantInfo()"
-      aria-label="Informations du restaurant"
-      matTooltip="Info"
-      matTooltipPosition="below"
-    >
-      <mat-icon class="material-symbols-rounded">info</mat-icon>
-    </button>
+    <!-- Secondary actions: inline on tablet+, overflow menu on phone -->
+    @if (!isPhone()) {
+      <button
+        mat-icon-button
+        (click)="openRestaurantInfo()"
+        aria-label="Informations du restaurant"
+        matTooltip="Info"
+        matTooltipPosition="below"
+      >
+        <mat-icon class="material-symbols-rounded">info</mat-icon>
+      </button>
 
-    <button
-      mat-icon-button
-      (click)="toggleTheme()"
-      aria-label="Basculer le thème"
-    >
-      <mat-icon class="material-symbols-rounded">{{
-        isDarkTheme ? "light_mode" : "dark_mode"
-      }}</mat-icon>
-    </button>
+      <button
+        mat-icon-button
+        (click)="toggleTheme()"
+        aria-label="Basculer le thème"
+      >
+        <mat-icon class="material-symbols-rounded">{{
+          isDarkTheme ? "light_mode" : "dark_mode"
+        }}</mat-icon>
+      </button>
+    } @else {
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="toolbarMenu"
+        aria-label="Plus d'options"
+      >
+        <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
+      </button>
+      <mat-menu #toolbarMenu="matMenu">
+        <button mat-menu-item (click)="openRestaurantInfo()">
+          <mat-icon class="material-symbols-rounded">info</mat-icon>
+          <span>Informations du restaurant</span>
+        </button>
+        <button mat-menu-item (click)="toggleTheme()">
+          <mat-icon class="material-symbols-rounded">{{
+            isDarkTheme ? "light_mode" : "dark_mode"
+          }}</mat-icon>
+          <span>{{ isDarkTheme ? "Thème clair" : "Thème sombre" }}</span>
+        </button>
+      </mat-menu>
+    }
   </mat-toolbar>
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav

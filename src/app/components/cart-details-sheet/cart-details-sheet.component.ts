@@ -6,8 +6,6 @@ import {
 } from '@angular/material/bottom-sheet';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { Router } from '@angular/router';
-
 import { CartContentComponent } from '../../shared/components/cart-content/cart-content.component';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
 import { CheckoutService } from '../../services/checkout.service';
@@ -30,16 +28,14 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
   ],
   template: `
     <div class="sheet">
-      @if (!isOnCartDetailsPage()) {
-        <button
-          mat-icon-button
-          class="close-btn"
-          aria-label="Fermer"
-          (click)="close()"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-      }
+      <button
+        mat-icon-button
+        class="close-btn"
+        aria-label="Fermer"
+        (click)="close()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
 
       <h2 class="sheet-title">Mon panier</h2>
 
@@ -132,7 +128,6 @@ export class CartDetailsSheetComponent {
   private readonly bottomSheetRef = inject(
     MatBottomSheetRef<CartDetailsSheetComponent>
   );
-  private readonly router = inject(Router);
   private readonly vendorNavigation = inject(VendorNavigationService);
 
   checkout(): void {
@@ -144,14 +139,6 @@ export class CartDetailsSheetComponent {
 
   close(): void {
     this.bottomSheetRef.dismiss();
-  }
-
-  isOnCartDetailsPage(): boolean {
-    const currentUrl = this.router.url;
-    const vendorSlug = this.vendorNavigation.getVendorSlug();
-    return vendorSlug
-      ? currentUrl.includes(`/${vendorSlug}/cartdetails`)
-      : currentUrl.startsWith('/cartdetails');
   }
 
   changeDiningPreference(): void {

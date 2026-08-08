@@ -4,7 +4,6 @@ import { VendorLayoutComponent } from './components/vendor-layout/vendor-layout.
 import { VendorSelectionComponent } from './components/vendor-selection/vendor-selection.component';
 import { ProductGridComponent } from './components/product-grid/product-grid.component';
 import { ProductAddComponent } from './components/product-add/product-add.component';
-// import { CartDetailsPageComponent } from './components/cart-details-page/cart-details-page.component';
 import { WelcomeScreenComponent } from './components/welcome-screen/welcome-screen.component';
 import { PaymentSuccessComponent } from './components/payment-success/payment-success.component';
 import { PaymentFailedComponent } from './components/payment-failed/payment-failed.component';
@@ -70,7 +69,6 @@ const vendorAppChildren: Routes = [
       // Product page without category in URL (e.g. /product/:productName)
       // Must be declared before the ':category/...' route to avoid conflicts.
       { path: 'product/:productName', component: ProductAddComponent },
-      // { path: 'cartdetails', component: CartDetailsPageComponent },
     ],
   },
 ];

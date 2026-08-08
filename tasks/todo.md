@@ -220,7 +220,7 @@ Run order is top-to-bottom; dependencies noted per task.
 - [x] **T25: cart-content extraction** (commit 8f80a65)
 - [x] **T26: CheckoutService** (commit f68fb26)
 - [x] **T27: Persistent cart panel on landscape**
-- [ ] **T28: Delete CartDetailsPageComponent**
+- [x] **T28: Delete CartDetailsPageComponent**
 - [ ] **T29: kiosk_enabled migration + types + seed + admin toggle**
 - [ ] **T30: KioskModeService + kiosk chrome**
 - [ ] **T31: Attract screen + idle reset**

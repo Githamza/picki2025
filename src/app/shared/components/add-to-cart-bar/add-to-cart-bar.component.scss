@@ -118,18 +118,50 @@
     margin-top: -8px;
   }
 
+  /* One row on phones (user decision 2026-08-08): compact stepper left,
+     button filling the rest — the stacked layout doubled the bar height. */
   @media (max-width: 480px) {
-    flex-direction: column;
+    flex-wrap: nowrap;
     padding: 12px 16px;
-    gap: 12px;
+    gap: 10px;
 
     .quantity-controls {
-      width: 100%;
-      justify-content: center;
+      flex: 0 0 auto;
+      gap: 4px;
+
+      .quantity-button {
+        width: 48px;
+        height: 48px;
+        min-height: 48px;
+      }
+
+      .quantity-value {
+        min-width: 28px;
+      }
     }
 
     .add-to-cart-button {
-      width: 100%;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 1rem;
+      letter-spacing: 0;
+      padding: 0 16px;
+
+      .button-content {
+        min-width: 0;
+        gap: 8px;
+
+        .button-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .button-price {
+          flex-shrink: 0;
+          padding: 4px 10px;
+        }
+      }
     }
   }
 

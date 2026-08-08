@@ -42,6 +42,26 @@ test.describe('shell — category navigation per form factor', () => {
     await expect(firstCard).toBeVisible();
   });
 
+  test('add-to-cart bar keeps quantity and button on one row (phone)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'phone-portrait',
+      'phone-specific height concern'
+    );
+    await gotoStorefront(page);
+    await openCategory(page, E2E_VENDOR.categories.burgers);
+    await page.getByText(E2E_VENDOR.products.simple.name).first().click();
+
+    const qty = await page.locator('.quantity-controls').boundingBox();
+    const btn = await page.locator('.add-to-cart-button').boundingBox();
+    expect(qty && btn).toBeTruthy();
+    // Same row: vertical centers within half a control's height.
+    const qtyCenter = qty!.y + qty!.height / 2;
+    const btnCenter = btn!.y + btn!.height / 2;
+    expect(Math.abs(qtyCenter - btnCenter)).toBeLessThan(24);
+  });
+
   test('horizontal scroller on portrait form factors in product grid', async ({
     page,
   }, testInfo) => {

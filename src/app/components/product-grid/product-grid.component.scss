@@ -66,9 +66,10 @@
   border-radius: var(--mat-sys-corner-large, 12px);
   overflow: hidden;
   position: relative;
-  /* Tonal elevation: container tier instead of shadow at rest */
-  background-color: var(--mat-sys-surface-container-low);
+  /* Unified calm card recipe: flat surface + thin outline, no shadow */
+  background-color: var(--mat-sys-surface);
   border-color: var(--mat-sys-outline-variant);
+  box-shadow: none;
   cursor: pointer;
 
   img {
@@ -84,9 +85,6 @@
     }
   }
 
-  &:hover img {
-    transform: scale(1.03);
-  }
 
   mat-card-content {
     flex-grow: 1;
@@ -136,9 +134,7 @@
   }
 
   &:hover {
-    box-shadow: var(--mat-sys-level3);
-    transform: translateY(-2px);
-    transition: all 0.2s ease;
+    border-color: var(--mat-sys-primary);
   }
 
   &.out-of-stock {
@@ -165,20 +161,14 @@
   align-items: center;
   gap: 16px;
   padding: 12px;
-  background: var(--mat-sys-surface-container-high);
-  border-radius: 12px;
-  border: 1px solid var(--mat-outline-variant);
+  background: var(--mat-sys-surface);
+  border-radius: var(--mat-sys-corner-large, 12px);
+  border: 1px solid var(--mat-sys-outline-variant);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
 
   &:hover {
-    background: var(--mat-sys-surface-container);
-    transform: translateX(4px);
-  }
-
-  &:active {
-    transform: translateX(2px);
-    background: var(--mat-sys-surface-container-high);
+    border-color: var(--mat-sys-primary);
   }
 
   .product-image-container {
@@ -189,7 +179,6 @@
       height: 64px;
       border-radius: 8px;
       object-fit: cover;
-      box-shadow: var(--mat-sys-level1);
       transition: filter 0.3s ease;
 
       &.grayscale {

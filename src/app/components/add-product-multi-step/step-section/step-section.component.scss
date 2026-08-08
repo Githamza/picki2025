@@ -1,11 +1,10 @@
 .step-section {
   border-radius: var(--mat-sys-corner-large, 12px);
-  background-color: var(--mat-sys-surface-container-low);
+  background-color: var(--mat-sys-surface);
   border: 1px solid var(--mat-sys-outline-variant);
   overflow: hidden;
 
   &--active {
-    background-color: var(--mat-sys-surface-container);
     border-color: var(--mat-sys-primary);
   }
 }

@@ -6,117 +6,30 @@
   line-height: 26px !important;
   background-color: var(--mat-sys-primary) !important;
 }
+/* Unified calm card recipe (user decision 2026-08-08): flat surface,
+   thin outline, no shadows/transforms/tint layers. Selection = primary
+   border + check badge only — no color inversion, no accent borders. */
 .option-card {
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border-radius: 12px;
-  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  border-radius: var(--mat-sys-corner-large, 12px);
+  border: 1px solid var(--mat-sys-outline-variant);
   overflow: hidden;
-  background: var(--mat-sys-surface-container-low);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--mat-sys-surface);
+  box-shadow: none;
 
   &:hover:not(.disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    border-color: var(--mat-sys-primary);
   }
 
   &.selected {
-    border-color: var(--mat-sys-primary);
-    background: var(--mat-sys-primary);
-    box-shadow: 0 4px 16px rgba(var(--mat-sys-primary-rgb), 0.4);
-    color: var(--mat-sys-inverse-on-surface);
+    border: 2px solid var(--mat-sys-primary);
 
     .selection-indicator {
       opacity: 1;
-    }
 
-    // Invert colors for selected state (dark mode effect)
-    .option-card-content {
-      .option-image {
-        background: var(--mat-sys-surface-container-highest);
-
-        &.fallback {
-          background: var(--mat-sys-surface-container-high);
-
-          mat-icon {
-            color: var(--mat-sys-inverse-on-surface);
-            opacity: 0.8;
-          }
-        }
-
-        img {
-          filter: brightness(0.9) contrast(1.1);
-        }
-      }
-
-      .option-info {
-        .option-name {
-          color: var(--mat-sys-inverse-on-surface);
-          font-weight: 600;
-        }
-
-        .option-description {
-          color: var(--mat-sys-inverse-on-surface);
-          opacity: 0.8;
-        }
-
-        .option-type-badge {
-          .badge {
-            &.component {
-              background: var(--mat-sys-primary);
-              color: var(--mat-sys-on-primary);
-            }
-
-            &.product {
-              background: var(--mat-sys-secondary);
-              color: var(--mat-sys-on-secondary);
-            }
-          }
-        }
-      }
-
-      .option-actions {
-        .option-price {
-          .price-adjustment {
-            background: var(--mat-sys-surface-container-highest);
-            color: var(--mat-sys-inverse-on-surface);
-            border: 1px solid var(--mat-sys-outline-variant);
-
-            &.positive {
-              background: var(--mat-sys-error);
-              color: var(--mat-sys-on-error);
-              border-color: var(--mat-sys-error);
-            }
-            &.negative {
-              background: var(--mat-sys-tertiary);
-              color: var(--mat-sys-on-tertiary);
-              border-color: var(--mat-sys-tertiary);
-            }
-            &.neutral {
-              background: var(--mat-sys-surface-container-high);
-              color: var(--mat-sys-inverse-on-surface);
-              border-color: var(--mat-sys-outline);
-              display: none;
-            }
-          }
-        }
-
-        .add-separately-btn {
-          background: var(--mat-sys-primary);
-          color: var(--mat-sys-on-primary);
-
-          &:hover {
-            background: var(--mat-sys-primary-container);
-            color: var(--mat-sys-on-primary-container);
-          }
-        }
-      }
-
-      .selection-indicator {
-        mat-icon {
-          color: var(--mat-sys-primary);
-          text-shadow: 0 0 8px rgba(var(--mat-sys-primary-rgb), 0.5);
-        }
+      mat-icon {
+        color: var(--mat-sys-primary);
       }
     }
   }
@@ -126,18 +39,8 @@
     cursor: not-allowed;
 
     &:hover {
-      transform: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-color: var(--mat-sys-outline-variant);
     }
-  }
-
-  // Different styles for component vs product options
-  &.component-option {
-    border-left: 4px solid var(--mat-sys-tertiary);
-  }
-
-  &.product-option {
-    border-left: 4px solid var(--mat-sys-secondary);
   }
 
   mat-card-content {
@@ -159,7 +62,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--mat-sys-surface-variant);
+        background: var(--mat-sys-surface-container);
         cursor: pointer; // Default cursor for desktop (card selection)
 
         // Only show zoom cursor on mobile

@@ -35,8 +35,13 @@ export const LAYOUT_QUERIES = {
 export class LayoutService {
   private readonly breakpointObserver = inject(BreakpointObserver);
 
-  /** Flipped by KioskModeService in Phase 6; constant false until then. */
+  /** Flipped by KioskModeService when the kiosk experience is active. */
   private readonly kioskMode = signal(false);
+
+  /** KioskModeService owns kiosk activation (vendor flag + posture). */
+  setKioskMode(active: boolean): void {
+    this.kioskMode.set(active);
+  }
 
   private readonly state = toSignal(
     this.breakpointObserver.observe(Object.values(LAYOUT_QUERIES)),

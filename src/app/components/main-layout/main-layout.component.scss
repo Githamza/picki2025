@@ -288,3 +288,10 @@
     border-top: 1px solid var(--mat-sys-outline-variant);
   }
 }
+
+/* Kiosk cancel affordance (FR4) */
+.kiosk-cancel-button {
+  margin-right: 8px;
+  --mdc-outlined-button-label-text-color: var(--mat-sys-on-primary);
+  --mdc-outlined-button-outline-color: var(--mat-sys-on-primary);
+}

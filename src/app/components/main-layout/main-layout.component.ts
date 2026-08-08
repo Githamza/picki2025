@@ -25,6 +25,8 @@ import * as CategoryActions from '../../store/actions/category.actions';
 import { PromotionalBannerComponent } from "../promotional-banner/promotional-banner.component";
 import { LayoutService } from '../../services/layout.service';
 import { CartPanelComponent } from '../cart-panel/cart-panel.component';
+import { KioskModeService } from '../../services/kiosk-mode.service';
+import { CancelOrderDialogComponent } from '../kiosk/cancel-order-dialog/cancel-order-dialog.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -43,6 +45,7 @@ import { CartPanelComponent } from '../cart-panel/cart-panel.component';
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
   private layout = inject(LayoutService);
+  private kioskMode = inject(KioskModeService);
   protected diningPreferenceService = inject(DiningPreferenceService);
   private vendorNavigation = inject(VendorNavigationService);
   private restaurantStatusService = inject(RestaurantStatusService);
@@ -55,6 +58,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   // LayoutService is the storefront's single source of layout truth (FR1)
   readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
+
+  // FR4: kiosk chrome (no theme toggle, cancel-order affordance)
+  readonly isKiosk = this.kioskMode.active;
 
   // FR2: the persistent category rail exists only on landscape form factors;
   // phone and tablet-portrait navigate via the horizontal scroller.
@@ -154,6 +160,18 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
       document.documentElement.classList.remove('dark-mode');
     }
   }
+  cancelKioskOrder(): void {
+    this.dialog
+      .open(CancelOrderDialogComponent, { maxWidth: '420px' })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.kioskMode.resetSession();
+          this.vendorNavigation.navigateWithVendor('promotional-banner');
+        }
+      });
+  }
+
   gotoRestaurantHomepage() {
     // Clear selected category when navigating to products
     this.store.dispatch(CategoryActions.clearSelectedCategory());

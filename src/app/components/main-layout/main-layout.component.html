@@ -38,6 +38,18 @@
       <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
     </button>
 
+    <!-- Kiosk (FR4): always-available cancel; no theme toggle -->
+    @if (isKiosk()) {
+      <button
+        mat-stroked-button
+        class="kiosk-cancel-button"
+        (click)="cancelKioskOrder()"
+      >
+        <mat-icon>close</mat-icon>
+        Annuler la commande
+      </button>
+    }
+
     <!-- Secondary actions: inline on tablet+, overflow menu on phone -->
     @if (!isPhone()) {
       <button
@@ -50,15 +62,17 @@
         <mat-icon class="material-symbols-rounded">info</mat-icon>
       </button>
 
-      <button
-        mat-icon-button
-        (click)="toggleTheme()"
-        aria-label="Basculer le thème"
-      >
-        <mat-icon class="material-symbols-rounded">{{
-          isDarkTheme ? "light_mode" : "dark_mode"
-        }}</mat-icon>
-      </button>
+      @if (!isKiosk()) {
+        <button
+          mat-icon-button
+          (click)="toggleTheme()"
+          aria-label="Basculer le thème"
+        >
+          <mat-icon class="material-symbols-rounded">{{
+            isDarkTheme ? "light_mode" : "dark_mode"
+          }}</mat-icon>
+        </button>
+      }
     } @else {
       <button
         mat-icon-button

@@ -26,6 +26,7 @@ import { PromotionalBannerComponent } from "../promotional-banner/promotional-ba
 import { LayoutService } from '../../services/layout.service';
 import { CartPanelComponent } from '../cart-panel/cart-panel.component';
 import { KioskModeService } from '../../services/kiosk-mode.service';
+import { KioskNativeService } from '../../services/kiosk-native.service';
 import { CancelOrderDialogComponent } from '../kiosk/cancel-order-dialog/cancel-order-dialog.component';
 import { AttractScreenComponent } from '../kiosk/attract-screen/attract-screen.component';
 
@@ -48,6 +49,8 @@ import { AttractScreenComponent } from '../kiosk/attract-screen/attract-screen.c
 export class MainLayoutComponent implements OnInit, OnDestroy {
   private layout = inject(LayoutService);
   private kioskMode = inject(KioskModeService);
+  // Instantiated for its side effects (native kiosk affordances, FR5).
+  private kioskNative = inject(KioskNativeService);
   protected diningPreferenceService = inject(DiningPreferenceService);
   private vendorNavigation = inject(VendorNavigationService);
   private restaurantStatusService = inject(RestaurantStatusService);

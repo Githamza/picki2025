@@ -51,11 +51,19 @@ export async function openCategory(page: Page, category: string): Promise<void> 
   await expect(page).toHaveURL(/\/products/);
 }
 
+/** Open a product from the grid. Clicks can be swallowed by an active
+ *  view transition under load — retry click+URL as one unit. */
+export async function openProduct(page: Page, name: string): Promise<void> {
+  await expect(async () => {
+    await page.getByText(name).first().click({ timeout: 2000 });
+    await expect(page).toHaveURL(/\/product\//, { timeout: 2000 });
+  }).toPass({ timeout: 15_000 });
+}
+
 /** Product grid → product page → add to cart. */
 export async function addSimpleProductToCart(page: Page): Promise<void> {
-  await page.getByText(E2E_VENDOR.products.simple.name).first().click();
-  await expect(page).toHaveURL(/\/product\//);
-  await page.getByRole('button', { name: /ajouter/i }).click();
+  await openProduct(page, E2E_VENDOR.products.simple.name);
+  await page.locator('.add-to-cart-button').click();
 }
 
 /** Reach the cart surface: the persistent panel (landscape) is already

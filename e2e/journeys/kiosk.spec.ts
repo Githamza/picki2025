@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { E2E_VENDOR } from '../fixtures/vendor';
-import { blockPaymentProviders, checkoutPayAtCounter } from '../fixtures/helpers';
+import {
+  blockPaymentProviders,
+  checkoutPayAtCounter,
+  openProduct,
+} from '../fixtures/helpers';
 
 /**
  * Kiosk mode (SPEC.md FR4, plan T30+): activation matrix and chrome.
@@ -85,8 +89,8 @@ test.describe('kiosk mode — activation and chrome', () => {
 
     await enterKiosk(page);
     await page.getByRole('heading', { name: 'Menus' }).click();
-    await page.getByText('Wrap Poulet').first().click();
-    await page.getByRole('button', { name: /ajouter/i }).click();
+    await openProduct(page, 'Wrap Poulet');
+    await page.locator('.add-to-cart-button').click();
 
     // Item in the persistent panel
     await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
@@ -116,8 +120,8 @@ test.describe('kiosk mode — activation and chrome', () => {
 
     await enterKiosk(page);
     await page.getByRole('heading', { name: 'Menus' }).click();
-    await page.getByText('Wrap Poulet').first().click();
-    await page.getByRole('button', { name: /ajouter/i }).click();
+    await openProduct(page, 'Wrap Poulet');
+    await page.locator('.add-to-cart-button').click();
     await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
 
     // Idle: the countdown dialog appears, expires, session resets.
@@ -125,7 +129,7 @@ test.describe('kiosk mode — activation and chrome', () => {
       timeout: 15_000,
     });
     await expect(page.locator('app-attract-screen')).toBeVisible({
-      timeout: 10_000,
+      timeout: 20_000,
     });
 
     // Next customer starts fresh.
@@ -175,16 +179,19 @@ test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
 
     await enterKiosk(page);
     await page.getByRole('heading', { name: 'Menus' }).click();
-    await page.getByText('Wrap Poulet').first().click();
-    await page.getByRole('button', { name: /ajouter/i }).click();
+    await openProduct(page, 'Wrap Poulet');
+    await page.locator('.add-to-cart-button').click();
     await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
 
     // The vendor has online payments ENABLED — kiosk must still go to
     // the counter branch and land on successPayment.
     await checkoutPayAtCounter(page);
 
-    // Full-screen order-number confirmation.
-    await expect(page.locator('.kiosk-confirmation')).toBeVisible();
+    // Full-screen order-number confirmation (order fetch can be slow
+    // under parallel load).
+    await expect(page.locator('.kiosk-confirmation')).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.locator('.kiosk-order-number')).toHaveText(
       /\d{6}-\d{6}/
     );

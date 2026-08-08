@@ -3,6 +3,7 @@ import { E2E_VENDOR } from '../fixtures/vendor';
 import {
   gotoStorefront,
   openCategory,
+  openProduct,
   addSimpleProductToCart,
   openCartSheet,
   checkoutPayAtCounter,
@@ -48,15 +49,14 @@ test.describe('view transitions — named moves', () => {
   }) => {
     await gotoStorefront(page);
     await openCategory(page, E2E_VENDOR.categories.burgers);
-    await page.getByText(E2E_VENDOR.products.simple.name).first().click();
-    await expect(page).toHaveURL(/\/product\//);
+    await openProduct(page, E2E_VENDOR.products.simple.name);
     await expectVtName(
       page,
       '.product-image-container .product-image',
       'product-hero'
     );
 
-    await page.getByRole('button', { name: /ajouter/i }).click();
+    await page.locator('.add-to-cart-button').click();
     if (await page.locator('app-cart-panel').isVisible()) {
       // Landscape: the persistent panel replaces the badge entirely.
       return;

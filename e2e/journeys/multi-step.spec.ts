@@ -1,6 +1,6 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import { E2E_VENDOR } from '../fixtures/vendor';
-import { gotoStorefront, openCategory } from '../fixtures/helpers';
+import { gotoStorefront, openCategory, openProduct } from '../fixtures/helpers';
 
 /**
  * FR4d journeys (plan T24) against the seeded "Menu Burger":
@@ -20,8 +20,7 @@ function header(page: Page, name: string): Locator {
 async function openMenuProduct(page: Page): Promise<void> {
   await gotoStorefront(page);
   await openCategory(page, E2E_VENDOR.categories.burgers);
-  await page.getByText(E2E_VENDOR.products.multiStep.name).first().click();
-  await expect(page).toHaveURL(/\/product\//);
+  await openProduct(page, E2E_VENDOR.products.multiStep.name);
   await expect(section(page, 'Burger').first()).toBeVisible();
 }
 

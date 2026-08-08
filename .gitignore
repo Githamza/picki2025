@@ -118,3 +118,5 @@ android/keystore.properties
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+.DS_Store

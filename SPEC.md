@@ -1,6 +1,6 @@
 # Spec: Storefront UX/UI Overhaul — Responsive, Transitional, Kiosk-Ready
 
-**Status:** Decisions resolved — awaiting approval to plan
+**Status:** IMPLEMENTED — all phases (0–8) shipped; upsells (FR4c) remain cut/deferred
 **Date:** 2026-08-05
 **Scope:** Customer-facing storefront only. Admin dashboard (`/admin/**`) is out of scope.
 **Current focus:** UI redesign (Phases 0–4). Kiosk is specced but sequenced later; upsells are cut.

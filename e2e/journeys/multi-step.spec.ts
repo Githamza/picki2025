@@ -140,6 +140,49 @@ test.describe('multi-step product — scroll shell', () => {
     await expect(page.locator('app-cart-badge')).toContainText('(2)');
   });
 
+  test('editing a completed step does not re-walk the remaining steps', async ({
+    page,
+  }) => {
+    await openMenuProduct(page);
+    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
+    const accompaniments = section(page, 'Accompagnements');
+    await accompaniments.getByText('Frites', { exact: true }).click();
+    await accompaniments.getByText('Salade', { exact: true }).click();
+    await section(page, 'Dessert').getByText('Cookie', { exact: true }).click();
+    // Everything chosen -> all sections collapsed. Let the auto-advance
+    // timer settle before editing so the click can't race it.
+    await expect(page.locator('.comment-section')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Edit the first step and change the choice…
+    await header(page, 'Burger').first().click();
+    await expect(header(page, 'Burger').first()).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    await section(page, 'Burger')
+      .getByText('Double steak', { exact: true })
+      .click();
+
+    // …the flow returns to "all done": no step re-opens, the edited
+    // header shows the new choice, comment + enabled bar are back.
+    // (Let the 300ms auto-advance timer fire before asserting.)
+    await page.waitForTimeout(800);
+    await expect(header(page, 'Burger').first()).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    await expect(header(page, 'Burger').first()).toContainText('Double steak');
+    await expect(header(page, 'Accompagnements')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    await expect(page.locator('.comment-section')).toBeVisible();
+    await expect(page.locator('.add-to-cart-button')).not.toHaveClass(
+      /visually-disabled/
+    );
+  });
+
   test('completes, and the cart recaps the steps', async ({ page }) => {
     await openMenuProduct(page);
     await section(page, 'Burger').getByText('Classique', { exact: true }).click();

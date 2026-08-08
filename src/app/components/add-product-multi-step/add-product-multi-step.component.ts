@@ -193,6 +193,8 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   stepForms: { [stepId: number]: FormGroup } = {};
   quantity: number = 1;
   comment = signal(''); // Comment for the menu
+  /** Steps the customer has already seen active (edit-aware advance). */
+  private offeredStepIds = new Set<number>();
 
   // Track customisation selections for each step option
   optionCustomisationSelections = new Map<string, Map<number, number[]>>(); // Key: `${stepId}-${optionId}`
@@ -235,6 +237,17 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((map) => {
         this.cartQuantityMap = map;
+      });
+
+    // Track which steps have been offered to the customer (drives the
+    // edit-aware advance: an optional step is visited once, never forced
+    // open again).
+    this.activeStepId$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((stepId) => {
+        if (stepId !== null) {
+          this.offeredStepIds.add(stepId);
+        }
       });
 
     // Auto-scroll the newly active section into view (skip initial load)
@@ -327,6 +340,41 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         selectedOptionIds,
       })
     );
+  }
+
+  /**
+   * Post-selection navigation (user decision 2026-08-08): go to the next
+   * INCOMPLETE step — never re-open steps that are already chosen. When a
+   * customer edits a completed step, everything stays collapsed ("all
+   * done") instead of re-walking the flow. Falls back to any earlier
+   * incomplete step, else one past the end (nothing active).
+   */
+  advanceAfterSelection(fromStep: ProductStep): void {
+    combineLatest([this.steps$, this.stepSelections$])
+      .pipe(take(1))
+      .subscribe(([steps, selections]) => {
+        const fromIndex = steps.findIndex((s) => s.id === fromStep.id);
+        const isIncomplete = (s: ProductStep) =>
+          !(selections[s.id]?.isValid ?? false);
+        // A valid-but-empty optional step still deserves ONE visit; once
+        // offered, it is never forced open again.
+        const needsVisit = (s: ProductStep) =>
+          isIncomplete(s) ||
+          (!s.isRequired &&
+            (selections[s.id]?.selectedOptionIds?.length ?? 0) === 0 &&
+            !this.offeredStepIds.has(s.id));
+
+        const after = steps.findIndex((s, i) => i > fromIndex && needsVisit(s));
+        const anywhere = steps.findIndex(
+          (s, i) => i !== fromIndex && isIncomplete(s)
+        );
+        const target =
+          after !== -1 ? after : anywhere !== -1 ? anywhere : steps.length;
+
+        this.store.dispatch(
+          MultiStepProductActions.setCurrentStep({ stepIndex: target })
+        );
+      });
   }
 
   goNext(): void {
@@ -472,9 +520,10 @@ if (category) {
     if (form) {
       form.get('selectedOption')?.setValue(optionId.toString());
       
-      // Automatically advance to next step after a brief delay for visual feedback
+      // Advance after a brief delay for visual feedback (FR4d edit rule:
+      // never re-open steps that are already chosen).
       setTimeout(() => {
-        this.goNext();
+        this.advanceAfterSelection(step);
       }, 300);
     }
   }
@@ -514,10 +563,10 @@ if (category) {
       (key) => optionsControl.value[key] === true
     ).length;
     
-    // If max selections reached, auto-advance to next step
+    // If max selections reached, auto-advance (same edit-aware rule)
     if (step.maxSelections && selectedCount === step.maxSelections) {
       setTimeout(() => {
-        this.goNext();
+        this.advanceAfterSelection(step);
       }, 300);
     }
   }

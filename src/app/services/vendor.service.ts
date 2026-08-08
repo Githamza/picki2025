@@ -611,6 +611,7 @@ export class VendorService {
     };
     enabledOrderTypes?: OrderType[];
     onlinePaymentsEnabled?: boolean;
+    kioskEnabled?: boolean;
     dailyStockResetEnabled?: boolean;
     autoPrintEnabled?: boolean;
     deliverySettings?: {
@@ -655,6 +656,13 @@ export class VendorService {
         updatedVendor = await this.supabaseAuthService.updateVendorEnabledOrderTypes(
           currentVendor.id,
           restaurantData.enabledOrderTypes
+        );
+      }
+
+      if (typeof restaurantData.kioskEnabled === 'boolean') {
+        updatedVendor = await this.supabaseAuthService.updateVendorKioskEnabled(
+          currentVendor.id,
+          restaurantData.kioskEnabled
         );
       }
 

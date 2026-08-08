@@ -151,6 +151,7 @@ export class SupabaseAuthService implements OnDestroy {
           is_active,
           enabled_order_types,
           online_payments_enabled,
+          kiosk_enabled,
           delivery_system,
           own_delivery_price
         )
@@ -179,6 +180,7 @@ export class SupabaseAuthService implements OnDestroy {
           is_active,
           enabled_order_types,
           online_payments_enabled,
+          kiosk_enabled,
           delivery_system,
           own_delivery_price
         )
@@ -513,6 +515,26 @@ export class SupabaseAuthService implements OnDestroy {
       .from('vendors')
       .update({
         daily_stock_reset_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      throw new Error(`Vendor with ID ${vendorId} not found`);
+    }
+
+    return data;
+  }
+
+  async updateVendorKioskEnabled(vendorId: string, enabled: boolean) {
+    const { data, error } = await this.supabaseAuth
+      .from('vendors')
+      .update({
+        kiosk_enabled: enabled,
         updated_at: new Date().toISOString(),
       })
       .eq('id', vendorId)

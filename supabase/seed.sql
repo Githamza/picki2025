@@ -35,17 +35,52 @@ insert into public.vendors (
   false
 );
 
+-- Kiosk vendor (SPEC.md T29): kiosk_enabled = true AND online payments ON —
+-- the kiosk e2e proves checkout is forced to pay-at-counter regardless.
+-- Storefront URL: /vendor/e2e-kiosk
+insert into public.vendors (
+  id,
+  business_name,
+  business_type,
+  country,
+  currency,
+  is_active,
+  online_payments_enabled,
+  kiosk_enabled,
+  enabled_order_types,
+  delivery_system,
+  paymentprovider,
+  auto_print_enabled
+) values (
+  'e2e00000-0000-4000-8000-000000000002',
+  'E2E Kiosk',
+  'restaurant',
+  'FR',
+  'EUR',
+  true,
+  true,
+  true,
+  array['eat-in', 'take-away']::public.order_type[],
+  'picki',
+  'STRIPE',
+  false
+);
+
 -- Open 24/7 so business-hours validation never gates the journey.
 insert into public.business_hours
   (vendor_id, day_of_week, is_closed, open_time, close_time, pickup_enabled)
 select
-  'e2e00000-0000-4000-8000-000000000001',
+  v.id,
   d,
   false,
   '00:00',
   '23:59',
   true
-from generate_series(0, 6) as d;
+from (values
+  ('e2e00000-0000-4000-8000-000000000001'::uuid),
+  ('e2e00000-0000-4000-8000-000000000002'::uuid)
+) as v(id)
+cross join generate_series(0, 6) as d;
 
 -- ---------------------------------------------------------------------------
 -- Catalog
@@ -101,12 +136,52 @@ insert into public.product_step_options
   (9307, 'e2e00000-0000-4000-8000-000000000001', 'Muffin',         null, 2, 'component', 1.50, array[9203]);
 
 -- ---------------------------------------------------------------------------
--- Promotional banner (attract screen reuses this table in the kiosk phase)
+-- Kiosk vendor catalog: one category, one simple product, one menu (combo)
+-- ---------------------------------------------------------------------------
+insert into public.categories (id, name, description, display_order, is_active, "vendorId", image_url) values
+  (9003, 'Menus', 'Nos menus kiosk', 1, true, 'e2e00000-0000-4000-8000-000000000002',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%234a1db5"/></svg>');
+
+insert into public.products
+  (id, name, short_description, price, category_id, display_order,
+   is_available, is_multi_step, has_customisations, stock_quantity, vendor_id, image_url) values
+  (9105, 'Wrap Poulet', 'Wrap grillé', 7.50, 9003, 1,
+   true, false, false, null, 'e2e00000-0000-4000-8000-000000000002',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%232bb573"/></svg>'),
+  (9106, 'Menu Kiosk', 'Wrap + boisson', 11.00, 9003, 2,
+   true, true, true, null, 'e2e00000-0000-4000-8000-000000000002',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%23b52b8e"/></svg>');
+
+insert into public.product_steps
+  (id, product_id, name, description, display_order, is_required,
+   min_selections, max_selections, step_type) values
+  (9204, 9106, 'Plat',    'Choisissez votre plat',    1, true,  1, 1, 'single-select'),
+  (9205, 9106, 'Boisson', 'Choisissez votre boisson', 2, true,  1, 1, 'single-select'),
+  (9206, 9106, 'Sauce',   'Une sauce ?',              3, false, 0, 1, 'single-select');
+
+insert into public.product_step_options
+  (id, vendor_id, name, description, display_order, option_type,
+   price_adjustment, step_ids) values
+  (9308, 'e2e00000-0000-4000-8000-000000000002', 'Wrap',     null, 1, 'component', 0,    array[9204]),
+  (9309, 'e2e00000-0000-4000-8000-000000000002', 'Salade bowl', null, 2, 'component', 1.00, array[9204]),
+  (9310, 'e2e00000-0000-4000-8000-000000000002', 'Eau',      null, 1, 'component', 0,    array[9205]),
+  (9311, 'e2e00000-0000-4000-8000-000000000002', 'Soda',     null, 2, 'component', 0.50, array[9205]),
+  (9312, 'e2e00000-0000-4000-8000-000000000002', 'Ketchup',  null, 1, 'component', 0,    array[9206]),
+  (9313, 'e2e00000-0000-4000-8000-000000000002', 'Blanche',  null, 2, 'component', 0,    array[9206]);
+
+-- ---------------------------------------------------------------------------
+-- Promotional banners (attract screen reuses this table in the kiosk phase)
 -- ---------------------------------------------------------------------------
 insert into public.banners (id, vendor_id, title, image_url, is_active, display_order) values
   (9401, 'e2e00000-0000-4000-8000-000000000001', 'Bienvenue chez E2E Cafe',
    'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200"><rect width="600" height="200" fill="%23e91e63"/></svg>',
-   true, 1);
+   true, 1),
+  (9402, 'e2e00000-0000-4000-8000-000000000002', 'Promo kiosque 1',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200"><rect width="600" height="200" fill="%234a1db5"/></svg>',
+   true, 1),
+  (9403, 'e2e00000-0000-4000-8000-000000000002', 'Promo kiosque 2',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200"><rect width="600" height="200" fill="%232bb573"/></svg>',
+   true, 2);
 
 -- Keep identity sequences ahead of the fixed ids above.
 select setval(pg_get_serial_sequence('public.categories', 'id'),           10000, false);

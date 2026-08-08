@@ -102,6 +102,22 @@ import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
         </mat-card-content>
       </mat-card>
 
+      <mat-card class="info-section">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>storefront</mat-icon>
+          <mat-card-title>Borne de commande (kiosque)</mat-card-title>
+          <mat-card-subtitle>
+            Active l'expérience borne sur les écrans en paysage : écran
+            d'accueil, remise à zéro après inactivité, paiement au comptoir.
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-checkbox formControlName="kioskEnabled">
+            Activer le mode borne
+          </mat-checkbox>
+        </mat-card-content>
+      </mat-card>
+
       <div class="actions">
         <button
           mat-raised-button
@@ -175,6 +191,7 @@ export class CommandesComponent implements OnInit {
 
     this.form = this.fb.group({
       orderTypes: this.createOrderTypesGroup(enabledTypes),
+      kioskEnabled: [(info?.vendor as any)?.kiosk_enabled ?? false],
       deliverySettings: this.fb.group({
         deliverySystem: [
           (info?.vendor as any)?.delivery_system === 'own' ? 'own' : 'picki',
@@ -268,6 +285,7 @@ export class CommandesComponent implements OnInit {
 
       await this.vendorService.saveRestaurantInfo({
         enabledOrderTypes,
+        kioskEnabled: !!formValue.kioskEnabled,
         deliverySettings: {
           deliverySystem:
             formValue.deliverySettings?.deliverySystem === 'own' ? 'own' : 'picki',
@@ -288,6 +306,7 @@ export class CommandesComponent implements OnInit {
     const enabledTypes = info?.vendor.enabled_order_types;
     const enabledSet = new Set<OrderType>(enabledTypes ?? ['take-away', 'eat-in', 'delivery']);
     this.form.patchValue({
+      kioskEnabled: (info?.vendor as any)?.kiosk_enabled ?? false,
       orderTypes: {
         takeAway: enabledSet.has('take-away'),
         eatIn: enabledSet.has('eat-in'),

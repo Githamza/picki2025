@@ -17,7 +17,7 @@ export interface ProductAdmin {
   display_order?: number;
   is_accessory?: boolean;
   icon_emoji?: string | null;
-  applicable_order_types?: string[];
+  applicable_order_types?: string[] | null;
   max_quantity_per_order?: number | null;
   created_at: string | null;
   updated_at: string | null;
@@ -60,7 +60,7 @@ export interface ProductFormData {
   display_order: number;
   is_accessory?: boolean;
   icon_emoji?: string | null;
-  applicable_order_types?: string[];
+  applicable_order_types?: string[] | null;
   max_quantity_per_order?: number | null;
 }
 

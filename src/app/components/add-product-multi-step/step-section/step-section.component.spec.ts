@@ -104,6 +104,28 @@ describe('StepSectionComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Obligatoire');
   });
 
+  it('keeps the hint row in the layout when the hint empties (no shift)', () => {
+    const step = makeStep({
+      stepType: 'single-select',
+      minSelections: 1,
+      maxSelections: 1,
+      description: undefined,
+    });
+    const fixture = create({ step, active: true });
+    const hintBefore: HTMLElement =
+      fixture.nativeElement.querySelector('.selection-hint');
+    expect(hintBefore).toBeTruthy();
+    expect(getComputedStyle(hintBefore).visibility).toBe('visible');
+
+    // Selecting empties the hint text — the row must stay, invisible.
+    fixture.componentRef.setInput('selectedOptionIds', [11]);
+    fixture.detectChanges();
+    const hintAfter: HTMLElement =
+      fixture.nativeElement.querySelector('.selection-hint');
+    expect(hintAfter).toBeTruthy();
+    expect(getComputedStyle(hintAfter).visibility).toBe('hidden');
+  });
+
   it('active optional step shows Optionnel', () => {
     const fixture = create({
       step: makeStep({ isRequired: false, minSelections: 0 }),

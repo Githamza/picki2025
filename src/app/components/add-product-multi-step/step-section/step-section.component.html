@@ -32,9 +32,15 @@
     @if (showHeader() && step().description) {
       <p class="step-description storefront-body">{{ step().description }}</p>
     }
-    @if (hint()) {
-      <p class="selection-hint" role="status">{{ hint() }}</p>
-    }
+    <!-- Always in the layout: emptying the hint must not shift the
+         options below (visibility toggles, the row stays). -->
+    <p
+      class="selection-hint"
+      role="status"
+      [style.visibility]="hint() ? 'visible' : 'hidden'"
+    >
+      {{ hint() || ' ' }}
+    </p>
 
     <div class="options-container" [style.--option-columns]="optionColumns()">
       @for (option of availableOptions(); track option.id) {

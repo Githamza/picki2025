@@ -242,7 +242,7 @@ type FormFactor = 'phone' | 'tablet-portrait' | 'tablet-landscape' | 'kiosk';
 | Category grid | 2 columns | 3 columns | 4 columns | 4 columns, XL tiles |
 | Product grid | 1–2 columns | 2–3 columns | 3–4 columns | 3 columns, XL cards |
 | Category navigation | Horizontal scroller | Horizontal scroller | Persistent left rail | Persistent left rail |
-| Cart | Bottom sheet | Bottom sheet | Persistent right panel | Persistent right panel |
+| Cart | Bottom sheet | Bottom sheet | Bottom sheet (badge) | Bottom sheet (badge) |
 | Product detail | Full-screen route | Full-screen route | Modal over grid | Modal over grid |
 | Toolbar | Compact | Standard | Standard | Brand + language + cancel only |
 
@@ -345,7 +345,7 @@ Browser-first, but the Android app must keep working and gain kiosk affordances:
 
 ### FR6 — Purchase flow friction
 
-- **Persistent order summary** on tablet landscape and kiosk — the cart is always visible, never hidden behind a badge.
+- ~~Persistent order summary on tablet landscape and kiosk~~ — **reversed by user decision 2026-08-08 after trying it**: the cart opens via the floating badge + bottom sheet on every form factor, kiosk included. A permanent panel eats product space and pushes the basket at the customer.
 - **Add-to-cart without leaving the grid** where the product has no customization steps.
 - **Quantity adjustment inline** in the cart, no re-entry into the product page.
 - **Explicit progress** through the checkout steps so the customer always knows what remains.

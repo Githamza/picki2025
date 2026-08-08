@@ -20,19 +20,11 @@ test.describe('shell — category navigation per form factor', () => {
     expect(railVisible).toBe(LANDSCAPE_PROJECTS.includes(testInfo.project.name));
   });
 
-  test('persistent cart panel on landscape; floating badge on portrait', async ({
-    page,
-  }, testInfo) => {
+  test('no persistent cart panel on any form factor', async ({ page }) => {
+    // User decision 2026-08-08: the cart opens via the floating badge and
+    // bottom sheet everywhere, kiosk included.
     await gotoStorefront(page);
-    const landscape = LANDSCAPE_PROJECTS.includes(testInfo.project.name);
-
-    // FR6/FR7: landscape gets the always-visible cart panel.
-    expect(await page.locator('app-cart-panel').isVisible()).toBe(landscape);
-    // The floating badge never coexists with the panel (its portrait
-    // appearance-with-items is covered by the transitions journey).
-    if (landscape) {
-      expect(await page.locator('app-cart-badge').count()).toBe(0);
-    }
+    await expect(page.locator('app-cart-panel')).toHaveCount(0);
   });
 
   test('horizontal scroller on portrait form factors in product grid', async ({

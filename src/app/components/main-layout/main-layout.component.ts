@@ -24,7 +24,6 @@ import { AppState } from '../../store/models/app.state';
 import * as CategoryActions from '../../store/actions/category.actions';
 import { PromotionalBannerComponent } from "../promotional-banner/promotional-banner.component";
 import { LayoutService } from '../../services/layout.service';
-import { CartPanelComponent } from '../cart-panel/cart-panel.component';
 import { KioskModeService } from '../../services/kiosk-mode.service';
 import { KioskNativeService } from '../../services/kiosk-native.service';
 import { CancelOrderDialogComponent } from '../kiosk/cancel-order-dialog/cancel-order-dialog.component';
@@ -39,7 +38,6 @@ import { AttractScreenComponent } from '../kiosk/attract-screen/attract-screen.c
     ...materialComponents,
     CategoryMenuComponent,
     CartBadgeComponent,
-    CartPanelComponent,
     AttractScreenComponent,
 ],
   templateUrl: './main-layout.component.html',

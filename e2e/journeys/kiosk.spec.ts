@@ -3,6 +3,7 @@ import { E2E_VENDOR } from '../fixtures/vendor';
 import {
   blockPaymentProviders,
   checkoutPayAtCounter,
+  openCartSheet,
   openProduct,
 } from '../fixtures/helpers';
 
@@ -92,15 +93,14 @@ test.describe('kiosk mode — activation and chrome', () => {
     await openProduct(page, 'Wrap Poulet');
     await page.locator('.add-to-cart-button').click();
 
-    // Item in the persistent panel
-    await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
+    // Item in the cart -> badge appears.
+    await expect(page.locator('app-cart-badge')).toContainText('(1)');
 
     await page.getByRole('button', { name: /annuler la commande/i }).click();
     await page.getByRole('button', { name: /tout annuler/i }).click();
 
-    await expect(page.locator('app-cart-panel')).toContainText(
-      'Votre panier est vide'
-    );
+    // Cart cleared -> the badge (item-gated) disappears.
+    await expect(page.locator('app-cart-badge .cart-badge')).toHaveCount(0);
     await expect(page).toHaveURL(/promotional-banner/);
   });
 
@@ -122,7 +122,7 @@ test.describe('kiosk mode — activation and chrome', () => {
     await page.getByRole('heading', { name: 'Menus' }).click();
     await openProduct(page, 'Wrap Poulet');
     await page.locator('.add-to-cart-button').click();
-    await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
+    await expect(page.locator('app-cart-badge')).toContainText('(1)');
 
     // Idle: the countdown dialog appears, expires, session resets.
     await expect(page.getByText('Toujours là ?')).toBeVisible({
@@ -132,11 +132,9 @@ test.describe('kiosk mode — activation and chrome', () => {
       timeout: 20_000,
     });
 
-    // Next customer starts fresh.
+    // Next customer starts fresh (empty cart -> no badge).
     await page.locator('app-attract-screen').click();
-    await expect(page.locator('app-cart-panel')).toContainText(
-      'Votre panier est vide'
-    );
+    await expect(page.locator('app-cart-badge .cart-badge')).toHaveCount(0);
   });
 
   test('idle with an empty cart returns to attract silently', async ({
@@ -181,7 +179,8 @@ test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
     await page.getByRole('heading', { name: 'Menus' }).click();
     await openProduct(page, 'Wrap Poulet');
     await page.locator('.add-to-cart-button').click();
-    await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
+    await expect(page.locator('app-cart-badge')).toContainText('(1)');
+    await openCartSheet(page);
 
     // The vendor has online payments ENABLED — kiosk must still go to
     // the counter branch and land on successPayment.
@@ -204,9 +203,7 @@ test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
       timeout: 10_000,
     });
     await page.locator('app-attract-screen').click();
-    await expect(page.locator('app-cart-panel')).toContainText(
-      'Votre panier est vide'
-    );
+    await expect(page.locator('app-cart-badge .cart-badge')).toHaveCount(0);
   });
 });
 
@@ -244,7 +241,7 @@ test.describe('kiosk combo builder — one step per screen (FR4b)', () => {
     await expect(addButton).not.toHaveClass(/visually-disabled/);
     await expect(addButton).toContainText('11,50');
     await addButton.click();
-    await expect(page.locator('app-cart-panel')).toContainText('Menu Kiosk');
+    await expect(page.locator('app-cart-badge')).toContainText('(1)');
   });
 
   test('Retour preserves the previous selection', async ({ page }) => {

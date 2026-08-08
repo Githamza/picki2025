@@ -135,13 +135,9 @@ test.describe('multi-step product — scroll shell', () => {
     await expect(page.locator('.add-to-cart-button')).toContainText('27,00');
     await page.locator('.add-to-cart-button').click();
 
-    // The cart surface counts 2 items (badge on portrait, panel qty on landscape).
+    // The badge counts 2 items.
     await expect(page).toHaveURL(/\/products/);
-    if (await page.locator('app-cart-panel').isVisible()) {
-      await expect(page.locator('app-cart-panel .qty-value')).toContainText('2');
-    } else {
-      await expect(page.locator('app-cart-badge')).toContainText('(2)');
-    }
+    await expect(page.locator('app-cart-badge')).toContainText('(2)');
   });
 
   test('completes, and the cart recaps the steps', async ({ page }) => {
@@ -163,14 +159,10 @@ test.describe('multi-step product — scroll shell', () => {
     await expect(addButton).not.toHaveClass(/visually-disabled/);
     await addButton.click();
 
-    // Back on the grid; the cart surface recaps via cart-item-steps-tree.
+    // Back on the grid; the cart sheet recaps via cart-item-steps-tree.
     await expect(page).toHaveURL(/\/products/);
-    let surface = page.locator('app-cart-panel');
-    if (!(await surface.isVisible())) {
-      await page.locator('app-cart-badge button').click();
-      surface = page.getByRole('dialog');
-    }
-    const sheet = surface;
+    await page.locator('app-cart-badge button').click();
+    const sheet = page.getByRole('dialog');
     const itemTitle = sheet.getByText(E2E_VENDOR.products.multiStep.name).first();
     await expect(itemTitle).toBeVisible();
     // The steps recap sits in a collapsed expansion panel — open it.

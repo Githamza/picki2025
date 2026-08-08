@@ -57,11 +57,7 @@ test.describe('view transitions — named moves', () => {
     );
 
     await page.locator('.add-to-cart-button').click();
-    if (await page.locator('app-cart-panel').isVisible()) {
-      // Landscape: the persistent panel replaces the badge entirely.
-      return;
-    }
-    // Portrait: the badge is guaranteed visible once an item is in the cart.
+    // The badge is guaranteed visible once an item is in the cart.
     const badge = page.locator('app-cart-badge .cart-badge');
     await badge.waitFor({ state: 'visible' });
     await expectVtName(page, 'app-cart-badge .cart-badge', 'cart-badge');

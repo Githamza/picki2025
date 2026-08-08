@@ -102,9 +102,9 @@ storefront.
 - T26: `CheckoutService` — checkout()/processPayment moved verbatim out of
   the sheet so both wrappers can submit; sheet delegates. Payment call
   paths untouched (boundary).
-- T27: Persistent cart panel on tablet-landscape/kiosk in main-layout's
-  reserved grid area; cart badge hidden there; landscape journey e2e goes
-  through the panel.
+- T27: ~~Persistent cart panel~~ — built, then REVERTED on user review
+  (2026-08-08): badge + bottom sheet on every form factor, kiosk included.
+  cart-content/CheckoutService extraction (T25/T26) retained and shared.
 - T28: Delete CartDetailsPageComponent + its commented route (pre-approved).
 
 ### Phase 6 — kiosk mode (FR4)

@@ -110,18 +110,14 @@
     </mat-sidenav>
 
     <mat-sidenav-content class="content-area">
-      <div class="content-with-cart">
-        <div class="main-content mat-rounded-medium">
-          <router-outlet></router-outlet>
-        </div>
-        <!-- FR6/FR7: persistent cart panel on landscape form factors -->
-        @if (showRail()) {
-          <app-cart-panel class="cart-panel-host"></app-cart-panel>
-        }
+      <div class="main-content mat-rounded-medium">
+        <router-outlet></router-outlet>
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
-  @if ((showCartBadge$ | async) && !showRail()) {
+  <!-- Cart entry point on every form factor (user decision 2026-08-08:
+       no persistent panel, kiosk included — the badge opens the sheet) -->
+  @if (showCartBadge$ | async) {
     <app-cart-badge></app-cart-badge>
   }
 </div>

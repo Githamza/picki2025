@@ -66,13 +66,10 @@ export async function addSimpleProductToCart(page: Page): Promise<void> {
   await page.locator('.add-to-cart-button').click();
 }
 
-/** Reach the cart surface: the persistent panel (landscape) is already
- *  open; portrait opens the bottom sheet via the floating badge. */
+/** Open the cart bottom sheet via the floating badge (every form factor —
+ *  user decision 2026-08-08: no persistent panel). */
 export async function openCartSheet(page: Page): Promise<void> {
-  const panelVisible = await page.locator('app-cart-panel').isVisible();
-  if (!panelVisible) {
-    await page.locator('app-cart-badge button').click();
-  }
+  await page.locator('app-cart-badge button').click();
   await expect(
     page.getByRole('button', { name: /valider ma commande/i })
   ).toBeVisible();

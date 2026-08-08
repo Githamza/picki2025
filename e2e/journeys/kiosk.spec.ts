@@ -7,17 +7,44 @@ import { test, expect } from '@playwright/test';
 const KIOSK_PATH = '/vendor/e2e-kiosk';
 const LANDSCAPE = ['tablet-landscape', 'kiosk-landscape'];
 
+/** Enter the kiosk storefront, tapping through the attract screen.
+ *  The attract appears only after the vendor loads — wait for it. */
+async function enterKiosk(page: import('@playwright/test').Page) {
+  await page.goto(KIOSK_PATH);
+  const attract = page.locator('app-attract-screen');
+  await attract.waitFor({ state: 'visible', timeout: 10_000 });
+  await attract.click();
+  await expect(attract).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Menus' })).toBeVisible();
+}
+
 test.describe('kiosk mode — activation and chrome', () => {
   test('kiosk-enabled vendor on landscape gets kiosk chrome', async ({
     page,
   }, testInfo) => {
     await page.goto(KIOSK_PATH);
     await expect(page).toHaveURL(/promotional-banner/);
+    const landscape = LANDSCAPE.includes(testInfo.project.name);
+
+    // FR4: the attract screen greets on load in kiosk mode only.
+    if (landscape) {
+      await page
+        .locator('app-attract-screen')
+        .waitFor({ state: 'visible', timeout: 10_000 });
+      await expect(
+        page.getByText('Touchez pour commander')
+      ).toBeVisible();
+      await page.locator('app-attract-screen').click();
+    } else {
+      // Portrait: the attract screen must never appear.
+      await expect(
+        page.getByRole('heading', { name: 'Menus' })
+      ).toBeVisible();
+      await expect(page.locator('app-attract-screen')).toHaveCount(0);
+    }
     await expect(
       page.getByRole('heading', { name: 'Menus' })
     ).toBeVisible();
-
-    const landscape = LANDSCAPE.includes(testInfo.project.name);
     const kioskClass = await page.evaluate(() =>
       document.documentElement.classList.contains('kiosk-mode')
     );
@@ -54,7 +81,7 @@ test.describe('kiosk mode — activation and chrome', () => {
       'kiosk chrome is landscape-only'
     );
 
-    await page.goto(KIOSK_PATH);
+    await enterKiosk(page);
     await page.getByRole('heading', { name: 'Menus' }).click();
     await page.getByText('Wrap Poulet').first().click();
     await page.getByRole('button', { name: /ajouter/i }).click();
@@ -69,5 +96,60 @@ test.describe('kiosk mode — activation and chrome', () => {
       'Votre panier est vide'
     );
     await expect(page).toHaveURL(/promotional-banner/);
+  });
+
+  test('idle with a full cart warns, then resets to the attract screen', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      !LANDSCAPE.includes(testInfo.project.name),
+      'kiosk chrome is landscape-only'
+    );
+
+    // Shorten the SPEC timings (60s -> 2s idle, 20s -> 2s countdown).
+    await page.addInitScript(() => {
+      (window as any).__KIOSK_IDLE_MS__ = 4000;
+      (window as any).__KIOSK_COUNTDOWN_MS__ = 2000;
+    });
+
+    await enterKiosk(page);
+    await page.getByRole('heading', { name: 'Menus' }).click();
+    await page.getByText('Wrap Poulet').first().click();
+    await page.getByRole('button', { name: /ajouter/i }).click();
+    await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
+
+    // Idle: the countdown dialog appears, expires, session resets.
+    await expect(page.getByText('Toujours là ?')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.locator('app-attract-screen')).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Next customer starts fresh.
+    await page.locator('app-attract-screen').click();
+    await expect(page.locator('app-cart-panel')).toContainText(
+      'Votre panier est vide'
+    );
+  });
+
+  test('idle with an empty cart returns to attract silently', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      !LANDSCAPE.includes(testInfo.project.name),
+      'kiosk chrome is landscape-only'
+    );
+
+    await page.addInitScript(() => {
+      (window as any).__KIOSK_IDLE_MS__ = 1500;
+    });
+
+    await enterKiosk(page);
+    await expect(page.locator('app-attract-screen')).toBeVisible({
+      timeout: 8_000,
+    });
+    // No countdown dialog for an empty cart.
+    await expect(page.getByText('Toujours là ?')).toHaveCount(0);
   });
 });

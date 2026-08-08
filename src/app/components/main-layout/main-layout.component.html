@@ -1,5 +1,9 @@
 <!-- Main Layout without overlay -->
 <div class="layout-container">
+  <!-- Kiosk attract screen (FR4): greets between customer sessions -->
+  @if (isKiosk() && attractVisible()) {
+    <app-attract-screen></app-attract-screen>
+  }
   <mat-toolbar color="primary" class="toolbar mat-elevation-z2">
     <!-- Restaurant Logo and Name -->
     @if (currentVendor$ | async; as vendor) {

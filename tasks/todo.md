@@ -223,7 +223,7 @@ Run order is top-to-bottom; dependencies noted per task.
 - [x] **T28: Delete CartDetailsPageComponent**
 - [x] **T29: kiosk_enabled migration + types + seed + admin toggle**
 - [x] **T30: KioskModeService + kiosk chrome**
-- [ ] **T31: Attract screen + idle reset**
+- [x] **T31: Attract screen + idle reset**
 - [ ] **T32: Kiosk pay-at-counter + order-number confirmation**
 - [ ] **T33: Kiosk multi-step shell**
 - [ ] **T34: Capacitor kiosk affordances**

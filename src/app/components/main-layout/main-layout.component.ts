@@ -27,6 +27,7 @@ import { LayoutService } from '../../services/layout.service';
 import { CartPanelComponent } from '../cart-panel/cart-panel.component';
 import { KioskModeService } from '../../services/kiosk-mode.service';
 import { CancelOrderDialogComponent } from '../kiosk/cancel-order-dialog/cancel-order-dialog.component';
+import { AttractScreenComponent } from '../kiosk/attract-screen/attract-screen.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -38,6 +39,7 @@ import { CancelOrderDialogComponent } from '../kiosk/cancel-order-dialog/cancel-
     CategoryMenuComponent,
     CartBadgeComponent,
     CartPanelComponent,
+    AttractScreenComponent,
 ],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss'],
@@ -61,6 +63,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   // FR4: kiosk chrome (no theme toggle, cancel-order affordance)
   readonly isKiosk = this.kioskMode.active;
+  readonly attractVisible = this.kioskMode.attractVisible;
 
   // FR2: the persistent category rail exists only on landscape form factors;
   // phone and tablet-portrait navigate via the horizontal scroller.

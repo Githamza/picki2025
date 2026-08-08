@@ -102,6 +102,10 @@ export class CheckoutService {
       const dialogData: UserInfoDialogData = {
         needsPreferenceStep,
         enabledOrderTypes,
+        // Same predicate processPayment applies: counter payment when the
+        // vendor has no online payments OR the kiosk is active (FR4a).
+        payAtCounter:
+          !(vendor?.online_payments_enabled ?? true) || this.kioskMode.active(),
         currentPreference: prefData?.preference,
         currentTiming: prefData?.timing,
         currentScheduledTime: prefData?.scheduledTime,

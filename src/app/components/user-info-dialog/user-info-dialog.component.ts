@@ -32,6 +32,9 @@ export interface UserInfo {
 export interface UserInfoDialogData {
   needsPreferenceStep: boolean;
   enabledOrderTypes: OrderType[];
+  /** True when no payment screen follows (counter payment / kiosk):
+   *  the submit button says so instead of "paiement". */
+  payAtCounter?: boolean;
   currentPreference?: OrderType | null;
   currentTiming?: 'asap' | 'later' | null;
   currentScheduledTime?: string | null;
@@ -108,7 +111,7 @@ export interface UserInfoDialogData {
 
           <form [formGroup]="userForm" class="user-form">
             <mat-form-field class="full-width">
-              <mat-label>Nom *</mat-label>
+              <mat-label>Nom</mat-label>
               <input
                 matInput
                 formControlName="nom"
@@ -125,7 +128,7 @@ export interface UserInfoDialogData {
             </mat-form-field>
 
             <mat-form-field class="full-width">
-              <mat-label>Prenom *</mat-label>
+              <mat-label>Prenom</mat-label>
               <input
                 matInput
                 formControlName="prenom"
@@ -142,7 +145,7 @@ export interface UserInfoDialogData {
             </mat-form-field>
 
             <mat-form-field class="full-width">
-              <mat-label>Email *</mat-label>
+              <mat-label>Email</mat-label>
               <input
                 matInput
                 type="email"
@@ -160,7 +163,7 @@ export interface UserInfoDialogData {
             </mat-form-field>
 
             <mat-form-field class="full-width">
-              <mat-label>Telephone *</mat-label>
+              <mat-label>Telephone</mat-label>
               <input
                 matInput
                 type="tel"
@@ -191,8 +194,12 @@ export interface UserInfoDialogData {
             [disabled]="userForm.invalid"
             type="button"
           >
-            <mat-icon>payment</mat-icon>
-            Continuer vers le paiement
+            <mat-icon>{{ dialogData.payAtCounter ? 'receipt_long' : 'payment' }}</mat-icon>
+            {{
+              dialogData.payAtCounter
+                ? 'Valider la commande'
+                : 'Continuer vers le paiement'
+            }}
           </button>
         </mat-dialog-actions>
       }

@@ -111,11 +111,18 @@ export async function checkoutPayAtCounter(page: Page): Promise<void> {
   await dialog.getByLabel(/prenom/i).fill(E2E_VENDOR.customer.prenom);
   await dialog.getByLabel(/email/i).fill(E2E_VENDOR.customer.email);
   await dialog.getByLabel(/telephone/i).fill(E2E_VENDOR.customer.phone);
-  // Label reads "paiement" even for pay-at-counter vendors (UX nit, see
-  // tasks/plan.md findings) — the click still routes to the counter branch.
-  await dialog
-    .getByRole('button', { name: /continuer vers le paiement/i })
-    .click();
+
+  // Labels must not carry a literal asterisk — Material's required
+  // marker provides it (the "Nom **" defect).
+  const starredLabels = await dialog
+    .locator('mat-label')
+    .filter({ hasText: '*' })
+    .count();
+  expect(starredLabels, 'labels must not hard-code asterisks').toBe(0);
+
+  // Pay-at-counter vendors (and kiosks) submit with honest copy — no
+  // "paiement" button when no payment screen follows.
+  await dialog.getByRole('button', { name: /valider la commande/i }).click();
 
   await expect(page).toHaveURL(/successPayment/, { timeout: 15_000 });
 }

@@ -46,10 +46,15 @@
       class="product-card"
       [class.out-of-stock]="isEffectivelyOutOfStock(product)"
       appearance="outlined"
+      role="button"
+      [attr.tabindex]="isEffectivelyOutOfStock(product) ? -1 : 0"
+      [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
+      [attr.aria-disabled]="isEffectivelyOutOfStock(product)"
       (click)="
         !isEffectivelyOutOfStock(product) && addToCart(product, $event);
         $event.stopPropagation()
       "
+      (keydown.enter)="!isEffectivelyOutOfStock(product) && addToCart(product, $event)"
     >
       <img
         mat-card-image
@@ -80,23 +85,6 @@
         <p class="out-of-stock-label">Victime de son succès</p>
         }
       </mat-card-content>
-      <mat-card-actions>
-        <button
-          mat-fab
-          color="primary"
-          class="add-to-order-fab"
-          [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
-          [disabled]="isEffectivelyOutOfStock(product)"
-          (click)="addToCart(product)"
-          [matTooltip]="
-            isEffectivelyOutOfStock(product)
-              ? 'Victime de son succès'
-              : 'Ajouter au panier'
-          "
-        >
-          <mat-icon>add</mat-icon>
-        </button>
-      </mat-card-actions>
     </mat-card>
     }
   </div>
@@ -112,7 +100,12 @@
     <div
       class="product-list-item"
       [class.out-of-stock]="isEffectivelyOutOfStock(product)"
+      role="button"
+      [attr.tabindex]="isEffectivelyOutOfStock(product) ? -1 : 0"
+      [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
+      [attr.aria-disabled]="isEffectivelyOutOfStock(product)"
       (click)="!isEffectivelyOutOfStock(product) && addToCart(product, $event)"
+      (keydown.enter)="!isEffectivelyOutOfStock(product) && addToCart(product, $event)"
     >
       <div class="product-image-container">
         <img
@@ -145,24 +138,6 @@
         } @if (isEffectivelyOutOfStock(product)) {
         <p class="out-of-stock-label">Victime de son succès</p>
         }
-      </div>
-
-      <div class="product-action">
-        <button
-          mat-mini-fab
-          color="primary"
-          class="add-button"
-          [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
-          [disabled]="isEffectivelyOutOfStock(product)"
-          (click)="addToCart(product); $event.stopPropagation()"
-          [matTooltip]="
-            isEffectivelyOutOfStock(product)
-              ? 'Victime de son succès'
-              : 'Add to order'
-          "
-        >
-          <mat-icon>add</mat-icon>
-        </button>
       </div>
     </div>
     }

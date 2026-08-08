@@ -27,6 +27,21 @@ test.describe('shell — category navigation per form factor', () => {
     await expect(page.locator('app-cart-panel')).toHaveCount(0);
   });
 
+  test('product cards carry no + button; the card itself is the control', async ({
+    page,
+  }) => {
+    // User decision 2026-08-08: the add FAB duplicated the card tap and
+    // took space. The card is the (keyboard-accessible) button.
+    await gotoStorefront(page);
+    await openCategory(page, E2E_VENDOR.categories.burgers);
+    await expect(page.locator('.add-to-order-fab')).toHaveCount(0);
+    await expect(page.locator('.product-action .add-button')).toHaveCount(0);
+    const firstCard = page
+      .locator('[role="button"][aria-label*="Burger Classique"]')
+      .first();
+    await expect(firstCard).toBeVisible();
+  });
+
   test('horizontal scroller on portrait form factors in product grid', async ({
     page,
   }, testInfo) => {

@@ -135,27 +135,6 @@
     }
   }
 
-  .add-to-order-fab {
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
-    z-index: 2;
-    box-shadow: var(--mat-sys-level2);
-
-    &[disabled] {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-
-  mat-card-actions {
-    display: flex;
-    justify-content: flex-end;
-    padding: 8px 16px 16px;
-    position: relative;
-    min-height: 56px;
-  }
-
   &:hover {
     box-shadow: var(--mat-sys-level3);
     transform: translateY(-2px);
@@ -370,4 +349,11 @@
   to {
     opacity: 0;
   }
+}
+
+/* Cards/rows are the buttons now (no + FAB): visible keyboard focus */
+.product-card:focus-visible,
+.product-list-item:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }

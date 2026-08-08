@@ -621,3 +621,57 @@
   z-index: 1000;
   background-color: var(--mat-sys-surface-container);
 }
+
+/* Kiosk one-step-per-screen shell (FR4b) */
+.kiosk-step-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .kiosk-step-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .kiosk-progress-label {
+      font: var(--mat-sys-title-large);
+      color: var(--mat-sys-on-surface);
+      white-space: nowrap;
+    }
+
+    .kiosk-progress-bar {
+      flex: 1;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--mat-sys-surface-container-highest);
+      overflow: hidden;
+
+      .kiosk-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--mat-sys-primary);
+        transition: width 0.3s ease;
+      }
+    }
+  }
+
+  .kiosk-recap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .kiosk-recap-chip {
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+      font: var(--mat-sys-label-large);
+    }
+  }
+
+  .kiosk-skip {
+    align-self: flex-end;
+    min-height: 64px;
+    padding: 0 32px;
+  }
+}

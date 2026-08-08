@@ -2,6 +2,7 @@ import {
   Component,
   OnInit,
   OnDestroy,
+  computed,
   inject,
   signal,
   Input,
@@ -15,6 +16,7 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable, Subject, combineLatest } from 'rxjs';
 import {
   takeUntil,
@@ -64,6 +66,7 @@ import { Customisation } from '../../models/customisation.interface';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
 import { ActivatedRoute } from '@angular/router';
+import { LayoutService } from '../../services/layout.service';
 
 // Interface to track customization selections per option
 interface OptionCustomisationSelection {
@@ -109,6 +112,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
   private router = inject(ActivatedRoute);
+  private layout = inject(LayoutService);
 
   // Observables
   configuration$ = this.store.select(
@@ -146,6 +150,43 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     map(([steps, index]) => (index !== null ? steps[index]?.id ?? null : null)),
     distinctUntilChanged()
   );
+
+  // ------------------------------------------------------------------
+  // Kiosk shell (FR4b): one step per screen with progress + recap strip.
+  // Same step-section engine; only the shell differs.
+  // ------------------------------------------------------------------
+  readonly isKioskShell = computed(() => this.layout.formFactor() === 'kiosk');
+
+  private readonly stepsSig = toSignal(this.steps$, {
+    initialValue: [] as ProductStep[],
+  });
+  private readonly stepIndexSig = toSignal(this.currentStepIndex$);
+  private readonly selectionsSig = toSignal(this.stepSelections$);
+
+  readonly kioskStep = computed(() => {
+    const steps = this.stepsSig();
+    const index = this.stepIndexSig();
+    return index != null ? (steps[index] ?? null) : null;
+  });
+
+  readonly kioskStepNumber = computed(() => (this.stepIndexSig() ?? 0) + 1);
+  readonly kioskStepCount = computed(() => this.stepsSig().length);
+
+  /** Previous steps' chosen option names, for the recap strip. */
+  readonly kioskRecap = computed(() => {
+    const steps = this.stepsSig();
+    const index = this.stepIndexSig() ?? 0;
+    const selections = this.selectionsSig() ?? {};
+    return steps.slice(0, index).map((step) => ({
+      name: step.name,
+      choices: step.options
+        .filter((option) =>
+          (selections[step.id]?.selectedOptionIds ?? []).includes(option.id)
+        )
+        .map((option) => option.name)
+        .join(', '),
+    }));
+  });
 
 
   // Local state

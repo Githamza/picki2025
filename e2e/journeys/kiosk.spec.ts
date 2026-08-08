@@ -209,3 +209,59 @@ test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
     );
   });
 });
+
+test.describe('kiosk combo builder — one step per screen (FR4b)', () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(
+      !LANDSCAPE.includes(testInfo.project.name),
+      'kiosk mode is landscape-only'
+    );
+  });
+
+  test('menu walks step-by-step with progress, recap, and Passer', async ({
+    page,
+  }) => {
+    await enterKiosk(page);
+    await page.getByRole('heading', { name: 'Menus' }).click();
+    await openProduct(page, 'Menu Kiosk');
+
+    // One step per screen with progress.
+    await expect(page.getByText('Étape 1 sur 3')).toBeVisible();
+    expect(await page.locator('app-step-section').count()).toBe(1);
+
+    // Choose the plat -> auto-advance, recap strip shows the choice.
+    await page.getByText('Wrap', { exact: true }).click();
+    await expect(page.getByText('Étape 2 sur 3')).toBeVisible();
+    await expect(page.locator('.kiosk-recap')).toContainText('Plat : Wrap');
+
+    // Choose the boisson -> step 3 (optional) offers Passer.
+    await page.getByText('Soda', { exact: true }).click();
+    await expect(page.getByText('Étape 3 sur 3')).toBeVisible();
+    await page.getByRole('button', { name: /passer cette étape/i }).click();
+
+    // Complete: bar enabled with the priced total (11 + 0,50 soda).
+    const addButton = page.locator('.add-to-cart-button');
+    await expect(addButton).not.toHaveClass(/visually-disabled/);
+    await expect(addButton).toContainText('11,50');
+    await addButton.click();
+    await expect(page.locator('app-cart-panel')).toContainText('Menu Kiosk');
+  });
+
+  test('Retour preserves the previous selection', async ({ page }) => {
+    await enterKiosk(page);
+    await page.getByRole('heading', { name: 'Menus' }).click();
+    await openProduct(page, 'Menu Kiosk');
+
+    await page.getByText('Wrap', { exact: true }).click();
+    await expect(page.getByText('Étape 2 sur 3')).toBeVisible();
+
+    await page.getByRole('button', { name: /retour/i }).click();
+    await expect(page.getByText('Étape 1 sur 3')).toBeVisible();
+    await expect(
+      page
+        .locator('app-product-option-card', { hasText: 'Wrap' })
+        .first()
+        .locator('.option-card')
+    ).toHaveClass(/selected/);
+  });
+});

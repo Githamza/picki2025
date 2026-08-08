@@ -10,23 +10,76 @@
       </div>
     }
 
-    <!-- Scrolling shell (FR4d): steps are vertical sections; a completed
-         section collapses to its header + chosen options. No tabs, no
-         summary step — the page itself is the recap. -->
-    <div class="steps-scroll">
-      @for (step of (visibleSteps$ | async) || []; track step.id; let i = $index) {
-        <app-step-section
-          [id]="'step-section-' + step.id"
-          [step]="step"
-          [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
-          [active]="(activeStepId$ | async) === step.id"
-          [outOfStockOptionIds]="outOfStockIdsFor(step)"
-          (optionClicked)="onOptionClicked($event)"
-          (imageClicked)="onImageClicked($event)"
-          (edit)="activateStep(i)"
-        ></app-step-section>
-      }
-    </div>
+    @if (isKioskShell()) {
+      <!-- Kiosk shell (FR4b): one step per screen, progress + recap. -->
+      <div class="kiosk-step-shell">
+        @if (kioskStep(); as step) {
+          <div class="kiosk-step-header">
+            @if (kioskStepNumber() > 1) {
+              <button mat-button (click)="goPrevious()" class="kiosk-back">
+                <mat-icon>arrow_back</mat-icon>
+                Retour
+              </button>
+            }
+            <span class="kiosk-progress-label">
+              Étape {{ kioskStepNumber() }} sur {{ kioskStepCount() }}
+            </span>
+            <div class="kiosk-progress-bar" aria-hidden="true">
+              <div
+                class="kiosk-progress-fill"
+                [style.width.%]="(kioskStepNumber() / kioskStepCount()) * 100"
+              ></div>
+            </div>
+          </div>
+
+          @if (kioskRecap().length > 0) {
+            <div class="kiosk-recap" aria-label="Vos choix">
+              @for (entry of kioskRecap(); track entry.name) {
+                @if (entry.choices) {
+                  <span class="kiosk-recap-chip">
+                    {{ entry.name }} : {{ entry.choices }}
+                  </span>
+                }
+              }
+            </div>
+          }
+
+          <app-step-section
+            [id]="'step-section-' + step.id"
+            [step]="step"
+            [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
+            [active]="true"
+            [outOfStockOptionIds]="outOfStockIdsFor(step)"
+            (optionClicked)="onOptionClicked($event)"
+            (imageClicked)="onImageClicked($event)"
+          ></app-step-section>
+
+          @if (!step.isRequired) {
+            <button mat-stroked-button class="kiosk-skip" (click)="goNext()">
+              Passer cette étape
+            </button>
+          }
+        }
+      </div>
+    } @else {
+      <!-- Scrolling shell (FR4d): steps are vertical sections; a completed
+           section collapses to its header + chosen options. No tabs, no
+           summary step — the page itself is the recap. -->
+      <div class="steps-scroll">
+        @for (step of (visibleSteps$ | async) || []; track step.id; let i = $index) {
+          <app-step-section
+            [id]="'step-section-' + step.id"
+            [step]="step"
+            [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
+            [active]="(activeStepId$ | async) === step.id"
+            [outOfStockOptionIds]="outOfStockIdsFor(step)"
+            (optionClicked)="onOptionClicked($event)"
+            (imageClicked)="onImageClicked($event)"
+            (edit)="activateStep(i)"
+          ></app-step-section>
+        }
+      </div>
+    }
 
     <!-- Comment (optional) once the configuration is complete -->
     @if (isConfigurationComplete$ | async) {

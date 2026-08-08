@@ -27,6 +27,20 @@ test.describe('shell — category navigation per form factor', () => {
     await expect(page.locator('app-cart-panel')).toHaveCount(0);
   });
 
+  test('light theme rests on white, untinted surfaces', async ({ page }) => {
+    // User decision 2026-08-09: neutral near-white surfaces; the rose
+    // tint stays only on accents (primary buttons, prices, borders).
+    await gotoStorefront(page);
+    const colors = await page.evaluate(() => ({
+      body: getComputedStyle(document.body).backgroundColor,
+      card: getComputedStyle(
+        document.querySelector('.category-card') as Element
+      ).backgroundColor,
+    }));
+    expect(colors.body).toBe('rgb(255, 255, 255)');
+    expect(colors.card).toBe('rgb(255, 255, 255)');
+  });
+
   test('product cards carry no + button; the card itself is the control', async ({
     page,
   }) => {

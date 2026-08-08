@@ -8,6 +8,10 @@
 }
 
 .toolbar {
+  /* Flat chrome (2026-08-09): a hairline instead of a drop shadow */
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: none;
+
   position: fixed;
   top: 0;
   left: 0;

@@ -84,8 +84,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
         top: 12px;
         right: 12px;
         z-index: 10;
-        background: var(--mat-sys-surface);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background: var(--mat-sys-surface-container);
       }
       .sheet-title {
         margin: 0 0 16px 0;

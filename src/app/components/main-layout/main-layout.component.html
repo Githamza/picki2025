@@ -4,7 +4,7 @@
   @if (isKiosk() && attractVisible()) {
     <app-attract-screen></app-attract-screen>
   }
-  <mat-toolbar color="primary" class="toolbar mat-elevation-z2">
+  <mat-toolbar color="primary" class="toolbar">
     <!-- Restaurant Logo and Name -->
     @if (currentVendor$ | async; as vendor) {
       <div class="brand-section" (click)="gotoRestaurantHomepage()">
@@ -103,7 +103,7 @@
     <mat-sidenav
       [mode]="isPhone() ? 'over' : 'side'"
       [opened]="menuOpened && showRail()"
-      class="sidenav mat-elevation-z1"
+      class="sidenav"
       [class.mat-rounded-medium]="!isPhone()"
     >
       <app-category-menu></app-category-menu>

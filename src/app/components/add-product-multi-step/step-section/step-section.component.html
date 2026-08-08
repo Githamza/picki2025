@@ -1,8 +1,10 @@
 <section
   class="step-section"
-  [class.step-section--active]="active()"
+  [class.step-section--active]="active() && showHeader()"
   [class.step-section--satisfied]="isSatisfied()"
+  [class.step-section--headerless]="!showHeader()"
 >
+  @if (showHeader()) {
   <button
     type="button"
     class="step-header"
@@ -24,9 +26,10 @@
       <span class="step-status storefront-body">{{ statusLabel() }}</span>
     }
   </button>
+  }
 
   @if (active()) {
-    @if (step().description) {
+    @if (showHeader() && step().description) {
       <p class="step-description storefront-body">{{ step().description }}</p>
     }
     @if (hint()) {

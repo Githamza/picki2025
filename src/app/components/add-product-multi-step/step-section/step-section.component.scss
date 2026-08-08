@@ -7,6 +7,17 @@
   &--active {
     border-color: var(--mat-sys-primary);
   }
+
+  /* Focus page: the page owns the (centered) title — the section is a
+     plain, borderless option container. */
+  &--headerless {
+    border: none;
+    background: transparent;
+
+    .selection-hint {
+      text-align: center;
+    }
+  }
 }
 
 .step-header {

@@ -622,31 +622,29 @@
   background-color: var(--mat-sys-surface-container);
 }
 
-/* Kiosk one-step-per-screen shell (FR4b) */
-.kiosk-step-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 
-  .kiosk-step-header {
+/* Focus shell (2026-08-09): one step per page, centered title,
+   no other steps on screen. Kiosk scales via .kiosk-mode type step-up. */
+.focus-shell {
+  .focus-progress {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 6px;
+    margin-bottom: 8px;
 
-    .kiosk-progress-label {
-      font: var(--mat-sys-title-large);
-      color: var(--mat-sys-on-surface);
-      white-space: nowrap;
+    .focus-progress-label {
+      color: var(--mat-sys-on-surface-variant);
     }
 
-    .kiosk-progress-bar {
-      flex: 1;
-      height: 8px;
+    .focus-progress-bar {
+      width: min(320px, 70%);
+      height: 6px;
       border-radius: 999px;
       background: var(--mat-sys-surface-container-highest);
       overflow: hidden;
 
-      .kiosk-progress-fill {
+      .focus-progress-fill {
         height: 100%;
         border-radius: 999px;
         background: var(--mat-sys-primary);
@@ -655,23 +653,30 @@
     }
   }
 
-  .kiosk-recap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+  .focus-title {
+    margin: 0 0 4px 0;
+    text-align: center;
+  }
 
-    .kiosk-recap-chip {
-      padding: 8px 16px;
-      border-radius: 999px;
-      background: var(--mat-sys-secondary-container);
-      color: var(--mat-sys-on-secondary-container);
-      font: var(--mat-sys-label-large);
+  .focus-description {
+    margin: 0 0 8px 0;
+    text-align: center;
+  }
+
+  .focus-actions {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+
+    .focus-actions-spacer {
+      flex: 1;
     }
   }
 
-  .kiosk-skip {
-    align-self: flex-end;
-    min-height: 64px;
-    padding: 0 32px;
+  .review-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
   }
 }

@@ -226,10 +226,9 @@ test.describe('kiosk combo builder — one step per screen (FR4b)', () => {
     await expect(page.getByText('Étape 1 sur 3')).toBeVisible();
     expect(await page.locator('app-step-section').count()).toBe(1);
 
-    // Choose the plat -> auto-advance, recap strip shows the choice.
+    // Choose the plat -> auto-advance to the next focus page.
     await page.getByText('Wrap', { exact: true }).click();
     await expect(page.getByText('Étape 2 sur 3')).toBeVisible();
-    await expect(page.locator('.kiosk-recap')).toContainText('Plat : Wrap');
 
     // Choose the boisson -> step 3 (optional) offers Passer.
     await page.getByText('Soda', { exact: true }).click();

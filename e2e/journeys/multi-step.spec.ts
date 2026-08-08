@@ -3,206 +3,161 @@ import { E2E_VENDOR } from '../fixtures/vendor';
 import { gotoStorefront, openCategory, openProduct } from '../fixtures/helpers';
 
 /**
- * FR4d journeys (plan T24) against the seeded "Menu Burger":
- * required single-select (auto-advance), constrained multi-select
- * (min 1 / max 2, countdown), optional step, collapse-to-choice,
- * selection preserved on modify, disabled-CTA navigation, cart recap.
+ * FR4d journeys — focus shell (user decision 2026-08-09): every step is
+ * its own page with a centered title; after the last step a review page
+ * lists the collapsed choices for editing. Auto-advance never re-opens
+ * already-chosen steps.
  */
 
 function section(page: Page, name: string): Locator {
   return page.locator('app-step-section', { hasText: name });
 }
 
-function header(page: Page, name: string): Locator {
+function reviewHeader(page: Page, name: string): Locator {
   return section(page, name).locator('.step-header');
+}
+
+async function expectFocusPage(page: Page, title: string, progress: string) {
+  await expect(page.locator('.focus-title')).toHaveText(title);
+  await expect(page.getByText(progress)).toBeVisible();
+  // One step only — nothing from other steps on screen.
+  expect(await page.locator('app-step-section').count()).toBe(1);
 }
 
 async function openMenuProduct(page: Page): Promise<void> {
   await gotoStorefront(page);
   await openCategory(page, E2E_VENDOR.categories.burgers);
   await openProduct(page, E2E_VENDOR.products.multiStep.name);
-  await expect(section(page, 'Burger').first()).toBeVisible();
+  await expectFocusPage(page, 'Burger', 'Étape 1 sur 3');
 }
 
-test.describe('multi-step product — scroll shell', () => {
-  test('single-select auto-advances and collapses to the choice', async ({
-    page,
-  }) => {
+/** Complete all three steps, landing on the review page. */
+async function completeAllSteps(page: Page): Promise<void> {
+  await page.getByText('Classique', { exact: true }).click();
+  await expectFocusPage(page, 'Accompagnements', 'Étape 2 sur 3');
+  await page.getByText('Frites', { exact: true }).click();
+  await page.getByText('Salade', { exact: true }).click();
+  await expectFocusPage(page, 'Dessert', 'Étape 3 sur 3');
+  await page.getByText('Cookie', { exact: true }).click();
+  // Review page: product title, all steps collapsed.
+  await expect(page.locator('.focus-title')).toHaveText(
+    E2E_VENDOR.products.multiStep.name
+  );
+}
+
+test.describe('multi-step product — focus shell', () => {
+  test('one step per page; single-select auto-advances', async ({ page }) => {
     await openMenuProduct(page);
-
-    // Step 1 active, steps named exactly once each.
-    await expect(header(page, 'Burger').first()).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
-
-    // Auto-advance: Accompagnements becomes the active section...
-    await expect(header(page, 'Accompagnements')).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    // ...and the Burger section collapsed to its choice with a modify affordance.
-    const burgerHeader = header(page, 'Burger').first();
-    await expect(burgerHeader).toHaveAttribute('aria-expanded', 'false');
-    await expect(burgerHeader).toContainText('Classique');
-    await expect(burgerHeader).toContainText('modifier');
+    await page.getByText('Classique', { exact: true }).click();
+    await expectFocusPage(page, 'Accompagnements', 'Étape 2 sur 3');
   });
 
-  test('multi-select enforces min/max with a countdown and price follows', async ({
+  test('multi-select: countdown, Continuer under max, auto-advance at max', async ({
     page,
   }) => {
     await openMenuProduct(page);
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
+    await page.getByText('Classique', { exact: true }).click();
 
-    const accompaniments = section(page, 'Accompagnements');
-    await accompaniments.getByText('Frites', { exact: true }).click();
-    // min satisfied (1), one more possible (max 2).
-    await expect(accompaniments.locator('.selection-hint')).toContainText(
+    await page.getByText('Frites', { exact: true }).click();
+    // min satisfied (1 of max 2): countdown + explicit Continuer.
+    await expect(page.locator('.selection-hint')).toContainText(
       'Encore 1 choix possible'
     );
+    await expect(
+      page.getByRole('button', { name: 'Continuer' })
+    ).toBeVisible();
 
-    await accompaniments.getByText('Onion rings', { exact: true }).click();
-    // Max reached → auto-advance to the optional Dessert step.
-    await expect(header(page, 'Dessert')).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
+    await page.getByText('Onion rings', { exact: true }).click();
+    // Max reached → auto-advance to the optional Dessert page.
+    await expectFocusPage(page, 'Dessert', 'Étape 3 sur 3');
 
-    // Price delta (+0,50 on onion rings) lands in the bar total: 12,50.
+    // Price delta (+0,50) lands in the bar total: 12,50.
     await expect(page.locator('.add-to-cart-button')).toContainText('12,50');
   });
 
-  test('modify reopens a step with the selection preserved', async ({
+  test('Retour returns one page with the selection preserved', async ({
     page,
   }) => {
     await openMenuProduct(page);
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
-    await expect(header(page, 'Accompagnements')).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
+    await page.getByText('Classique', { exact: true }).click();
+    await expectFocusPage(page, 'Accompagnements', 'Étape 2 sur 3');
 
-    await header(page, 'Burger').first().click();
-    await expect(header(page, 'Burger').first()).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    // Selection preserved on the reopened step.
+    await page.getByRole('button', { name: /retour/i }).click();
+    await expectFocusPage(page, 'Burger', 'Étape 1 sur 3');
     await expect(
-      section(page, 'Burger')
+      page
         .locator('app-product-option-card', { hasText: 'Classique' })
         .locator('.option-card')
     ).toHaveClass(/selected/);
   });
 
-  test('disabled add-to-cart navigates to the first incomplete step', async ({
+  test('review page: edit a step without re-walking the flow', async ({
     page,
   }) => {
     await openMenuProduct(page);
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
-    await expect(header(page, 'Accompagnements')).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    // Wander off to the optional step, leaving Accompagnements incomplete.
-    await header(page, 'Dessert').click();
-    await expect(header(page, 'Dessert')).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-
-    await page.locator('.add-to-cart-button').click();
-    // No navigation; the blocking step is re-activated instead.
-    await expect(page).toHaveURL(/\/product\//);
-    await expect(header(page, 'Accompagnements')).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-  });
-
-  test('quantity x2 adds two to the basket', async ({ page }) => {
-    await openMenuProduct(page);
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
-    const accompaniments = section(page, 'Accompagnements');
-    await accompaniments.getByText('Frites', { exact: true }).click();
-    await accompaniments.getByText('Salade', { exact: true }).click();
-    await section(page, 'Dessert').getByText('Cookie', { exact: true }).click();
-
-    // Bump quantity to 2 in the bar, then add.
-    await page.locator('.quantity-button', { has: page.locator('mat-icon', { hasText: 'add' }) }).click();
-    await expect(page.locator('.add-to-cart-button')).toContainText('27,00');
-    await page.locator('.add-to-cart-button').click();
-
-    // The badge counts 2 items.
-    await expect(page).toHaveURL(/\/products/);
-    await expect(page.locator('app-cart-badge')).toContainText('(2)');
-  });
-
-  test('editing a completed step does not re-walk the remaining steps', async ({
-    page,
-  }) => {
-    await openMenuProduct(page);
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
-    const accompaniments = section(page, 'Accompagnements');
-    await accompaniments.getByText('Frites', { exact: true }).click();
-    await accompaniments.getByText('Salade', { exact: true }).click();
-    await section(page, 'Dessert').getByText('Cookie', { exact: true }).click();
-    // Everything chosen -> all sections collapsed. Let the auto-advance
-    // timer settle before editing so the click can't race it.
-    await expect(page.locator('.comment-section')).toBeVisible();
+    await completeAllSteps(page);
     await page.waitForTimeout(500);
 
-    // Edit the first step and change the choice…
-    await header(page, 'Burger').first().click();
-    await expect(header(page, 'Burger').first()).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    await section(page, 'Burger')
-      .getByText('Double steak', { exact: true })
-      .click();
-
-    // …the flow returns to "all done": no step re-opens, the edited
-    // header shows the new choice, comment + enabled bar are back.
-    // (Let the 300ms auto-advance timer fire before asserting.)
-    await page.waitForTimeout(800);
-    await expect(header(page, 'Burger').first()).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
-    await expect(header(page, 'Burger').first()).toContainText('Double steak');
-    await expect(header(page, 'Accompagnements')).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
+    // The review page shows every collapsed choice with a modify affordance.
+    await expect(reviewHeader(page, 'Burger')).toContainText('Classique');
+    await expect(reviewHeader(page, 'Burger')).toContainText('modifier');
     await expect(page.locator('.comment-section')).toBeVisible();
+
+    // Edit Burger → its focus page, selection preserved.
+    await reviewHeader(page, 'Burger').click();
+    await expectFocusPage(page, 'Burger', 'Étape 1 sur 3');
+
+    // Change the choice → straight back to the review page (no re-walk).
+    await page.getByText('Double steak', { exact: true }).click();
+    await page.waitForTimeout(800);
+    await expect(page.locator('.focus-title')).toHaveText(
+      E2E_VENDOR.products.multiStep.name
+    );
+    await expect(reviewHeader(page, 'Burger')).toContainText('Double steak');
     await expect(page.locator('.add-to-cart-button')).not.toHaveClass(
       /visually-disabled/
     );
   });
 
+  test('disabled add-to-cart keeps the customer on the blocking step', async ({
+    page,
+  }) => {
+    await openMenuProduct(page);
+    await page.getByText('Classique', { exact: true }).click();
+    await expectFocusPage(page, 'Accompagnements', 'Étape 2 sur 3');
+
+    // Nothing selected on a required step: the bar tap must not navigate
+    // away — the blocking step stays (or becomes) the focus page.
+    await page.locator('.add-to-cart-button').click();
+    await expect(page).toHaveURL(/\/product\//);
+    await expectFocusPage(page, 'Accompagnements', 'Étape 2 sur 3');
+  });
+
+  test('quantity x2 adds two to the basket', async ({ page }) => {
+    await openMenuProduct(page);
+    await completeAllSteps(page);
+
+    await page
+      .locator('.quantity-button', {
+        has: page.locator('mat-icon', { hasText: 'add' }),
+      })
+      .click();
+    await expect(page.locator('.add-to-cart-button')).toContainText('27,00');
+    await page.locator('.add-to-cart-button').click();
+
+    await expect(page).toHaveURL(/\/products/);
+    await expect(page.locator('app-cart-badge')).toContainText('(2)');
+  });
+
   test('completes, and the cart recaps the steps', async ({ page }) => {
     await openMenuProduct(page);
-    await section(page, 'Burger').getByText('Classique', { exact: true }).click();
-    const accompaniments = section(page, 'Accompagnements');
-    await accompaniments.getByText('Frites', { exact: true }).click();
-    await accompaniments.getByText('Salade', { exact: true }).click();
-
-    // Choosing on the LAST step collapses it and reveals the comment area.
-    await section(page, 'Dessert').getByText('Cookie', { exact: true }).click();
-    await expect(header(page, 'Dessert')).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
+    await completeAllSteps(page);
     await expect(page.locator('.comment-section')).toBeVisible();
 
     const addButton = page.locator('.add-to-cart-button');
     await expect(addButton).not.toHaveClass(/visually-disabled/);
     await addButton.click();
 
-    // Back on the grid; the cart sheet recaps via cart-item-steps-tree.
     await expect(page).toHaveURL(/\/products/);
     await page.locator('app-cart-badge button').click();
     const sheet = page.getByRole('dialog');

@@ -152,41 +152,61 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   );
 
   // ------------------------------------------------------------------
-  // Kiosk shell (FR4b): one step per screen with progress + recap strip.
-  // Same step-section engine; only the shell differs.
+  // Focus shell (user decision 2026-08-09): ONE step per page on every
+  // form factor — centered title, no other steps visible. After the last
+  // step, a review page lists the collapsed choices for editing.
   // ------------------------------------------------------------------
-  readonly isKioskShell = computed(() => this.layout.formFactor() === 'kiosk');
-
   private readonly stepsSig = toSignal(this.steps$, {
     initialValue: [] as ProductStep[],
   });
   private readonly stepIndexSig = toSignal(this.currentStepIndex$);
   private readonly selectionsSig = toSignal(this.stepSelections$);
 
-  readonly kioskStep = computed(() => {
+  readonly focusStep = computed(() => {
     const steps = this.stepsSig();
     const index = this.stepIndexSig();
     return index != null ? (steps[index] ?? null) : null;
   });
 
-  readonly kioskStepNumber = computed(() => (this.stepIndexSig() ?? 0) + 1);
-  readonly kioskStepCount = computed(() => this.stepsSig().length);
+  readonly focusStepNumber = computed(() => (this.stepIndexSig() ?? 0) + 1);
+  readonly focusStepCount = computed(() => this.stepsSig().length);
 
-  /** Previous steps' chosen option names, for the recap strip. */
-  readonly kioskRecap = computed(() => {
-    const steps = this.stepsSig();
-    const index = this.stepIndexSig() ?? 0;
-    const selections = this.selectionsSig() ?? {};
-    return steps.slice(0, index).map((step) => ({
-      name: step.name,
-      choices: step.options
-        .filter((option) =>
-          (selections[step.id]?.selectedOptionIds ?? []).includes(option.id)
-        )
-        .map((option) => option.name)
-        .join(', '),
-    }));
+  private readonly focusSelection = computed(() => {
+    const step = this.focusStep();
+    if (!step) return { count: 0, isValid: false };
+    const selection = (this.selectionsSig() ?? {})[step.id];
+    return {
+      count: selection?.selectedOptionIds?.length ?? 0,
+      isValid: selection?.isValid ?? false,
+    };
   });
+
+  /** "Continuer" for a satisfied multi-select below its max (single-select
+   *  and maxed multi-select auto-advance; empty optional gets "Passer"). */
+  readonly showContinue = computed(() => {
+    const step = this.focusStep();
+    const { count, isValid } = this.focusSelection();
+    return (
+      !!step &&
+      step.stepType === 'multi-select' &&
+      isValid &&
+      count > 0 &&
+      count < step.maxSelections
+    );
+  });
+
+  readonly showSkip = computed(() => {
+    const step = this.focusStep();
+    const { count } = this.focusSelection();
+    return !!step && !step.isRequired && count === 0;
+  });
+
+  continueToNext(): void {
+    const step = this.focusStep();
+    if (step) {
+      this.advanceAfterSelection(step);
+    }
+  }
 
 
   // Local state
@@ -256,8 +276,10 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       .subscribe((stepId) => {
         if (stepId === null) return;
         setTimeout(() => {
+          // Anchor the whole focus page (progress + centered title), not
+          // the section — otherwise the header scrolls out of view.
           document
-            .getElementById(`step-section-${stepId}`)
+            .querySelector('.focus-shell')
             ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
       });

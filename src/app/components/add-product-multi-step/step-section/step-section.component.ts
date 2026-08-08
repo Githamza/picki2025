@@ -68,6 +68,8 @@ export class StepSectionComponent {
   readonly step = input.required<ProductStep>();
   readonly selectedOptionIds = input<number[]>([]);
   readonly active = input(false);
+  /** Focus pages render their own centered title — hide the header row. */
+  readonly showHeader = input(true);
   /** Option ids rendered as out of stock (parent owns cart/stock math). */
   readonly outOfStockOptionIds = input<number[]>([]);
 

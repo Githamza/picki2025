@@ -528,7 +528,7 @@ FR6 (purchase-flow friction) is delivered incrementally across Phases 3, 5, and 
 | 6 | Accessibility | WCAG 2.1 AA is a requirement | FR8 |
 | 7 | Language | French-only, no i18n scaffolding | FR9 |
 | 8 | Kiosk references | Combo builder ✅, order-number ticket ✅, **upsells cut** | FR4b, FR4a, FR4c |
-| 9 | Multi-step product UX (replace tabs + summary step) | Hybrid: scrolling page on phone/tablet-portrait, one step per screen on kiosk/landscape, one shared step-section component | FR4d |
+| 9 | Multi-step product UX (replace tabs + summary step) | ~~Hybrid scroll/step shells~~ → **superseded 2026-08-09 after use**: ONE focus shell on every form factor — each step is its own page (centered title, zero other-step context), then a review page of collapsed choices for editing | FR4d |
 
 Three of the #8 items turned out to be largely built already, which is why kiosk scope is smaller than it first looked:
 

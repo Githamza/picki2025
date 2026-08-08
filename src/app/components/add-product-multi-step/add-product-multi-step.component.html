@@ -1,77 +1,69 @@
 @if (configuration$ | async; as configuration) {
-  <div class="multi-step-container">
-    <!-- Product Header — title only; the running total lives in the
-         add-to-cart bar (FR4d: price appears exactly once per view) -->
-    @if (baseProduct$ | async; as product) {
-      <div class="product-header">
-        <h2 class="product-title storefront-section-title">
-          {{ product.name }}
-        </h2>
+  <div class="multi-step-container focus-shell">
+    @if (focusStep(); as step) {
+      <!-- FOCUS PAGE (user decision 2026-08-09): one step per page,
+           centered title, nothing from other steps on screen. -->
+      <div class="focus-progress">
+        <span class="focus-progress-label storefront-body">
+          Étape {{ focusStepNumber() }} sur {{ focusStepCount() }}
+        </span>
+        <div class="focus-progress-bar" aria-hidden="true">
+          <div
+            class="focus-progress-fill"
+            [style.width.%]="(focusStepNumber() / focusStepCount()) * 100"
+          ></div>
+        </div>
       </div>
-    }
 
-    @if (isKioskShell()) {
-      <!-- Kiosk shell (FR4b): one step per screen, progress + recap. -->
-      <div class="kiosk-step-shell">
-        @if (kioskStep(); as step) {
-          <div class="kiosk-step-header">
-            @if (kioskStepNumber() > 1) {
-              <button mat-button (click)="goPrevious()" class="kiosk-back">
-                <mat-icon>arrow_back</mat-icon>
-                Retour
-              </button>
-            }
-            <span class="kiosk-progress-label">
-              Étape {{ kioskStepNumber() }} sur {{ kioskStepCount() }}
-            </span>
-            <div class="kiosk-progress-bar" aria-hidden="true">
-              <div
-                class="kiosk-progress-fill"
-                [style.width.%]="(kioskStepNumber() / kioskStepCount()) * 100"
-              ></div>
-            </div>
-          </div>
+      <h2 class="focus-title storefront-section-title">{{ step.name }}</h2>
+      @if (step.description) {
+        <p class="focus-description storefront-body">{{ step.description }}</p>
+      }
 
-          @if (kioskRecap().length > 0) {
-            <div class="kiosk-recap" aria-label="Vos choix">
-              @for (entry of kioskRecap(); track entry.name) {
-                @if (entry.choices) {
-                  <span class="kiosk-recap-chip">
-                    {{ entry.name }} : {{ entry.choices }}
-                  </span>
-                }
-              }
-            </div>
-          }
+      <app-step-section
+        [id]="'step-section-' + step.id"
+        [step]="step"
+        [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
+        [active]="true"
+        [showHeader]="false"
+        [outOfStockOptionIds]="outOfStockIdsFor(step)"
+        (optionClicked)="onOptionClicked($event)"
+        (imageClicked)="onImageClicked($event)"
+      ></app-step-section>
 
-          <app-step-section
-            [id]="'step-section-' + step.id"
-            [step]="step"
-            [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
-            [active]="true"
-            [outOfStockOptionIds]="outOfStockIdsFor(step)"
-            (optionClicked)="onOptionClicked($event)"
-            (imageClicked)="onImageClicked($event)"
-          ></app-step-section>
-
-          @if (!step.isRequired) {
-            <button mat-stroked-button class="kiosk-skip" (click)="goNext()">
-              Passer cette étape
-            </button>
-          }
+      <div class="focus-actions">
+        @if (focusStepNumber() > 1) {
+          <button mat-button class="focus-back" (click)="goPrevious()">
+            <mat-icon>arrow_back</mat-icon>
+            Retour
+          </button>
+        }
+        <span class="focus-actions-spacer"></span>
+        @if (showContinue()) {
+          <button mat-flat-button color="primary" (click)="continueToNext()">
+            Continuer
+          </button>
+        } @else if (showSkip()) {
+          <button mat-stroked-button (click)="continueToNext()">
+            Passer cette étape
+          </button>
         }
       </div>
     } @else {
-      <!-- Scrolling shell (FR4d): steps are vertical sections; a completed
-           section collapses to its header + chosen options. No tabs, no
-           summary step — the page itself is the recap. -->
-      <div class="steps-scroll">
+      <!-- REVIEW PAGE: every choice collapsed, tap to edit (FR4d — the
+           page is the recap; editing returns here, never re-walks). -->
+      @if (baseProduct$ | async; as product) {
+        <h2 class="focus-title storefront-section-title">
+          {{ product.name }}
+        </h2>
+      }
+      <div class="review-steps">
         @for (step of (visibleSteps$ | async) || []; track step.id; let i = $index) {
           <app-step-section
             [id]="'step-section-' + step.id"
             [step]="step"
             [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
-            [active]="(activeStepId$ | async) === step.id"
+            [active]="false"
             [outOfStockOptionIds]="outOfStockIdsFor(step)"
             (optionClicked)="onOptionClicked($event)"
             (imageClicked)="onImageClicked($event)"
@@ -79,25 +71,25 @@
           ></app-step-section>
         }
       </div>
-    }
 
-    <!-- Comment (optional) once the configuration is complete -->
-    @if (isConfigurationComplete$ | async) {
-      <div class="comment-section">
-        <mat-form-field class="comment-field">
-          <mat-label>Commentaires (optionnel)</mat-label>
-          <textarea
-            matInput
-            [ngModel]="comment()"
-            (ngModelChange)="comment.set($event)"
-            placeholder="Ex: Sans sauce épicée, cuisson bien cuite, légumes à part..."
-            rows="3"
-            maxlength="500"
-          >
-          </textarea>
-          <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
-        </mat-form-field>
-      </div>
+      <!-- Comment (optional) once the configuration is complete -->
+      @if (isConfigurationComplete$ | async) {
+        <div class="comment-section">
+          <mat-form-field class="comment-field">
+            <mat-label>Commentaires (optionnel)</mat-label>
+            <textarea
+              matInput
+              [ngModel]="comment()"
+              (ngModelChange)="comment.set($event)"
+              placeholder="Ex: Sans sauce épicée, cuisson bien cuite, légumes à part..."
+              rows="3"
+              maxlength="500"
+            >
+            </textarea>
+            <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
+          </mat-form-field>
+        </div>
+      }
     }
 
     <!-- Always-visible bar: disabled until required steps are satisfied.

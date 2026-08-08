@@ -26,6 +26,7 @@ import { PaymentService } from './payment.service';
 import { PaymentRequest } from './payment-strategy.interface';
 import { OrdersService } from './orders.service';
 import { DeliverySelectionService } from './delivery/delivery-selection.service';
+import { KioskModeService } from './kiosk-mode.service';
 import { getDefaultVatRate } from '../shared/utils/vat-rates.util';
 import { generateOrderNumber } from '../shared/utils/order-number.util';
 
@@ -56,6 +57,7 @@ export class CheckoutService {
   private readonly vendorService = inject(VendorService);
   private readonly deliverySelection = inject(DeliverySelectionService);
   private readonly diningPreferenceService = inject(DiningPreferenceService);
+  private readonly kioskMode = inject(KioskModeService);
 
   private readonly cartItems$ = this.store.select(selectCartItems);
   private readonly appliedCoupon = toSignal(
@@ -194,7 +196,10 @@ export class CheckoutService {
       const currentVendor = this.vendorService.getCurrentVendor();
       const onlinePaymentsEnabled =
         currentVendor?.online_payments_enabled ?? true;
-      const payAtCheckout = !onlinePaymentsEnabled;
+      // FR4a: kiosk orders are ALWAYS paid at the counter, even when the
+      // vendor has online payments enabled. Stripe/PayGreen are never
+      // entered from a kiosk.
+      const payAtCheckout = !onlinePaymentsEnabled || this.kioskMode.active();
 
       // Choose payment provider based on vendor preference + Stripe configuration
       if (!payAtCheckout) {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -16,6 +16,7 @@ import { PaygreenConfigService } from '../../services/paygreen-config.service';
 import { interval, Subscription } from 'rxjs';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
+import { KioskModeService } from '../../services/kiosk-mode.service';
 import { EmailService } from '../../services/email.service';
 import { MapLocationViewerComponent } from '../../shared/components/map-location-viewer/map-location-viewer.component';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
@@ -33,6 +34,24 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
     VendorCurrencyPipe,
   ],
   template: `
+    <!-- FR4a: kiosk full-screen confirmation — giant order number,
+         pay-at-counter instruction, auto-return to the attract screen. -->
+    @if (kioskMode.active() && orderDetails?.payAtCheckout) {
+      <div class="kiosk-confirmation">
+        <mat-icon class="kiosk-confirmation-icon">receipt_long</mat-icon>
+        <p class="kiosk-confirmation-label">Votre numéro de commande</p>
+        <p class="kiosk-order-number">{{ orderDetails?.orderNumber }}</p>
+        <p class="kiosk-confirmation-instruction">
+          Payez au comptoir en donnant ce numéro.
+        </p>
+        <button mat-flat-button color="primary" (click)="finishKioskOrder()">
+          Terminer
+        </button>
+        <p class="kiosk-return-hint">
+          Retour à l'accueil dans {{ kioskReturnSeconds() }} s
+        </p>
+      </div>
+    }
     <div class="payment-container">
       <mat-card class="payment-card">
         <mat-card-content>
@@ -280,6 +299,48 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
   `,
   styles: [
     `
+      .kiosk-confirmation {
+        position: fixed;
+        inset: 0;
+        z-index: 1500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background: var(--mat-sys-surface);
+        text-align: center;
+        padding: 32px;
+      }
+      .kiosk-confirmation-icon {
+        font-size: 72px;
+        width: 72px;
+        height: 72px;
+        color: var(--mat-sys-primary);
+      }
+      .kiosk-confirmation-label {
+        margin: 0;
+        font: var(--mat-sys-headline-small);
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .kiosk-order-number {
+        margin: 0;
+        font: var(--mat-sys-display-large);
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--mat-sys-primary);
+      }
+      .kiosk-confirmation-instruction {
+        margin: 0;
+        font: var(--mat-sys-headline-small);
+        color: var(--mat-sys-on-surface);
+      }
+      .kiosk-return-hint {
+        margin: 8px 0 0 0;
+        font: var(--mat-sys-body-medium);
+        color: var(--mat-sys-on-surface-variant);
+      }
+
       .payment-container {
         min-height: 100vh;
         display: flex;
@@ -656,6 +717,11 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   private paygreenConfig = inject(PaygreenConfigService);
   private vendorNavigation = inject(VendorNavigationService);
   private vendorService = inject(VendorService);
+  protected kioskMode = inject(KioskModeService);
+
+  // FR4a: kiosk confirmation auto-returns to the attract screen.
+  readonly kioskReturnSeconds = signal(0);
+  private kioskReturnTimer?: ReturnType<typeof setInterval>;
   private emailService = inject(EmailService);
   private sanitizer = inject(DomSanitizer);
 
@@ -705,6 +771,37 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     if (this.autoRefreshSubscription) {
       this.autoRefreshSubscription.unsubscribe();
     }
+    if (this.kioskReturnTimer) {
+      clearInterval(this.kioskReturnTimer);
+    }
+  }
+
+  /** FR4a: countdown then end the kiosk session (attract screen returns). */
+  private startKioskAutoReturn(): void {
+    if (!this.kioskMode.active() || this.kioskReturnTimer) {
+      return;
+    }
+    const totalMs =
+      Number((window as any).__KIOSK_CONFIRM_MS__) > 0
+        ? Number((window as any).__KIOSK_CONFIRM_MS__)
+        : 12_000;
+    this.kioskReturnSeconds.set(Math.ceil(totalMs / 1000));
+    this.kioskReturnTimer = setInterval(() => {
+      const next = this.kioskReturnSeconds() - 1;
+      this.kioskReturnSeconds.set(next);
+      if (next <= 0) {
+        this.finishKioskOrder();
+      }
+    }, 1000);
+  }
+
+  finishKioskOrder(): void {
+    if (this.kioskReturnTimer) {
+      clearInterval(this.kioskReturnTimer);
+      this.kioskReturnTimer = undefined;
+    }
+    this.kioskMode.endSession();
+    this.vendorNavigation.navigateWithVendor('promotional-banner');
   }
 
   private startOrderStatusRefresh() {
@@ -850,6 +947,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       this.orderId = order.id;
       this.orderDetails = order;
       this.orderNumber = order.orderNumber;
+      this.startKioskAutoReturn();
       this.paymentDetails = result.payment;
 
       // Send confirmation email; the server already claimed the sent flag,
@@ -1022,6 +1120,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         this.orderDetails = order;
         this.orderNumber = order.orderNumber;
         this.orderId = orderId;
+        this.startKioskAutoReturn();
 
         // Start auto-refresh for order status
         this.startOrderStatusRefresh();

@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { E2E_VENDOR } from '../fixtures/vendor';
+import { blockPaymentProviders, checkoutPayAtCounter } from '../fixtures/helpers';
 
 /**
  * Kiosk mode (SPEC.md FR4, plan T30+): activation matrix and chrome.
@@ -151,5 +153,52 @@ test.describe('kiosk mode — activation and chrome', () => {
     });
     // No countdown dialog for an empty cart.
     await expect(page.getByText('Toujours là ?')).toHaveCount(0);
+  });
+});
+
+test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(
+      !LANDSCAPE.includes(testInfo.project.name),
+      'kiosk mode is landscape-only'
+    );
+  });
+
+  test('kiosk order never reaches a payment provider and shows the number screen', async ({
+    page,
+  }) => {
+    // Shorten the confirmation auto-return (12s -> 4s).
+    await page.addInitScript(() => {
+      (window as any).__KIOSK_CONFIRM_MS__ = 4000;
+    });
+    const leaked = await blockPaymentProviders(page);
+
+    await enterKiosk(page);
+    await page.getByRole('heading', { name: 'Menus' }).click();
+    await page.getByText('Wrap Poulet').first().click();
+    await page.getByRole('button', { name: /ajouter/i }).click();
+    await expect(page.locator('app-cart-panel')).toContainText('Wrap Poulet');
+
+    // The vendor has online payments ENABLED — kiosk must still go to
+    // the counter branch and land on successPayment.
+    await checkoutPayAtCounter(page);
+
+    // Full-screen order-number confirmation.
+    await expect(page.locator('.kiosk-confirmation')).toBeVisible();
+    await expect(page.locator('.kiosk-order-number')).toHaveText(
+      /\d{6}-\d{6}/
+    );
+    await expect(page.getByText('Payez au comptoir', { exact: false })).toBeVisible();
+
+    expect(leaked, 'kiosk order must not call payment providers').toEqual([]);
+
+    // Auto-return: attract screen greets the next customer, cart empty.
+    await expect(page.locator('app-attract-screen')).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.locator('app-attract-screen').click();
+    await expect(page.locator('app-cart-panel')).toContainText(
+      'Votre panier est vide'
+    );
   });
 });

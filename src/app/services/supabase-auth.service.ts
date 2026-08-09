@@ -1121,6 +1121,7 @@ export class SupabaseAuthService implements OnDestroy {
       .from('categories')
       .insert({
         name: categoryData.name,
+        category_type: categoryData.category_type ?? null,
         description: categoryData.description,
         image_url: categoryData.image_url || null,
         is_active: categoryData.is_active ?? true,
@@ -1139,6 +1140,7 @@ export class SupabaseAuthService implements OnDestroy {
       .from('categories')
       .update({
         name: categoryData.name,
+        category_type: categoryData.category_type ?? null,
         description: categoryData.description,
         image_url: categoryData.image_url || null,
         is_active: categoryData.is_active,

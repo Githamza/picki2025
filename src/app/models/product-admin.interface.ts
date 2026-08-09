@@ -40,6 +40,7 @@ export interface ProductStep {
 export interface Category {
   id: number;
   name: string;
+  category_type: string | null;
   description: string | null;
   is_active: boolean | null;
   display_order: number | null;

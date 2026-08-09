@@ -23,6 +23,7 @@ import {
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -44,6 +45,10 @@ import {
   ProductAdmin,
   Category,
 } from '../../../models/product-admin.interface';
+import {
+  CATEGORY_TYPES,
+  categoryTypeLabel,
+} from '../../../models/category-type.model';
 
 // Shared Components
 import { ImageUploadComponent } from '../../../shared/components';
@@ -134,7 +139,17 @@ import { ImageUploadComponent } from '../../../shared/components';
                         "
                       ></div>
                     </div>
-
+                    <span
+                      class="type-chip"
+                      *ngIf="typeLabel(category.category_type) as label"
+                      >{{ label }}</span
+                    >
+                    <span
+                      class="type-chip type-chip-missing"
+                      *ngIf="!category.category_type"
+                      matTooltip="Choisissez un type pour activer les suggestions (ventes additionnelles)"
+                      >Type manquant</span
+                    >
                   </div>
                 </div>
               </mat-panel-title>
@@ -464,6 +479,19 @@ import { ImageUploadComponent } from '../../../shared/components';
       .chip-count {
         color: var(--mat-sys-on-secondary-container);
         font: var(--mat-sys-label-small);
+      }
+
+      .type-chip {
+        font: var(--mat-sys-label-small);
+        color: var(--mat-sys-on-surface-variant);
+        background: var(--mat-sys-surface-container-highest);
+        border-radius: var(--mat-sys-corner-full);
+        padding: 2px 10px;
+      }
+
+      .type-chip-missing {
+        color: var(--mat-sys-on-tertiary-container);
+        background: var(--mat-sys-tertiary-container);
       }
 
       /* ===== Category Content ===== */
@@ -1120,6 +1148,10 @@ export class CategoryListComponent implements OnInit, OnDestroy {
   trackByProductId(index: number, product: ProductAdmin): number {
     return product.id;
   }
+
+  typeLabel(value: string | null | undefined): string | null {
+    return categoryTypeLabel(value);
+  }
 }
 
 // Category Edit Dialog Component
@@ -1132,6 +1164,7 @@ export class CategoryListComponent implements OnInit, OnDestroy {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatButtonModule,
     MatSlideToggleModule,
     MatIconModule,
@@ -1150,6 +1183,23 @@ export class CategoryListComponent implements OnInit, OnDestroy {
           <input matInput formControlName="name" placeholder="Ex: Boissons" />
           <mat-error *ngIf="categoryForm.get('name')?.hasError('required')">
             Le nom est requis
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill">
+          <mat-label>Type de catégorie</mat-label>
+          <mat-select formControlName="category_type">
+            <mat-option
+              *ngFor="let type of categoryTypes"
+              [value]="type.value"
+              >{{ type.label }}</mat-option
+            >
+          </mat-select>
+          <mat-hint>Détermine les suggestions proposées aux clients</mat-hint>
+          <mat-error
+            *ngIf="categoryForm.get('category_type')?.hasError('required')"
+          >
+            Le type est requis
           </mat-error>
         </mat-form-field>
 
@@ -1271,6 +1321,7 @@ export class CategoryEditDialogComponent implements OnInit {
   isEditMode = false;
   saving = false;
   vendorId: string = this.data.vendorId || '';
+  categoryTypes = CATEGORY_TYPES;
 
   constructor() {
     this.categoryForm = this.createForm();
@@ -1286,6 +1337,7 @@ export class CategoryEditDialogComponent implements OnInit {
   createForm(): FormGroup {
     return this.fb.group({
       name: ['', [Validators.required]],
+      category_type: [null, [Validators.required]],
       description: [''],
       image_url: [''],
       display_order: [0],

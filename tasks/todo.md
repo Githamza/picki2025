@@ -19,7 +19,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `supabase/seed.sql`
   - Dependencies: T1 · **Size: S**
 
-- [ ] **T3: Category admin — type select**
+- [x] **T3: Category admin — type select**
   - Acceptance: category create/edit UI gains a required-on-create select with French labels (Entrée, Plat, Boisson, Dessert, Sauce, Accompagnement, Autre); editing an untyped category prompts for the type; category list shows a subtle hint on untyped rows; value persists through the existing category service path.
   - Verify: `npm test` (new component spec for required-on-create); manual create + edit in admin.
   - Files: category dialog/component under `src/app/components/product-manager/`, category model/service mapping (2–3 files)

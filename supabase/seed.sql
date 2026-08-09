@@ -136,6 +136,39 @@ insert into public.product_step_options
   (9307, 'e2e00000-0000-4000-8000-000000000001', 'Muffin',         null, 2, 'component', 1.50, array[9203]);
 
 -- ---------------------------------------------------------------------------
+-- Upsell fixtures (SPEC-UPSELL.md, T2)
+--   E2E Cafe gets typed categories so the pool derives (boisson + dessert);
+--   the kiosk vendor deliberately keeps untyped categories so the
+--   "no typed categories -> zero upsell UI" e2e run has a target.
+-- ---------------------------------------------------------------------------
+update public.categories set category_type = 'plat'    where id = 9001;
+update public.categories set category_type = 'boisson' where id = 9002;
+
+insert into public.categories (id, name, description, display_order, is_active, "vendorId", image_url, category_type) values
+  (9004, 'Desserts', 'Douceurs maison', 3, true, 'e2e00000-0000-4000-8000-000000000001',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%23d35400"/></svg>', 'dessert');
+
+insert into public.products
+  (id, name, short_description, price, category_id, display_order,
+   is_available, is_multi_step, has_customisations, stock_quantity, vendor_id, image_url) values
+  -- Second in-stock drink so the pool strip renders >1 item deterministically.
+  (9107, 'Eau minérale', '50cl', 2.00, 9002, 3,
+   true, false, false, null, 'e2e00000-0000-4000-8000-000000000001',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%237fb3d5"/></svg>'),
+  (9108, 'Tiramisu', 'Mascarpone et café', 4.50, 9004, 1,
+   true, false, false, null, 'e2e00000-0000-4000-8000-000000000001',
+   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%23935116"/></svg>');
+
+-- Product-linked option: "Menu Burger" (9103) contains "Burger Classique"
+-- (9101), so adding the plain burger triggers the convert-to-menu offer.
+insert into public.product_step_options
+  (id, vendor_id, name, description, display_order, option_type,
+   price_adjustment, product_id, step_ids) values
+-- Name deliberately avoids the substring "Classique": the existing multi-step
+-- e2e filters options with hasText 'Classique' (substring match).
+  (9314, 'e2e00000-0000-4000-8000-000000000001', 'Burger maison', 'Notre burger signature', 3, 'product', 0, 9101, array[9201]);
+
+-- ---------------------------------------------------------------------------
 -- Kiosk vendor catalog: one category, one simple product, one menu (combo)
 -- ---------------------------------------------------------------------------
 insert into public.categories (id, name, description, display_order, is_active, "vendorId", image_url) values

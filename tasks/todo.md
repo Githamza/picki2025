@@ -13,7 +13,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `supabase/migrations/<ts>_add_category_type.sql`, `src/app/types/supabase.types.ts`
   - Dependencies: none · **Size: S**
 
-- [ ] **T2: Seed fixtures for upsell e2e**
+- [x] **T2: Seed fixtures for upsell e2e**
   - Acceptance: `seed.sql` additions only — a `boisson` category with ≥2 available drinks, a `dessert` category with ≥1 dessert, and one multi-step "menu" product whose step options include an existing simple seeded product (so convert-to-menu triggers). Existing seed rows untouched.
   - Verify: `supabase db reset --yes --local`; full existing Playwright suite still green (`npx playwright test`).
   - Files: `supabase/seed.sql`

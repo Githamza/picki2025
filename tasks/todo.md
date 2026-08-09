@@ -81,7 +81,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `e2e/journeys/upsell.spec.ts`, possibly `e2e/fixtures/*`
   - Dependencies: T2, T9, T10 · **Size: M**
 
-- [ ] **T12: Final gates + spec bookkeeping**
+- [x] **T12: Final gates + spec bookkeeping** _(remaining human steps: manual kiosk idle-warning walkthrough on the upsell page; approve applying the category_type migration to prod)_
   - Acceptance: `npm run build` clean; `npm test` at 5-failure baseline; manual kiosk idle-warning check on the upsell page done; `SPEC.md` FR4c note updated to point at `SPEC-UPSELL.md` (deferral lifted); `SPEC-UPSELL.md` success criteria 1–7 each checked off.
   - Verify: all listed commands + the success-criteria checklist itself.
   - Files: `SPEC.md`, `SPEC-UPSELL.md`

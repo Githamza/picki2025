@@ -1,6 +1,6 @@
 # Spec: Storefront UX/UI Overhaul — Responsive, Transitional, Kiosk-Ready
 
-**Status:** IMPLEMENTED — all phases (0–8) shipped; upsells (FR4c) remain cut/deferred
+**Status:** IMPLEMENTED — all phases (0–8) shipped; upsells (FR4c) implemented 2026-08-09 per `SPEC-UPSELL.md`
 **Date:** 2026-08-05
 **Scope:** Customer-facing storefront only. Admin dashboard (`/admin/**`) is out of scope.
 **Current focus:** UI redesign (Phases 0–4). Kiosk is specced but sequenced later; upsells are cut.
@@ -295,11 +295,9 @@ The interaction design lives in **FR4d** — the kiosk combo builder is its one-
 
 By the time this phase starts, the step-section component, validation, and constraint surfacing already exist from the FR4d work — this phase only adds the kiosk-sized shell.
 
-### FR4c — Upsell prompts — DEFERRED, OUT OF SCOPE
+### FR4c — Upsell prompts — IMPLEMENTED separately (2026-08-09)
 
-Explicitly cut from this spec at the user's direction; to be specced separately later.
-
-This is the only item from the kiosk reference list that would have been a genuinely new feature rather than a UI layer over existing machinery. Nothing in this spec depends on it — the cart extraction (FR7) leaves a natural insertion point, and `accessories-strip` already demonstrates the pattern on the product page. **Do not build upsell prompts as part of this work.**
+Specced and built in **`SPEC-UPSELL.md`** (the separate spec this section promised): category-type-driven suggestion pool (boisson + dessert), a "Pour accompagner" strip on simple product pages, and a two-tier post-add focus page (convert-to-menu, then pool suggestions) — routed page, never a dialog, so the kiosk idle-dialog counting is untouched. As predicted here, it reuses `accessories-strip` and the post-add navigation insertion points.
 
 ### FR4d — Multi-step product experience redesign
 

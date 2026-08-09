@@ -1,6 +1,6 @@
 # Spec: Upsell Suggestions (FR4c, un-deferred)
 
-**Status:** APPROVED 2026-08-09 — plan in `tasks/plan.md`
+**Status:** IMPLEMENTED 2026-08-09 (T1–T12) — success criteria 1–5 and 7 verified by unit + e2e suites; criterion 6's kiosk idle-warning interplay needs one manual walkthrough. The migration is applied **locally only** — prod deploy needs explicit approval.
 **Supersedes:** the curation model in `docs/ideas/upsell-suggestions.md` (per-product `is_upsell` flag → category-type-driven pool, decided 2026-08-09)
 **Relates to:** `SPEC.md` FR4c (deferred there; specced here separately, as that document intended)
 

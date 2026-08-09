@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
 
 import { ProductService, Product } from './product.service';
@@ -46,7 +46,33 @@ export class UpsellService {
   }
 
   decidePostAddOffer(addedProduct: Product): Observable<UpsellOffer | null> {
-    return this.poolOffer();
+    return this.convertOffer(addedProduct).pipe(
+      switchMap((offer) => (offer ? of(offer) : this.poolOffer()))
+    );
+  }
+
+  private convertOffer(added: Product): Observable<UpsellOffer | null> {
+    if (this.convertTierShown() || added.isMultiStep) {
+      return of(null);
+    }
+    const vendor = this.vendorService.getCurrentVendor();
+    if (!vendor) {
+      return of(null);
+    }
+    return this.productService.getMenusContaining(added.id, vendor.id).pipe(
+      map((menus) => {
+        if (menus.length === 0) {
+          return null;
+        }
+        const cheapest = [...menus].sort((a, b) => a.price - b.price)[0];
+        this.convertTierShown.set(true);
+        return {
+          tier: 'convert' as const,
+          menu: cheapest,
+          replacedProduct: added,
+        };
+      })
+    );
   }
 
   private poolOffer(): Observable<UpsellOffer | null> {

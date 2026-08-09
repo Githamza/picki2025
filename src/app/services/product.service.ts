@@ -52,8 +52,10 @@ export class ProductService {
   private accessoriesCache = new Map<string, { data: Product[]; timestamp: number }>();
   private readonly ACCESSORIES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-  // Upsell pool cache, same shape and lifetime as the accessories cache.
+  // Upsell pool + menu-containment caches, same shape and lifetime as the
+  // accessories cache.
   private upsellPoolCache = new Map<string, { data: Product[]; timestamp: number }>();
+  private menuContainmentCache = new Map<string, { data: Product[]; timestamp: number }>();
   private readonly UPSELL_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
   getProducts(vendorId?: string): Observable<Product[]> {
@@ -322,6 +324,24 @@ export class ProductService {
       map((products) => {
         const mapped = products?.map((p) => this.mapToProduct(p)) || [];
         this.upsellPoolCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
+        return mapped;
+      })
+    );
+  }
+
+  getMenusContaining(productId: number, vendorId: string): Observable<Product[]> {
+    const cacheKey = `${vendorId}_${productId}`;
+    const cached = this.menuContainmentCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.UPSELL_CACHE_TTL) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.supabaseService.getMenusContainingProduct(productId, vendorId)
+    ).pipe(
+      map((menus) => {
+        const mapped = menus?.map((m) => this.mapToProduct(m)) || [];
+        this.menuContainmentCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
         return mapped;
       })
     );

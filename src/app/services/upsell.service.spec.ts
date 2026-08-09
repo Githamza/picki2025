@@ -35,8 +35,12 @@ describe('UpsellService', () => {
   const pool = [product(9104, 'Coca'), product(9107, 'Eau'), product(9108, 'Tiramisu')];
 
   function setup(cartItems: CartItem[] = [cartItem(burger)]): UpsellService {
-    mockProductService = jasmine.createSpyObj('ProductService', ['getUpsellPool']);
+    mockProductService = jasmine.createSpyObj('ProductService', [
+      'getUpsellPool',
+      'getMenusContaining',
+    ]);
     mockProductService.getUpsellPool.and.returnValue(of(pool));
+    mockProductService.getMenusContaining.and.returnValue(of([]));
 
     TestBed.configureTestingModule({
       providers: [
@@ -136,6 +140,60 @@ describe('UpsellService', () => {
     service.decidePostAddOffer(burger).subscribe((offer) => {
       expect(offer).toBeNull();
       done();
+    });
+  });
+
+  describe('convert-to-menu tier', () => {
+    const menu = { ...product(9103, 'Menu Burger'), price: 12, isMultiStep: true };
+
+    it('offers converting to the containing menu before pool suggestions', (done) => {
+      const service = setup();
+      mockProductService.getMenusContaining.and.returnValue(of([menu]));
+      service.decidePostAddOffer(burger).subscribe((offer) => {
+        expect(offer?.tier).toBe('convert');
+        if (offer?.tier === 'convert') {
+          expect(offer.menu.id).toBe(9103);
+          expect(offer.replacedProduct.id).toBe(9101);
+        }
+        done();
+      });
+    });
+
+    it('picks the cheapest menu when several contain the product', (done) => {
+      const service = setup();
+      const dearMenu = { ...product(9110, 'Menu Maxi'), price: 15, isMultiStep: true };
+      mockProductService.getMenusContaining.and.returnValue(of([dearMenu, menu]));
+      service.decidePostAddOffer(burger).subscribe((offer) => {
+        if (offer?.tier === 'convert') {
+          expect(offer.menu.id).toBe(9103);
+          done();
+        } else {
+          done.fail('expected a convert offer');
+        }
+      });
+    });
+
+    it('never offers convert for a multi-step (menu) product add', (done) => {
+      const service = setup();
+      mockProductService.getMenusContaining.and.returnValue(of([menu]));
+      const addedMenu = { ...product(9106, 'Menu Kiosk'), isMultiStep: true };
+      service.decidePostAddOffer(addedMenu).subscribe((offer) => {
+        expect(offer?.tier).toBe('pool');
+        expect(mockProductService.getMenusContaining).not.toHaveBeenCalled();
+        done();
+      });
+    });
+
+    it('offers convert at most once per session, then falls back to pool', (done) => {
+      const service = setup();
+      mockProductService.getMenusContaining.and.returnValue(of([menu]));
+      service.decidePostAddOffer(burger).subscribe((first) => {
+        expect(first?.tier).toBe('convert');
+        service.decidePostAddOffer(burger).subscribe((second) => {
+          expect(second?.tier).toBe('pool');
+          done();
+        });
+      });
     });
   });
 

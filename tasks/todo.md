@@ -39,7 +39,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/services/upsell.service.ts`, `src/app/services/upsell.service.spec.ts`
   - Dependencies: T1, T4 · **Size: M**
 
-- [ ] **T6: Menu-containment lookup (cheapest menu)**
+- [x] **T6: Menu-containment lookup (cheapest menu)**
   - Acceptance: given a simple product id, returns the cheapest available multi-step product of the same vendor whose `step_options` reference it (or null); cached like the pool; exposed via `UpsellService`.
   - Verify: unit specs — none/one/many menus, unavailable menu excluded, cheapest wins.
   - Files: `src/app/services/supabase.service.ts`, `src/app/services/upsell.service.ts` (+ spec)

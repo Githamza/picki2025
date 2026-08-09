@@ -22,7 +22,8 @@ describe('ProductService', () => {
       'getProducts',
       'getAllProducts',
       'getProductById',
-      'getUpsellProducts'
+      'getUpsellProducts',
+      'getMenusContainingProduct'
     ]);
     
     const categorySpy = jasmine.createSpyObj('CategoryService', [
@@ -212,6 +213,41 @@ describe('ProductService', () => {
 
     it('the v1 upsellable set is boisson + dessert', () => {
       expect(UPSELLABLE_CATEGORY_TYPES).toEqual(['boisson', 'dessert']);
+    });
+  });
+
+  describe('getMenusContaining', () => {
+    it('maps containing menus and caches per vendor + product', (done) => {
+      const menuRows = [
+        {
+          id: 9103,
+          name: 'Menu Burger',
+          price: 12,
+          category_id: 9001,
+          vendor_id: 'vendor1',
+          is_multi_step: true,
+          display_order: 2
+        }
+      ];
+      mockSupabaseService.getMenusContainingProduct.and.returnValue(
+        Promise.resolve(menuRows) as unknown as ReturnType<
+          SupabaseService['getMenusContainingProduct']
+        >
+      );
+
+      service.getMenusContaining(9101, 'vendor1').subscribe((menus) => {
+        expect(menus.length).toBe(1);
+        expect(menus[0].name).toBe('Menu Burger');
+        expect(menus[0].isMultiStep).toBeTrue();
+
+        service.getMenusContaining(9101, 'vendor1').subscribe((cached) => {
+          expect(
+            mockSupabaseService.getMenusContainingProduct
+          ).toHaveBeenCalledTimes(1);
+          expect(cached.length).toBe(1);
+          done();
+        });
+      });
     });
   });
 

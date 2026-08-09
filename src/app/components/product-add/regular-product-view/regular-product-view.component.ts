@@ -130,8 +130,8 @@ export class RegularProductViewComponent
 
   private loadUpsellPool(): void {
     const vendorId = this.vendorService.getCurrentVendor()?.id;
-    const orderType = this.diningPreferenceService.diningPreference();
-    if (!vendorId || !orderType) return;
+    const orderType = this.diningPreferenceService.diningPreference() ?? undefined;
+    if (!vendorId) return;
     this.productService
       .getUpsellPool(vendorId, orderType)
       .pipe(takeUntil(this.destroy$))

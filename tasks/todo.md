@@ -75,7 +75,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase E — Verification
 
-- [ ] **T11: E2E journeys**
+- [x] **T11: E2E journeys**
   - Acceptance: new spec(s) in `e2e/journeys/` — (a) full upsell journey: add menu-contained simple product → convert offer → decline → add other item → pool offer → accept drink → checkout completes; (b) untyped-categories run asserts zero upsell UI anywhere. Green on all four viewport projects.
   - Verify: `npx playwright test` fully green.
   - Files: `e2e/journeys/upsell.spec.ts`, possibly `e2e/fixtures/*`

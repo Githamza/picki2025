@@ -33,6 +33,10 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                   mat-mini-fab
                   class="control-btn"
                   [color]="cartItem.quantity === 1 ? 'warn' : 'primary'"
+                  [attr.aria-label]="
+                    (cartItem.quantity === 1 ? 'Retirer ' : 'Réduire ') +
+                    accessory.name
+                  "
                   (click)="onDecrement(accessory.id, cartItem.quantity)"
                 >
                   <mat-icon>{{ cartItem.quantity === 1 ? 'delete' : 'remove' }}</mat-icon>
@@ -42,6 +46,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                   mat-mini-fab
                   color="primary"
                   class="control-btn"
+                  [attr.aria-label]="'Augmenter ' + accessory.name"
                   (click)="increment.emit(accessory.id)"
                   [disabled]="isIncrementDisabled(accessory, cartItem)"
                 >
@@ -52,6 +57,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
                   mat-mini-fab
                   color="primary"
                   class="control-btn"
+                  [attr.aria-label]="'Ajouter ' + accessory.name"
                   (click)="add.emit(accessory)"
                   [disabled]="isOutOfStock(accessory)"
                 >

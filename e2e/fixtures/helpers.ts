@@ -60,10 +60,22 @@ export async function openProduct(page: Page, name: string): Promise<void> {
   }).toPass({ timeout: 15_000 });
 }
 
-/** Product grid → product page → add to cart. */
+/** Product grid → product page → add to cart. Since SPEC-UPSELL the add can
+ *  detour through the /upsell page (convert or pool tier, at most once per
+ *  tier per session) — decline it so journeys land back on the grid. */
 export async function addSimpleProductToCart(page: Page): Promise<void> {
   await openProduct(page, E2E_VENDOR.products.simple.name);
   await page.locator('.add-to-cart-button').click();
+  await dismissUpsellIfOffered(page);
+}
+
+/** Decline the post-add upsell page when it appears; no-op otherwise. */
+export async function dismissUpsellIfOffered(page: Page): Promise<void> {
+  await page.waitForURL(/\/(upsell|products)/, { timeout: 10_000 });
+  if (page.url().includes('/upsell')) {
+    await page.getByRole('button', { name: /non merci/i }).click();
+    await expect(page).toHaveURL(/\/products/);
+  }
 }
 
 /** Open the cart bottom sheet via the floating badge (every form factor —

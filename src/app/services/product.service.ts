@@ -307,8 +307,8 @@ export class ProductService {
     );
   }
 
-  getUpsellPool(vendorId: string, orderType: string): Observable<Product[]> {
-    const cacheKey = `${vendorId}_${orderType}`;
+  getUpsellPool(vendorId: string, orderType?: string): Observable<Product[]> {
+    const cacheKey = `${vendorId}_${orderType || 'all'}`;
     const cached = this.upsellPoolCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.UPSELL_CACHE_TTL) {
       return of(cached.data);
@@ -317,8 +317,8 @@ export class ProductService {
     return from(
       this.supabaseService.getUpsellProducts(
         vendorId,
-        orderType,
-        UPSELLABLE_CATEGORY_TYPES
+        UPSELLABLE_CATEGORY_TYPES,
+        orderType
       )
     ).pipe(
       map((products) => {

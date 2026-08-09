@@ -351,18 +351,24 @@ export class SupabaseService implements OnDestroy {
   // suggestion surfaces add directly to the cart without a step flow.
   async getUpsellProducts(
     vendorId: string,
-    orderType: string,
-    categoryTypes: readonly string[]
+    categoryTypes: readonly string[],
+    orderType?: string
   ) {
-    const { data, error } = await this.supabase
+    // orderType is optional like getAccessories': the dining preference is
+    // only collected at checkout, so browsing-time pools are unfiltered.
+    let query = this.supabase
       .from('products')
       .select('*, category:categories!inner(category_type)')
       .eq('vendor_id', vendorId)
       .eq('is_available', true)
       .eq('is_multi_step', false)
-      .contains('applicable_order_types', [orderType])
-      .in('category.category_type', [...categoryTypes])
-      .order('display_order');
+      .in('category.category_type', [...categoryTypes]);
+
+    if (orderType) {
+      query = query.contains('applicable_order_types', [orderType]);
+    }
+
+    const { data, error } = await query.order('display_order');
 
     if (error) throw error;
     return data;

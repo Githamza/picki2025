@@ -180,8 +180,8 @@ describe('ProductService', () => {
         next: (products) => {
           expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledWith(
             'vendor1',
-            'eat-in',
-            UPSELLABLE_CATEGORY_TYPES
+            UPSELLABLE_CATEGORY_TYPES,
+            'eat-in'
           );
           expect(products.length).toBe(1);
           expect(products[0].name).toBe('Coca-Cola');

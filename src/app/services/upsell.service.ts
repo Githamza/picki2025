@@ -116,8 +116,10 @@ export class UpsellService {
       return of(null);
     }
     const vendor = this.vendorService.getCurrentVendor();
-    const orderType = this.diningPreferenceService.diningPreference();
-    if (!vendor || !orderType) {
+    // The dining preference is usually still unchosen while browsing —
+    // undefined means the pool is unfiltered by order type.
+    const orderType = this.diningPreferenceService.diningPreference() ?? undefined;
+    if (!vendor) {
       return of(null);
     }
     return this.productService.getUpsellPool(vendor.id, orderType).pipe(

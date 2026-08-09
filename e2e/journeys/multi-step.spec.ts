@@ -1,6 +1,11 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import { E2E_VENDOR } from '../fixtures/vendor';
-import { gotoStorefront, openCategory, openProduct } from '../fixtures/helpers';
+import {
+  gotoStorefront,
+  openCategory,
+  openProduct,
+  dismissUpsellIfOffered,
+} from '../fixtures/helpers';
 
 /**
  * FR4d journeys — focus shell (user decision 2026-08-09): every step is
@@ -145,6 +150,8 @@ test.describe('multi-step product — focus shell', () => {
     await expect(page.locator('.add-to-cart-button')).toContainText('27,00');
     await page.locator('.add-to-cart-button').click();
 
+    // The menu has no drink → SPEC-UPSELL pool tier may detour; decline it.
+    await dismissUpsellIfOffered(page);
     await expect(page).toHaveURL(/\/products/);
     await expect(page.locator('app-cart-badge')).toContainText('(2)');
   });
@@ -158,6 +165,8 @@ test.describe('multi-step product — focus shell', () => {
     await expect(addButton).not.toHaveClass(/visually-disabled/);
     await addButton.click();
 
+    // The menu has no drink → SPEC-UPSELL pool tier may detour; decline it.
+    await dismissUpsellIfOffered(page);
     await expect(page).toHaveURL(/\/products/);
     await page.locator('app-cart-badge button').click();
     const sheet = page.getByRole('dialog');

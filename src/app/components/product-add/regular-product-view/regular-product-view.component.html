@@ -42,6 +42,19 @@
 
   </div>
 
+  <!-- Upsell strip: drinks/desserts pool (hidden entirely when empty) -->
+  <div class="upsell-section" *ngIf="upsellSuggestions().length > 0">
+    <app-accessories-strip
+      stripTitle="Pour accompagner"
+      [accessories]="upsellSuggestions()"
+      [cartAccessories]="cartItemsForStrip()"
+      (add)="onUpsellAdd($event)"
+      (increment)="onUpsellIncrement($event)"
+      (decrement)="onUpsellDecrement($event)"
+      (remove)="onUpsellRemove($event)"
+    ></app-accessories-strip>
+  </div>
+
   <!-- Comment Section -->
   <div class="comment-section">
     <mat-form-field class="comment-field">

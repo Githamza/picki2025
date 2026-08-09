@@ -12,7 +12,7 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
   imports: [CommonModule, MatIconModule, MatButtonModule, VendorCurrencyPipe],
   template: `
     <div>
-      <h4 class="accessories-title">Accessoires</h4>
+      <h4 class="accessories-title">{{ stripTitle() }}</h4>
       <div class="accessories-scroll">
         @for (accessory of accessories(); track accessory.id) {
           @let cartItem = getCartItem(accessory.id);
@@ -165,6 +165,9 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 export class AccessoriesStripComponent {
   accessories = input.required<Product[]>();
   cartAccessories = input.required<CartItem[]>();
+  // The strip is reused by the upsell surfaces with a different heading
+  // ("Pour accompagner"); named stripTitle to avoid the native title attribute.
+  stripTitle = input<string>('Accessoires');
   add = output<Product>();
   increment = output<number>();
   decrement = output<number>();

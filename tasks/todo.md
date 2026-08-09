@@ -47,7 +47,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase C — Surfaces
 
-- [ ] **T7: "Pour accompagner" strip on simple product pages**
+- [x] **T7: "Pour accompagner" strip on simple product pages**
   - Acceptance: strip renders below the description on simple product pages only (never multi-step), reusing `AccessoriesStripComponent`; hidden entirely when pool is empty or product itself is in the pool; adding from the strip dispatches a normal `addToCart` line at normal price; layout matches the flat calm card recipe.
   - Verify: component spec (hidden-when-empty, add dispatches); visual check on dev server.
   - Files: `src/app/components/product-add/regular-product-view/*` (component + template), possibly `accessories-strip.component.ts` (new inputs only)

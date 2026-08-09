@@ -42,6 +42,18 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../../shared/utils/image-placehold
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
 import { ViewTransitionNameDirective } from '../../../shared/directives/view-transition-name.directive';
+import { AccessoriesStripComponent } from '../../accessories-strip/accessories-strip.component';
+import { VendorService } from '../../../services/vendor.service';
+import { DiningPreferenceService } from '../../../services/dining-preference.service';
+import { CartItem } from '../../../store/models/app.state';
+import { selectCartItems } from '../../../store/selectors/cart.selectors';
+import {
+  addToCart,
+  incrementCartItem,
+  decrementCartItem,
+  removeCartItem,
+} from '../../../store/actions/cart.actions';
+import { POOL_OFFER_MAX_ITEMS } from '../../../services/upsell.service';
 
 @Component({
   selector: 'app-regular-product-view',
@@ -60,6 +72,7 @@ import { ViewTransitionNameDirective } from '../../../shared/directives/view-tra
     VendorCurrencyPipe,
     AddToCartBarComponent,
     ViewTransitionNameDirective,
+    AccessoriesStripComponent,
   ],
   templateUrl: './regular-product-view.component.html',
   styleUrl: './regular-product-view.component.scss',
@@ -83,8 +96,50 @@ export class RegularProductViewComponent
   private store = inject(Store<AppState>);
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
+  private vendorService = inject(VendorService);
+  private diningPreferenceService = inject(DiningPreferenceService);
   private destroy$ = new Subject<void>();
   private isInitialized = false;
+
+  // "Pour accompagner" strip (SPEC-UPSELL.md): drinks/desserts pool, shown on
+  // simple product pages only — this view never renders multi-step products.
+  upsellPool = signal<Product[]>([]);
+  cartItemsForStrip = signal<CartItem[]>([]);
+
+  upsellSuggestions(): Product[] {
+    return this.upsellPool()
+      .filter((p) => p.id !== this.product?.id)
+      .slice(0, POOL_OFFER_MAX_ITEMS);
+  }
+
+  onUpsellAdd(product: Product): void {
+    this.store.dispatch(addToCart({ product, quantity: 1 }));
+  }
+
+  onUpsellIncrement(productId: number): void {
+    this.store.dispatch(incrementCartItem({ productId }));
+  }
+
+  onUpsellDecrement(productId: number): void {
+    this.store.dispatch(decrementCartItem({ productId }));
+  }
+
+  onUpsellRemove(productId: number): void {
+    this.store.dispatch(removeCartItem({ productId }));
+  }
+
+  private loadUpsellPool(): void {
+    const vendorId = this.vendorService.getCurrentVendor()?.id;
+    const orderType = this.diningPreferenceService.diningPreference();
+    if (!vendorId || !orderType) return;
+    this.productService
+      .getUpsellPool(vendorId, orderType)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pool) => this.upsellPool.set(pool),
+        error: () => this.upsellPool.set([]),
+      });
+  }
 
   comment = signal('');
   selectedOptionIds: number[] = [];
@@ -129,6 +184,11 @@ export class RegularProductViewComponent
   ngOnInit(): void {
     this.loadProductCustomisations();
     this.calculateTotalPrice();
+    this.loadUpsellPool();
+    this.store
+      .select(selectCartItems)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((items) => this.cartItemsForStrip.set(items));
   }
 
   private loadProductCustomisations(): void {

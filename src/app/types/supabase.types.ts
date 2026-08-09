@@ -136,6 +136,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          category_type: string | null
           created_at: string | null
           description: string | null
           display_order: number | null
@@ -148,6 +149,7 @@ export type Database = {
           vendorId: string | null
         }
         Insert: {
+          category_type?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -160,6 +162,7 @@ export type Database = {
           vendorId?: string | null
         }
         Update: {
+          category_type?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null

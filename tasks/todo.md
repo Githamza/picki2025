@@ -7,7 +7,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase A — Data foundation
 
-- [ ] **T1: `category_type` migration + regenerated types**
+- [x] **T1: `category_type` migration + regenerated types**
   - Acceptance: new migration adds nullable `categories.category_type text` with CHECK over `('entree','plat','boisson','dessert','sauce','accompagnement','autre')`; `supabase db reset --yes --local` applies cleanly; `supabase.types.ts` regenerated in the same change; no RLS policy changes needed (verify storefront still reads categories anonymously).
   - Verify: `supabase db reset --yes --local`; `npm run build` (types compile); quick storefront smoke on dev server.
   - Files: `supabase/migrations/<ts>_add_category_type.sql`, `src/app/types/supabase.types.ts`

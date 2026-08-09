@@ -2,7 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { of } from 'rxjs';
 
-import { UpsellService, POOL_OFFER_MAX_ITEMS } from './upsell.service';
+import {
+  UpsellService,
+  POOL_OFFER_MAX_ITEMS,
+  findUnambiguousPreselection,
+} from './upsell.service';
+import { ProductStep } from '../models/multi-step-product.model';
 import { ProductService, Product } from './product.service';
 import { VendorService } from './vendor.service';
 import { DiningPreferenceService } from './dining-preference.service';
@@ -194,6 +199,55 @@ describe('UpsellService', () => {
           done();
         });
       });
+    });
+  });
+
+  describe('findUnambiguousPreselection', () => {
+    function step(
+      id: number,
+      stepType: 'single-select' | 'multi-select',
+      optionEntries: Array<{ id: number; productId: number | null }>
+    ): ProductStep {
+      return {
+        id,
+        stepType,
+        options: optionEntries.map((o) => ({
+          id: o.id,
+          productId: o.productId,
+        })),
+      } as ProductStep;
+    }
+
+    it('finds the option when exactly one single-select option matches', () => {
+      const steps = [
+        step(1, 'single-select', [
+          { id: 11, productId: 9101 },
+          { id: 12, productId: null },
+        ]),
+        step(2, 'multi-select', [{ id: 21, productId: null }]),
+      ];
+      expect(findUnambiguousPreselection(steps, 9101)).toEqual({
+        stepId: 1,
+        optionId: 11,
+      });
+    });
+
+    it('returns null when several options match (ambiguous)', () => {
+      const steps = [
+        step(1, 'single-select', [{ id: 11, productId: 9101 }]),
+        step(2, 'single-select', [{ id: 21, productId: 9101 }]),
+      ];
+      expect(findUnambiguousPreselection(steps, 9101)).toBeNull();
+    });
+
+    it('returns null when the only match sits in a multi-select step', () => {
+      const steps = [step(1, 'multi-select', [{ id: 11, productId: 9101 }])];
+      expect(findUnambiguousPreselection(steps, 9101)).toBeNull();
+    });
+
+    it('returns null when nothing matches', () => {
+      const steps = [step(1, 'single-select', [{ id: 11, productId: null }])];
+      expect(findUnambiguousPreselection(steps, 9101)).toBeNull();
     });
   });
 

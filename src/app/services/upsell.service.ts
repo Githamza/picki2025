@@ -8,7 +8,10 @@ import { VendorService } from './vendor.service';
 import { DiningPreferenceService } from './dining-preference.service';
 import { selectCartItems } from '../store/selectors/cart.selectors';
 import { CartItem } from '../store/models/app.state';
-import { CartMultiStepMetadata } from '../models/multi-step-product.model';
+import {
+  CartMultiStepMetadata,
+  ProductStep,
+} from '../models/multi-step-product.model';
 
 // One post-add offer, at most, per add — and each tier at most once per
 // order session (SPEC-UPSELL.md). The session resets when the cart empties.
@@ -17,6 +20,28 @@ export type UpsellOffer =
   | { tier: 'pool'; products: Product[] };
 
 export const POOL_OFFER_MAX_ITEMS = 4;
+
+// Convert-accept preselection is best-effort and unambiguous-only (plan
+// decision 6): exactly one option referencing the product, in a single-select
+// step. Anything else returns null and the menu flow opens unselected.
+export function findUnambiguousPreselection(
+  steps: ProductStep[],
+  productId: number
+): { stepId: number; optionId: number } | null {
+  const matches = steps.flatMap((step) =>
+    (step.options ?? [])
+      .filter((option) => option.productId === productId)
+      .map((option) => ({ step, option }))
+  );
+  if (matches.length !== 1) {
+    return null;
+  }
+  const { step, option } = matches[0];
+  if (step.stepType !== 'single-select') {
+    return null;
+  }
+  return { stepId: step.id, optionId: option.id };
+}
 
 @Injectable({ providedIn: 'root' })
 export class UpsellService {

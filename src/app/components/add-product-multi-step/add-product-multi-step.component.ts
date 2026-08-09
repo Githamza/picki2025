@@ -62,6 +62,10 @@ import { StepSectionComponent } from './step-section/step-section.component';
 import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
 import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData, CustomisationSelectionResult } from './customisation-selection-dialog/customisation-selection-dialog.component';
 import { ProductService, Product } from '../../services/product.service';
+import {
+  UpsellService,
+  findUnambiguousPreselection,
+} from '../../services/upsell.service';
 import { Customisation } from '../../models/customisation.interface';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
@@ -111,6 +115,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private vendorNavigation = inject(VendorNavigationService);
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
+  private upsellService = inject(UpsellService);
   private router = inject(ActivatedRoute);
   private layout = inject(LayoutService);
 
@@ -302,7 +307,28 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         steps.forEach((step) => {
           this.createStepForm(step);
         });
+        this.applyUpsellPreselect(steps);
       });
+  }
+
+  /**
+   * Convert-to-menu entry (SPEC-UPSELL.md): when the customer accepted the
+   * upgrade, preselect the option matching the replaced product — but only
+   * when unambiguous (one match, single-select step). Patching the form
+   * flows through the normal valueChanges -> store path.
+   */
+  private upsellPreselectApplied = false;
+
+  private applyUpsellPreselect(steps: ProductStep[]): void {
+    if (this.upsellPreselectApplied) return;
+    this.upsellPreselectApplied = true;
+    const productId = this.upsellService.consumePreselect(this.productId);
+    if (productId == null) return;
+    const match = findUnambiguousPreselection(steps, productId);
+    if (!match) return;
+    this.stepForms[match.stepId]?.patchValue({
+      selectedOption: match.optionId.toString(),
+    });
   }
 
   private createStepForm(step: ProductStep): void {

@@ -61,7 +61,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase D — Wiring
 
-- [ ] **T9: Post-add wiring — simple products (both tiers)**
+- [x] **T9: Post-add wiring — simple products (both tiers)**
   - Acceptance: after `addToCart` in `product-add`, navigation goes grid → upsell page when a tier should fire (inside the existing `document.startViewTransition`), else straight to grid as today; decline → grid, no second prompt on the same add; convert accept → simple item removed from cart, cheapest menu flow entered with the matching option preselected when unambiguous (single matching option in a single-select step), otherwise unselected — fallback documented in code if preselection is cut per plan decision 6.
   - Verify: unit spec for the routing decision; hand-run the full journey on dev server (phone viewport).
   - Files: `src/app/components/product-add/product-add.component.ts`, `src/app/services/upsell.service.ts`, `src/app/components/add-product-multi-step/add-product-multi-step.component.ts` (preselect entry only), max 2 more

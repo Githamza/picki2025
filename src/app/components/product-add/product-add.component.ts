@@ -23,6 +23,7 @@ import {
   startWith,
   filter,
   debounceTime,
+  take,
   takeUntil,
   shareReplay,
 } from 'rxjs';
@@ -40,6 +41,7 @@ import { VendorService } from '../../services/vendor.service';
 import { AddProductMultiStepComponent } from '../add-product-multi-step/add-product-multi-step.component';
 import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility.service';
 import { RegularProductViewComponent } from './regular-product-view/regular-product-view.component';
+import { UpsellService, UpsellOffer } from '../../services/upsell.service';
 
 @Component({
   selector: 'app-product-add',
@@ -74,7 +76,8 @@ export class ProductAddComponent implements OnInit, OnDestroy {
     private router: Router,
     private vendorNavigation: VendorNavigationService,
     private vendorService: VendorService,
-    private cartBadgeVisibilityService: CartBadgeVisibilityService
+    private cartBadgeVisibilityService: CartBadgeVisibilityService,
+    private upsellService: UpsellService
   ) {}
 
   ngOnInit(): void {
@@ -150,18 +153,34 @@ export class ProductAddComponent implements OnInit, OnDestroy {
     }
   }
 
-  private navigateBackToProducts(): void {
+  private returnPathSegments(): string[] {
     const category = this.route.snapshot.paramMap.get('category');
-    if (category) {
-      this.vendorNavigation.navigateWithVendor([
-        'promotional-banner',
-        category,
-        'products',
-      ]);
-      return;
-    }
+    return category
+      ? ['promotional-banner', category, 'products']
+      : ['promotional-banner', 'products'];
+  }
 
-    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
+  private navigateBackToProducts(): void {
+    this.vendorNavigation.navigateWithVendor(this.returnPathSegments());
+  }
+
+  // Post-add routing (SPEC-UPSELL.md): a staged offer detours through the
+  // upsell page; otherwise straight back to the grid as before.
+  completePostAdd(offer: UpsellOffer | null): void {
+    if (offer) {
+      this.upsellService.stageOffer(offer, this.returnPathSegments());
+      this.vendorNavigation.navigateWithVendor(['upsell']);
+    } else {
+      this.navigateBackToProducts();
+    }
+  }
+
+  private transitionTo(navigate: () => void): void {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => navigate());
+    } else {
+      navigate();
+    }
   }
 
   incrementQuantity(): void {
@@ -194,15 +213,15 @@ export class ProductAddComponent implements OnInit, OnDestroy {
         customisationSelections: data.customisationSelections,
       })
     );
-    // Navigate to the products page with smooth transition
-    if (document.startViewTransition) {
-      document.startViewTransition(() => {
-        this.navigateBackToProducts();
+    // Decide the post-add destination (upsell page or grid), then navigate
+    // inside the same view transition as before.
+    this.upsellService
+      .decidePostAddOffer(data.product)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe({
+        next: (offer) => this.transitionTo(() => this.completePostAdd(offer)),
+        error: () => this.transitionTo(() => this.navigateBackToProducts()),
       });
-    } else {
-      // Fallback for browsers that don't support view transitions
-      this.navigateBackToProducts();
-    }
   }
 
   closePage(): void {

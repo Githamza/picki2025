@@ -27,7 +27,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase B — Services (parallel after T1)
 
-- [ ] **T4: Pool query + `getUpsellPool`**
+- [x] **T4: Pool query + `getUpsellPool`**
   - Acceptance: `SupabaseService.getUpsellProducts(vendorId, orderType, types)` filters `is_available`, `applicable_order_types` contains orderType, category's `category_type` in the passed set, ordered by `display_order`; `ProductService.getUpsellPool(vendorId, orderType)` wraps it with the accessories-style 10-min cache and the exported `UPSELLABLE_CATEGORY_TYPES = ['boisson', 'dessert']` constant (single definition site).
   - Verify: new unit specs green; `npm test` baseline unchanged.
   - Files: `src/app/services/supabase.service.ts`, `src/app/services/product.service.ts`, `src/app/services/product.service.spec.ts`

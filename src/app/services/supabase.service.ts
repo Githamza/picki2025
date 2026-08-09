@@ -346,6 +346,28 @@ export class SupabaseService implements OnDestroy {
     return data;
   }
 
+  // Upsell pool (SPEC-UPSELL.md): available one-tap products whose category
+  // carries an upsellable type. Multi-step products are excluded because the
+  // suggestion surfaces add directly to the cart without a step flow.
+  async getUpsellProducts(
+    vendorId: string,
+    orderType: string,
+    categoryTypes: readonly string[]
+  ) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('*, category:categories!inner(category_type)')
+      .eq('vendor_id', vendorId)
+      .eq('is_available', true)
+      .eq('is_multi_step', false)
+      .contains('applicable_order_types', [orderType])
+      .in('category.category_type', [...categoryTypes])
+      .order('display_order');
+
+    if (error) throw error;
+    return data;
+  }
+
   // Banners
   async getBanners(vendorId?: string) {
     let query = this.supabase.from('banners').select('*').eq('is_active', true);

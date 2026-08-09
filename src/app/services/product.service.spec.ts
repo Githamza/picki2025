@@ -4,6 +4,7 @@ import { SupabaseService } from './supabase.service';
 import { CategoryService } from './category.service';
 import { CustomisationService } from './customisation.service';
 import { Customisation } from '../models/customisation.interface';
+import { UPSELLABLE_CATEGORY_TYPES } from '../models/category-type.model';
 import { of } from 'rxjs';
 
 // The Supabase query builders give these service methods exact row types;
@@ -20,7 +21,8 @@ describe('ProductService', () => {
     const supabaseSpy = jasmine.createSpyObj('SupabaseService', [
       'getProducts',
       'getAllProducts',
-      'getProductById'
+      'getProductById',
+      'getUpsellProducts'
     ]);
     
     const categorySpy = jasmine.createSpyObj('CategoryService', [
@@ -152,6 +154,64 @@ describe('ProductService', () => {
         },
         error: done.fail
       });
+    });
+  });
+
+  describe('getUpsellPool', () => {
+    const poolRows = [
+      {
+        id: 9104,
+        name: 'Coca-Cola',
+        price: 2.5,
+        category_id: 9002,
+        vendor_id: 'vendor1',
+        is_multi_step: false,
+        display_order: 2
+      }
+    ];
+
+    it('queries the upsellable category types and maps rows to Product', (done) => {
+      mockSupabaseService.getUpsellProducts.and.returnValue(
+        Promise.resolve(poolRows) as unknown as ReturnType<SupabaseService['getUpsellProducts']>
+      );
+
+      service.getUpsellPool('vendor1', 'eat-in').subscribe({
+        next: (products) => {
+          expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledWith(
+            'vendor1',
+            'eat-in',
+            UPSELLABLE_CATEGORY_TYPES
+          );
+          expect(products.length).toBe(1);
+          expect(products[0].name).toBe('Coca-Cola');
+          expect(products[0].price).toBe(2.5);
+          done();
+        },
+        error: done.fail
+      });
+    });
+
+    it('caches per vendor and order type', (done) => {
+      mockSupabaseService.getUpsellProducts.and.returnValue(
+        Promise.resolve(poolRows) as unknown as ReturnType<SupabaseService['getUpsellProducts']>
+      );
+
+      service.getUpsellPool('vendor1', 'eat-in').subscribe(() => {
+        service.getUpsellPool('vendor1', 'eat-in').subscribe((cached) => {
+          expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledTimes(1);
+          expect(cached.length).toBe(1);
+
+          // A different order type is a different cache entry.
+          service.getUpsellPool('vendor1', 'take-away').subscribe(() => {
+            expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledTimes(2);
+            done();
+          });
+        });
+      });
+    });
+
+    it('the v1 upsellable set is boisson + dessert', () => {
+      expect(UPSELLABLE_CATEGORY_TYPES).toEqual(['boisson', 'dessert']);
     });
   });
 

@@ -16,3 +16,7 @@ export type CategoryType = (typeof CATEGORY_TYPES)[number]['value'];
 export function categoryTypeLabel(value: string | null | undefined): string | null {
   return CATEGORY_TYPES.find((t) => t.value === value)?.label ?? null;
 }
+
+// v1 upsell pool = products in categories of these types (SPEC-UPSELL.md).
+// Single definition site: swap for a per-vendor setting to make it configurable.
+export const UPSELLABLE_CATEGORY_TYPES: CategoryType[] = ['boisson', 'dessert'];

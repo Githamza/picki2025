@@ -14,6 +14,7 @@ import {
   DatabaseProductComplementInsert,
 } from '../models/complement.model';
 import { getDefaultVatRate } from '../shared/utils/vat-rates.util';
+import { UPSELLABLE_CATEGORY_TYPES } from '../models/category-type.model';
 
 export interface Product {
   id: number;
@@ -50,6 +51,10 @@ export class ProductService {
   // Accessories cache: key = vendorId_orderType, value = { data, timestamp }
   private accessoriesCache = new Map<string, { data: Product[]; timestamp: number }>();
   private readonly ACCESSORIES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+  // Upsell pool cache, same shape and lifetime as the accessories cache.
+  private upsellPoolCache = new Map<string, { data: Product[]; timestamp: number }>();
+  private readonly UPSELL_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
   getProducts(vendorId?: string): Observable<Product[]> {
     // Combine products and categories to sort by category displayOrder when no category filter is applied
@@ -295,6 +300,28 @@ export class ProductService {
       map((products) => {
         const mapped = products?.map((p) => this.mapToProduct(p)) || [];
         this.accessoriesCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
+        return mapped;
+      })
+    );
+  }
+
+  getUpsellPool(vendorId: string, orderType: string): Observable<Product[]> {
+    const cacheKey = `${vendorId}_${orderType}`;
+    const cached = this.upsellPoolCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.UPSELL_CACHE_TTL) {
+      return of(cached.data);
+    }
+
+    return from(
+      this.supabaseService.getUpsellProducts(
+        vendorId,
+        orderType,
+        UPSELLABLE_CATEGORY_TYPES
+      )
+    ).pipe(
+      map((products) => {
+        const mapped = products?.map((p) => this.mapToProduct(p)) || [];
+        this.upsellPoolCache.set(cacheKey, { data: mapped, timestamp: Date.now() });
         return mapped;
       })
     );

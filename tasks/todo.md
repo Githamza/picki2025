@@ -53,7 +53,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/components/product-add/regular-product-view/*` (component + template), possibly `accessories-strip.component.ts` (new inputs only)
   - Dependencies: T4 · **Size: M**
 
-- [ ] **T8: Upsell page (focus shell) + route**
+- [x] **T8: Upsell page (focus shell) + route**
   - Acceptance: routed page under the vendor context (`.../upsell`) rendering either tier — convert-to-menu ("Et si vous en faisiez un menu ?", menu card, accept/decline) or pool suggestions ("Une petite soif ? 🥤", 3–4 pool items with add controls, prominent "Non merci"); focus-shell styling (centered title, one decision per screen, no shadows/accent borders); guards redirect to the grid if entered with nothing to show.
   - Verify: component spec for both tiers + empty-state redirect; visual check both tiers.
   - Files: `src/app/components/upsell-page/upsell-page.component.ts` (+ template/styles if split), `src/app/app.routes.ts`

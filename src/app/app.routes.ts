@@ -65,6 +65,15 @@ const vendorAppChildren: Routes = [
           { path: 'products', component: ProductGridComponent },
         ],
       },
+      // Post-add upsell page (SPEC-UPSELL.md): entered only via a staged
+      // offer; a direct visit redirects back to the product grid.
+      {
+        path: 'upsell',
+        loadComponent: () =>
+          import('./components/upsell-page/upsell-page.component').then(
+            (m) => m.UpsellPageComponent
+          ),
+      },
       { path: ':category/product/:productName', component: ProductAddComponent },
       // Product page without category in URL (e.g. /product/:productName)
       // Must be declared before the ':category/...' route to avoid conflicts.

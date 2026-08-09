@@ -32,6 +32,16 @@ export class UpsellService {
   private _pendingOffer = signal<UpsellOffer | null>(null);
   readonly pendingOffer = this._pendingOffer.asReadonly();
 
+  // Where the upsell page returns to on dismiss (the grid the customer came
+  // from); staged together with the offer.
+  private _returnPath = signal<string[]>(['promotional-banner', 'products']);
+  readonly returnPath = this._returnPath.asReadonly();
+
+  // Convert-accept handoff: the menu flow preselects this product's option
+  // when unambiguous (SPEC-UPSELL.md). Session-scoped, never in the URL.
+  private _pendingPreselect = signal<{ menuId: number; productId: number } | null>(null);
+  readonly pendingPreselect = this._pendingPreselect.asReadonly();
+
   private cartItems: CartItem[] = [];
 
   constructor() {
@@ -41,6 +51,7 @@ export class UpsellService {
         this.convertTierShown.set(false);
         this.poolTierShown.set(false);
         this._pendingOffer.set(null);
+        this._pendingPreselect.set(null);
       }
     });
   }
@@ -101,12 +112,28 @@ export class UpsellService {
     );
   }
 
-  stageOffer(offer: UpsellOffer): void {
+  stageOffer(offer: UpsellOffer, returnPath?: string[]): void {
     this._pendingOffer.set(offer);
+    if (returnPath) {
+      this._returnPath.set(returnPath);
+    }
   }
 
   clearOffer(): void {
     this._pendingOffer.set(null);
+  }
+
+  stagePreselect(menuId: number, productId: number): void {
+    this._pendingPreselect.set({ menuId, productId });
+  }
+
+  consumePreselect(menuId: number): number | null {
+    const pending = this._pendingPreselect();
+    if (!pending || pending.menuId !== menuId) {
+      return null;
+    }
+    this._pendingPreselect.set(null);
+    return pending.productId;
   }
 
   // Pool detection is nested-aware: a drink inside a purchased menu counts

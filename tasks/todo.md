@@ -33,7 +33,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/services/supabase.service.ts`, `src/app/services/product.service.ts`, `src/app/services/product.service.spec.ts`
   - Dependencies: T1 · **Size: M**
 
-- [ ] **T5: `UpsellService` — trigger logic + session state**
+- [x] **T5: `UpsellService` — trigger logic + session state**
   - Acceptance: `cartHasPoolItem()` detects pool-category products including those nested in menu metadata (reuse the `selectCartQuantityMap` walk); one-shot signals per tier per session; both reset when the cart empties/clears; `shouldShowPoolTier()` short-circuits on empty pool; no NgRx state added.
   - Verify: new unit specs cover nested detection, one-shot behavior, reset, empty-pool short-circuit.
   - Files: `src/app/services/upsell.service.ts`, `src/app/services/upsell.service.spec.ts`

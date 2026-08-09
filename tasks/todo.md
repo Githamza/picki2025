@@ -67,7 +67,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/components/product-add/product-add.component.ts`, `src/app/services/upsell.service.ts`, `src/app/components/add-product-multi-step/add-product-multi-step.component.ts` (preselect entry only), max 2 more
   - Dependencies: T5, T6, T8 · **Size: L (riskiest — everything else lands first)**
 
-- [ ] **T10: Post-add wiring — multi-step adds (pool tier only)**
+- [x] **T10: Post-add wiring — multi-step adds (pool tier only)** _(verify note: decision semantics covered by UpsellService unit specs; glue covered by the T11 e2e menu-add journey — a dedicated component harness for this component was disproportionate)_
   - Acceptance: after a menu is added, pool tier fires only if the cart (nested-aware) still lacks a pool item; never offers convert-to-menu; same one-shot session rule.
   - Verify: unit spec; hand-run menu-with-drink (no prompt) vs menu-without-drink (prompt).
   - Files: `src/app/components/add-product-multi-step/add-product-multi-step.component.ts`

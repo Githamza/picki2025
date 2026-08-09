@@ -15,10 +15,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
-import { Store } from '@ngrx/store';
+import { Store, ActionsSubject } from '@ngrx/store';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Observable, Subject, combineLatest } from 'rxjs';
+import { Observable, Subject, combineLatest, race, timer, of } from 'rxjs';
 import {
+  switchMap,
   takeUntil,
   take,
   map,
@@ -64,6 +65,7 @@ import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData
 import { ProductService, Product } from '../../services/product.service';
 import {
   UpsellService,
+  UpsellOffer,
   findUnambiguousPreselection,
 } from '../../services/upsell.service';
 import { Customisation } from '../../models/customisation.interface';
@@ -116,6 +118,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
   private upsellService = inject(UpsellService);
+  private actionsSubject = inject(ActionsSubject);
   private router = inject(ActivatedRoute);
   private layout = inject(LayoutService);
 
@@ -435,6 +438,24 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     this.store.dispatch(MultiStepProductActions.previousStep());
   }
 
+  private returnPathSegments(): string[] {
+    const category = this.router.snapshot.paramMap.get('category');
+    return category
+      ? ['promotional-banner', category, 'products']
+      : ['promotional-banner', 'products'];
+  }
+
+  // Menu adds only ever get the pool tier — decidePostAddOffer skips the
+  // convert tier for multi-step products (SPEC-UPSELL.md).
+  private completePostAdd(offer: UpsellOffer | null): void {
+    if (offer) {
+      this.upsellService.stageOffer(offer, this.returnPathSegments());
+      this.vendorNavigation.navigateWithVendor(['upsell']);
+    } else {
+      this.vendorNavigation.navigateWithVendor(this.returnPathSegments());
+    }
+  }
+
   // Add to cart
   addToCart(): void {
     console.log('addToCart');
@@ -445,6 +466,37 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       )
       .subscribe(([configuration]) => {
         if (configuration) {
+          // Wait for the effect's success before deciding the upsell offer:
+          // the nested-drink check must see the menu already in the cart
+          // (SPEC-UPSELL.md — no prompt when the menu includes a drink).
+          // The timer is a safety net so navigation can never hang.
+          const outcome$ = this.actionsSubject.pipe(
+            filter(
+              (action) =>
+                action.type ===
+                  MultiStepProductActions.addMultiStepProductToCartSuccess
+                    .type ||
+                action.type ===
+                  MultiStepProductActions.addMultiStepProductToCartFailure.type
+            ),
+            take(1)
+          );
+          race(outcome$, timer(3000))
+            .pipe(
+              switchMap((outcome) =>
+                typeof outcome !== 'number' &&
+                outcome.type ===
+                  MultiStepProductActions.addMultiStepProductToCartSuccess.type
+                  ? this.upsellService.decidePostAddOffer(
+                      configuration.baseProduct
+                    )
+                  : of(null)
+              ),
+              take(1),
+              takeUntil(this.destroy$)
+            )
+            .subscribe((offer) => this.completePostAdd(offer));
+
           // One dispatch carrying the quantity. (Dispatching N times raced
           // the effect's async metadata build and only the last add
           // survived — the x2/x3 basket bug.)
@@ -456,13 +508,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
               optionCustomisationSelections: this.optionCustomisationSelections,
             })
           );
-const category = this.router.snapshot.paramMap.get('category');
-if (category) {
-          // Navigate back to products or show success message
-          this.vendorNavigation.navigateWithVendor(['promotional-banner', category, 'products']);
-        } else {
-          this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
-        }
         }
       });
   }

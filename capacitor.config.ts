@@ -11,13 +11,17 @@ import type { CapacitorConfig } from '@capacitor/cli';
  *
  * A vendor on a custom domain must build with their own domain:
  *   PICKI_APP_URL=https://granola.fr npm run android:sync
+ *
+ * Staging APK (installable alongside the prod app thanks to its own appId):
+ *   npm run android:sync:staging
  */
 const appUrl = process.env['PICKI_APP_URL'] || 'https://piki-app.com';
 const appHost = new URL(appUrl).hostname;
+const appId = process.env['PICKI_APP_ID'] || 'com.pikiapp.tablet';
 
 const config: CapacitorConfig = {
-  appId: 'com.pikiapp.tablet',
-  appName: 'Picki',
+  appId,
+  appName: appId === 'com.pikiapp.tablet' ? 'Picki' : 'Picki Staging',
   // Only used as an offline fallback shell; the webview serves `server.url`.
   webDir: 'dist/my-angular-app/browser',
   android: {

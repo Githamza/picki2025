@@ -55,6 +55,27 @@
                 }
               ]
             },
+            "staging": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2MB",
+                  "maximumError": "3MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "15kB",
+                  "maximumError": "20kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.staging.ts"
+                }
+              ]
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
@@ -82,6 +103,9 @@
             },
             "development": {
               "buildTarget": "my-angular-app:build:development"
+            },
+            "staging": {
+              "buildTarget": "my-angular-app:build:staging"
             },
             "e2e": {
               "buildTarget": "my-angular-app:build:e2e"

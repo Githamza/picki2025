@@ -4,7 +4,13 @@ android {
     namespace = "com.pikiapp.tablet"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.pikiapp.tablet"
+        // Overridable so the staging APK (com.pikiapp.tablet.staging) can be
+        // installed alongside the prod app. See npm run android:sync:staging.
+        def pickiAppId = System.getenv('PICKI_APP_ID') ?: 'com.pikiapp.tablet'
+        applicationId pickiAppId
+        manifestPlaceholders = [
+            appLabel: pickiAppId == 'com.pikiapp.tablet' ? '@string/app_name' : 'Picki Staging'
+        ]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

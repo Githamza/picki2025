@@ -51,8 +51,8 @@
   width: 100%;
 }
 
-/* Desktop Card Layout */
-.product-grid.desktop-layout {
+/* Card grid on every form factor (FR2) */
+.product-grid {
   display: grid;
   /* --columns is set from LayoutService.formFactor (FR2) */
   grid-template-columns: repeat(var(--columns, 4), 1fr);
@@ -149,130 +149,6 @@
   }
 }
 
-/* Mobile List Layout */
-.product-list.mobile-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.product-list-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px;
-  background: var(--mat-sys-surface);
-  border-radius: var(--mat-sys-corner-large, 12px);
-  border: 1px solid var(--mat-sys-outline-variant);
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-
-  &:hover {
-    border-color: var(--mat-sys-primary);
-  }
-
-  .product-image-container {
-    flex-shrink: 0;
-
-    .product-image {
-      width: 64px;
-      height: 64px;
-      border-radius: 8px;
-      object-fit: cover;
-      transition: filter 0.3s ease;
-
-      &.grayscale {
-        filter: grayscale(100%);
-      }
-    }
-  }
-
-  .product-info {
-    flex: 1;
-    min-width: 0; // Prevent flex item from growing beyond container
-
-    .product-name {
-      font-size: 1rem;
-      font-weight: 500;
-      margin: 0 0 4px 0;
-      color: var(--mat-on-surface);
-
-      // Ensure text doesn't overflow
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .product-price {
-      font-size: 1.1rem;
-      font-weight: bold;
-      margin: 0 0 4px 0;
-      color: var(--mat-primary);
-    }
-
-    .product-description {
-      /* type: .storefront-body */
-      color: var(--mat-on-surface-variant);
-      margin: 0;
-      line-height: 1.3;
-
-      // Limit to 2 lines
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    .out-of-stock-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--mat-sys-error);
-      margin: 4px 0 0 0;
-      text-transform: uppercase;
-    }
-  }
-
-  .product-action {
-    flex-shrink: 0;
-
-    .add-button {
-      box-shadow: var(--mat-sys-level1);
-
-      &:hover {
-        background: var(--mat-primary-container);
-        color: var(--mat-on-primary-container);
-        transform: scale(1.05);
-      }
-
-      &[disabled] {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
-    }
-  }
-
-  &.out-of-stock {
-    opacity: 0.7;
-    cursor: not-allowed;
-    pointer-events: none;
-
-    &:hover {
-      transform: none;
-      background: var(--mat-sys-surface-container-high);
-    }
-
-    &:active {
-      transform: none;
-    }
-  }
-}
-
 .products-loading {
   display: flex;
   justify-content: center;
@@ -289,6 +165,34 @@
 
   p {
     opacity: 0.8;
+  }
+}
+
+/* Phone: tighter 2-column cards so images stay large */
+@media (max-width: 599.98px) {
+  .product-grid {
+    gap: 12px;
+  }
+
+  .product-card {
+    mat-card-content {
+      padding: 12px 12px 0;
+
+      h3 {
+        font-size: 0.95rem;
+        line-height: 1.25;
+        margin: 4px 0;
+      }
+
+      .price {
+        margin: 4px 0;
+      }
+
+      .short-description,
+      .description {
+        display: none;
+      }
+    }
   }
 }
 
@@ -340,9 +244,8 @@
   }
 }
 
-/* Cards/rows are the buttons now (no + FAB): visible keyboard focus */
-.product-card:focus-visible,
-.product-list-item:focus-visible {
+/* Cards are the buttons (no + FAB): visible keyboard focus */
+.product-card:focus-visible {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;
 }

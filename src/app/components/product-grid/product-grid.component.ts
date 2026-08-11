@@ -131,9 +131,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     });
   });
 
-  // Responsive signals (LayoutService is the storefront's layout truth)
-  readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
-
   // FR2: horizontal category scroller on portrait form factors (the
   // landscape shell provides the persistent rail instead).
   readonly showHorizontalMenu = computed(() => {
@@ -141,10 +138,17 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     return factor === 'phone' || factor === 'tablet-portrait';
   });
 
-  // FR2 column counts for the card grid (phone renders the list layout)
-  readonly gridColumns = computed(() =>
-    this.layout.formFactor() === 'tablet-portrait' ? 3 : 4
-  );
+  // FR2 column counts for the card grid
+  readonly gridColumns = computed(() => {
+    switch (this.layout.formFactor()) {
+      case 'phone':
+        return 2;
+      case 'tablet-portrait':
+        return 3;
+      default:
+        return 4;
+    }
+  });
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   private subscriptions = new Subscription();

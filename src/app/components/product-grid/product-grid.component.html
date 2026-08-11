@@ -34,10 +34,9 @@
     }
   </div>
 
-  <!-- Desktop Card Layout -->
-  @if (!isPhone()) {
+  <!-- Card grid on every form factor (2 columns on phone for a kiosk-like feel) -->
   <div
-    class="product-grid desktop-layout"
+    class="product-grid"
     [style.--columns]="gridColumns()"
     appViewTransitionName="product-grid"
   >
@@ -88,61 +87,8 @@
     </mat-card>
     }
   </div>
-  }
 
-  <!-- Mobile List Layout -->
-  @if (isPhone()) {
-  <div
-    class="product-list mobile-layout"
-    appViewTransitionName="product-grid"
-  >
-    @for (product of filteredProducts(); track product.id) {
-    <div
-      class="product-list-item"
-      [class.out-of-stock]="isEffectivelyOutOfStock(product)"
-      role="button"
-      [attr.tabindex]="isEffectivelyOutOfStock(product) ? -1 : 0"
-      [attr.aria-label]="'Ajouter ' + product.name + ' au panier'"
-      [attr.aria-disabled]="isEffectivelyOutOfStock(product)"
-      (click)="!isEffectivelyOutOfStock(product) && addToCart(product, $event)"
-      (keydown.enter)="!isEffectivelyOutOfStock(product) && addToCart(product, $event)"
-    >
-      <div class="product-image-container">
-        <img
-          [appCachedImage]="product.imageUrl || placeholderImage"
-          [fallbackSrc]="placeholderImage"
-          [alt]="product.name"
-          title="Product image"
-          class="product-image"
-          [class.grayscale]="isEffectivelyOutOfStock(product)"
-        />
-      </div>
-
-      <div class="product-info">
-        <h3 class="product-name storefront-card-title">{{ product.name }}</h3>
-        <p
-          class="product-price storefront-price"
-          [style.visibility]="product.price > 0 ? 'visible' : 'hidden'"
-        >
-          {{ product.price | vendorCurrency }}
-        </p>
-        @if (product.shortDescription) {
-        <p class="product-description storefront-body">
-          {{ product.shortDescription }}
-        </p>
-        } @else if (product.description) {
-        <p class="product-description storefront-body">
-          {{ product.description | slice : 0 : 80
-          }}{{ product.description.length > 80 ? "..." : "" }}
-        </p>
-        } @if (isEffectivelyOutOfStock(product)) {
-        <p class="out-of-stock-label">Victime de son succès</p>
-        }
-      </div>
-    </div>
-    }
-  </div>
-  } @if (filteredProducts().length === 0) {
+  @if (filteredProducts().length === 0) {
     @if (productsLoading()) {
     <div class="products-loading">
       <mat-spinner diameter="40"></mat-spinner>

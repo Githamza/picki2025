@@ -244,6 +244,17 @@ function parseBody(input: unknown): RequestBody {
   };
 }
 
+// Must mirror VendorService.createSlug: storefront URLs are derived from
+// business_name, so two names with the same slug would collide on routing.
+function toSlug(businessName: string): string {
+  return businessName
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function getAdminClient(): SupabaseClient {
   const isLocal = Deno.env.get('LOCALLY') === 'true';
   const supabaseUrl = isLocal
@@ -417,6 +428,27 @@ Deno.serve(async (req: Request) => {
       .select('id')
       .limit(1);
     if (vendorsTableError) throw vendorsTableError;
+
+    // Reject business names whose slug collides with an existing vendor:
+    // the storefront routes on the slug, so a duplicate would randomly
+    // shadow the existing restaurant's page.
+    stage = 'db_check_business_name_unique';
+    const requestedSlug = toSlug(body.businessName);
+    const { data: existingVendors, error: existingVendorsError } =
+      await supabase.from('vendors').select('business_name');
+    if (existingVendorsError) throw existingVendorsError;
+    const slugTaken = (existingVendors ?? []).some(
+      (v) => toSlug(v.business_name ?? '') === requestedSlug
+    );
+    if (slugTaken) {
+      return json(
+        {
+          error:
+            'Un restaurant avec ce nom existe déjà sur Picki. Merci de choisir un nom différent ou de contacter le support si ce restaurant vous appartient.',
+        },
+        { status: 409 }
+      );
+    }
 
     // 1) Create auth user (auto-confirm email to remove friction)
     stage = 'auth_admin_create_user';

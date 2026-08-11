@@ -20,6 +20,7 @@ import { KioskModeService } from '../../services/kiosk-mode.service';
 import { EmailService } from '../../services/email.service';
 import { MapLocationViewerComponent } from '../../shared/components/map-location-viewer/map-location-viewer.component';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
+import { shortOrderNumber } from '../../shared/utils/order-number.util';
 
 @Component({
   selector: 'app-payment-success',
@@ -40,7 +41,8 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
       <div class="kiosk-confirmation">
         <mat-icon class="kiosk-confirmation-icon">receipt_long</mat-icon>
         <p class="kiosk-confirmation-label">Votre numéro de commande</p>
-        <p class="kiosk-order-number">{{ orderDetails?.orderNumber }}</p>
+        <p class="kiosk-order-number">{{ shortNumber(orderDetails?.orderNumber) }}</p>
+        <p class="kiosk-order-number-full">Réf. {{ orderDetails?.orderNumber }}</p>
         <p class="kiosk-confirmation-instruction">
           Payez au comptoir en donnant ce numéro.
         </p>
@@ -329,6 +331,11 @@ import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
         font-weight: 700;
         letter-spacing: 2px;
         color: var(--mat-sys-primary);
+      }
+      .kiosk-order-number-full {
+        margin: 0;
+        font: var(--mat-sys-body-medium);
+        color: var(--mat-sys-on-surface-variant);
       }
       .kiosk-confirmation-instruction {
         margin: 0;
@@ -793,6 +800,10 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         this.finishKioskOrder();
       }
     }, 1000);
+  }
+
+  shortNumber(orderNumber?: string): string {
+    return orderNumber ? shortOrderNumber(orderNumber) : '';
   }
 
   finishKioskOrder(): void {

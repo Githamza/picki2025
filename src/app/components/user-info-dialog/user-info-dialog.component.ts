@@ -35,6 +35,9 @@ export interface UserInfoDialogData {
   /** True when no payment screen follows (counter payment / kiosk):
    *  the submit button says so instead of "paiement". */
   payAtCounter?: boolean;
+  /** Kiosk (FR4): only ask for the phone number, entered on a large
+   *  on-screen numeric keypad. Name/email are filled with placeholders. */
+  phoneOnly?: boolean;
   currentPreference?: OrderType | null;
   currentTiming?: 'asap' | 'later' | null;
   currentScheduledTime?: string | null;
@@ -97,8 +100,88 @@ export interface UserInfoDialogData {
         </mat-dialog-actions>
       }
 
+      <!-- Step 2 (kiosk): phone number only, on-screen numeric keypad -->
+      @if (currentStep() === 'userInfo' && phoneOnly) {
+        <h2 mat-dialog-title>
+          <mat-icon>phone</mat-icon>
+          Votre numéro de téléphone
+        </h2>
+
+        <mat-dialog-content>
+          <p class="dialog-description">
+            Saisissez votre numéro pour être prévenu quand la commande est
+            prête.
+          </p>
+
+          <form [formGroup]="userForm" class="user-form">
+            <mat-form-field class="full-width">
+              <mat-label>Téléphone</mat-label>
+              <input
+                matInput
+                class="phone-display"
+                type="tel"
+                inputmode="none"
+                formControlName="phone"
+                placeholder="06 12 34 56 78"
+                readonly
+              />
+              <mat-icon matSuffix>phone</mat-icon>
+              <mat-hint>10 chiffres, ex. 0612345678</mat-hint>
+            </mat-form-field>
+
+            <div class="keypad">
+              @for (digit of keypadDigits; track digit) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="keypad-key"
+                  (click)="appendDigit(digit)"
+                >
+                  {{ digit }}
+                </button>
+              }
+              <span aria-hidden="true"></span>
+              <button
+                mat-stroked-button
+                type="button"
+                class="keypad-key"
+                (click)="appendDigit('0')"
+              >
+                0
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                class="keypad-key"
+                (click)="eraseDigit()"
+                aria-label="Effacer le dernier chiffre"
+              >
+                <mat-icon>backspace</mat-icon>
+              </button>
+            </div>
+          </form>
+        </mat-dialog-content>
+
+        <mat-dialog-actions align="end">
+          <button mat-button (click)="onCancel()" type="button">
+            <mat-icon>close</mat-icon>
+            Annuler
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="onConfirm()"
+            [disabled]="userForm.invalid"
+            type="button"
+          >
+            <mat-icon>receipt_long</mat-icon>
+            Valider la commande
+          </button>
+        </mat-dialog-actions>
+      }
+
       <!-- Step 2: User Info Form -->
-      @if (currentStep() === 'userInfo') {
+      @if (currentStep() === 'userInfo' && !phoneOnly) {
         <h2 mat-dialog-title>
           <mat-icon>person</mat-icon>
           Informations de commande
@@ -254,6 +337,24 @@ export interface UserInfoDialogData {
         margin-bottom: 8px;
       }
 
+      .phone-display {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+        text-align: center;
+      }
+
+      .keypad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .keypad-key {
+        height: 64px;
+        font-size: 1.5rem;
+      }
+
       .mat-mdc-form-field-subscript-wrapper {
         margin-top: 4px;
       }
@@ -275,24 +376,46 @@ export class UserInfoDialogComponent {
     optional: true,
   }) ?? { needsPreferenceStep: false, enabledOrderTypes: [] };
 
+  readonly phoneOnly = !!this.dialogData.phoneOnly;
+
   currentStep = signal<'preference' | 'userInfo'>(
     this.dialogData.needsPreferenceStep ? 'preference' : 'userInfo'
   );
 
   selectorResult = signal<DiningPreferenceSelectorResult | null>(null);
 
+  readonly keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
   userForm: FormGroup;
 
   constructor() {
-    this.userForm = this.fb.group({
-      nom: ['', [Validators.required, Validators.minLength(2)]],
-      prenom: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      phone: [
-        '',
-        [Validators.required, Validators.pattern(/^(\+33|0)[1-9](\d{8})$/)],
-      ],
-    });
+    const phoneValidators = [
+      Validators.required,
+      Validators.pattern(/^(\+33|0)[1-9](\d{8})$/),
+    ];
+    this.userForm = this.phoneOnly
+      ? this.fb.group({ phone: ['', phoneValidators] })
+      : this.fb.group({
+          nom: ['', [Validators.required, Validators.minLength(2)]],
+          prenom: ['', [Validators.required, Validators.minLength(2)]],
+          email: ['', [Validators.required, Validators.email]],
+          phone: ['', phoneValidators],
+        });
+  }
+
+  appendDigit(digit: string): void {
+    const control = this.userForm.get('phone');
+    const value: string = control?.value ?? '';
+    if (value.length >= 10) {
+      return;
+    }
+    control?.setValue(value + digit);
+  }
+
+  eraseDigit(): void {
+    const control = this.userForm.get('phone');
+    const value: string = control?.value ?? '';
+    control?.setValue(value.slice(0, -1));
   }
 
   onSelectorChanged(result: DiningPreferenceSelectorResult): void {
@@ -332,14 +455,25 @@ export class UserInfoDialogComponent {
   }
 
   onConfirm(): void {
-    if (this.userForm.valid) {
-      const userInfo: UserInfo = {
-        nom: this.userForm.value.nom.trim(),
-        prenom: this.userForm.value.prenom.trim(),
-        email: this.userForm.value.email.trim(),
-        phone: this.userForm.value.phone?.trim() || undefined,
-      };
-      this.dialogRef.close(userInfo);
+    if (this.userForm.invalid) {
+      return;
     }
+    // Kiosk: only the phone is asked; name/email get placeholders the
+    // ticket and dashboard render gracefully (no email is sent for
+    // pay-at-counter orders).
+    const userInfo: UserInfo = this.phoneOnly
+      ? {
+          nom: 'Kiosque',
+          prenom: 'Client',
+          email: '',
+          phone: this.userForm.value.phone.trim(),
+        }
+      : {
+          nom: this.userForm.value.nom.trim(),
+          prenom: this.userForm.value.prenom.trim(),
+          email: this.userForm.value.email.trim(),
+          phone: this.userForm.value.phone?.trim() || undefined,
+        };
+    this.dialogRef.close(userInfo);
   }
 }

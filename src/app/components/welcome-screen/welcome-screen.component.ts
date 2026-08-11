@@ -16,6 +16,7 @@ import {
 } from '../../shared/components/dining-preference-selector/dining-preference-selector.component';
 import { DeliverySelectionService } from '../../services/delivery/delivery-selection.service';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
+import { KioskModeService } from '../../services/kiosk-mode.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import {
   VendorService,
@@ -40,6 +41,7 @@ export class WelcomeScreenComponent implements OnInit {
   private diningPreferenceService = inject(DiningPreferenceService);
   private vendorNavigation = inject(VendorNavigationService);
   private vendorService = inject(VendorService);
+  private kioskMode = inject(KioskModeService);
   readonly deliverySelection = inject(DeliverySelectionService);
 
   readonly vendor = toSignal(this.vendorService.currentVendor$, {
@@ -48,9 +50,17 @@ export class WelcomeScreenComponent implements OnInit {
 
   readonly enabledOrderTypes = computed<OrderType[]>(() => {
     const v = this.vendor();
-    return v?.enabled_order_types?.length
+    const types = v?.enabled_order_types?.length
       ? v.enabled_order_types
       : (['take-away', 'eat-in', 'delivery'] as OrderType[]);
+    if (!this.kioskMode.active()) {
+      return types;
+    }
+    // FR4: a kiosk customer is on site — only "sur place" and "à emporter".
+    const kioskTypes = types.filter((type) => type !== 'delivery');
+    return kioskTypes.length
+      ? kioskTypes
+      : (['eat-in', 'take-away'] as OrderType[]);
   });
 
   readonly deliveryDropoffInputMode = computed<'address' | 'geolocation'>(() => {

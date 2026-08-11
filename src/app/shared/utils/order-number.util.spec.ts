@@ -1,4 +1,4 @@
-import { generateOrderNumber } from './order-number.util';
+import { generateOrderNumber, shortOrderNumber } from './order-number.util';
 
 describe('generateOrderNumber', () => {
   it('formats as YYMMDD-XXXXXX with a 6-digit random suffix', () => {
@@ -25,5 +25,19 @@ describe('generateOrderNumber', () => {
     const today = new Date();
     const yy = today.getFullYear().toString().slice(-2);
     expect(generateOrderNumber().startsWith(yy)).toBeTrue();
+  });
+});
+
+describe('shortOrderNumber', () => {
+  it('keeps the last 3 digits of the suffix', () => {
+    expect(shortOrderNumber('260811-123456')).toBe('456');
+  });
+
+  it('ignores non-digit characters', () => {
+    expect(shortOrderNumber('A-1042')).toBe('042');
+  });
+
+  it('falls back to the raw value when there are no digits', () => {
+    expect(shortOrderNumber('SANS-CHIFFRES')).toBe('SANS-CHIFFRES');
   });
 });

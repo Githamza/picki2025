@@ -1,6 +1,7 @@
 import { Order, OrderItem, OrderType } from '../../models/order.model';
 import { CODE_PAGE_PC858, COLUMNS_58MM, EscPosBuilder } from './escpos-builder';
 import { getDeliveryFee, getProductItems, getServiceFee, getSubtotal } from './order-totals.util';
+import { shortOrderNumber } from './order-number.util';
 import { calculateTvaBreakdownByRate } from './tva-breakdown.util';
 
 /**
@@ -37,14 +38,18 @@ export function renderOrderTicket(order: Order, options: TicketLayoutOptions = {
     builder.bold(true).line(options.businessName.toUpperCase()).bold(false);
   }
 
-  // Order number, as large as the paper allows - this is what staff read
-  // across the kitchen.
+  // Short order number, as large as the paper allows - this is what staff
+  // call out and the customer reads back. The full number stays underneath
+  // in small print for record matching.
   builder
     .size(2, 2)
     .bold(true)
-    .line(`N° ${order.orderNumber}`, { columns: Math.floor(builder.width / 2) })
+    .line(`N° ${shortOrderNumber(order.orderNumber)}`, {
+      columns: Math.floor(builder.width / 2),
+    })
     .bold(false)
-    .size(1, 1);
+    .size(1, 1)
+    .line(`Réf. ${order.orderNumber}`);
 
   builder.bold(true).line(ORDER_TYPE_LABELS[order.orderType] ?? order.orderType).bold(false);
 

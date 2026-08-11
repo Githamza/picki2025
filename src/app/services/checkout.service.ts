@@ -27,6 +27,7 @@ import { PaymentRequest } from './payment-strategy.interface';
 import { OrdersService } from './orders.service';
 import { DeliverySelectionService } from './delivery/delivery-selection.service';
 import { KioskModeService } from './kiosk-mode.service';
+import { TicketPrintService } from './ticket-print.service';
 import { getDefaultVatRate } from '../shared/utils/vat-rates.util';
 import { generateOrderNumber } from '../shared/utils/order-number.util';
 
@@ -58,6 +59,7 @@ export class CheckoutService {
   private readonly deliverySelection = inject(DeliverySelectionService);
   private readonly diningPreferenceService = inject(DiningPreferenceService);
   private readonly kioskMode = inject(KioskModeService);
+  private readonly ticketPrint = inject(TicketPrintService);
 
   private readonly cartItems$ = this.store.select(selectCartItems);
   private readonly appliedCoupon = toSignal(
@@ -95,9 +97,19 @@ export class CheckoutService {
         !prefData.preference ||
         (prefData.preference !== 'eat-in' && prefData.timing == null);
       const vendor = this.vendorService.getCurrentVendor();
-      const enabledOrderTypes = vendor?.enabled_order_types?.length
+      const kioskActive = this.kioskMode.active();
+      let enabledOrderTypes = vendor?.enabled_order_types?.length
         ? vendor.enabled_order_types
         : (['take-away', 'eat-in', 'delivery'] as any[]);
+      // FR4: a kiosk customer is on site — only "sur place" and "à emporter".
+      if (kioskActive) {
+        const kioskTypes = enabledOrderTypes.filter(
+          (type: string) => type !== 'delivery'
+        );
+        enabledOrderTypes = kioskTypes.length
+          ? kioskTypes
+          : (['eat-in', 'take-away'] as any[]);
+      }
 
       const dialogData: UserInfoDialogData = {
         needsPreferenceStep,
@@ -105,7 +117,9 @@ export class CheckoutService {
         // Same predicate processPayment applies: counter payment when the
         // vendor has no online payments OR the kiosk is active (FR4a).
         payAtCounter:
-          !(vendor?.online_payments_enabled ?? true) || this.kioskMode.active(),
+          !(vendor?.online_payments_enabled ?? true) || kioskActive,
+        // FR4: kiosk customers only type their phone on a numeric keypad.
+        phoneOnly: kioskActive,
         currentPreference: prefData?.preference,
         currentTiming: prefData?.timing,
         currentScheduledTime: prefData?.scheduledTime,
@@ -391,6 +405,11 @@ export class CheckoutService {
 
       // Offline payment flow: order is created and paid at checkout/pickup.
       if (payAtCheckout) {
+        // FR4: kiosk orders print their ticket immediately. Fire and forget —
+        // the service is best-effort and must not delay the confirmation.
+        if (this.kioskMode.active()) {
+          void this.ticketPrint.printKioskOrderTicket(createdOrder);
+        }
         options.onDismiss?.();
         this.store.dispatch(clearCart());
         this.diningPreferenceService.resetPreference();

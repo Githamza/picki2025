@@ -16,3 +16,14 @@ export function generateOrderNumber(now: Date = new Date()): string {
     .padStart(6, '0');
   return `${year}${month}${day}-${random}`;
 }
+
+/**
+ * Customer-facing short form: the last 3 digits of the number. The full
+ * YYMMDD-XXXXXX stays in the database (collision safety, see above) and in
+ * small print for staff; three digits are what a customer can read out at
+ * the counter.
+ */
+export function shortOrderNumber(orderNumber: string): string {
+  const digits = orderNumber.replace(/\D/g, '');
+  return digits.slice(-3) || orderNumber;
+}

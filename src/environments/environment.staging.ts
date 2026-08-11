@@ -4,9 +4,9 @@ export const environment = {
   // If the app is loaded on a host NOT in this list (or its subdomains),
   // we treat it as a vendor custom domain and resolve the vendor by domain.
   //
-  // Staging is served from the Coolify VPS via sslip.io; localhost kept for
-  // local previews of the staging build.
-  pikiappDomains: ['localhost', 'picki-staging.91.134.240.158.sslip.io'],
+  // Staging is served from the Coolify VPS under both hosts below; localhost
+  // kept for local previews of the staging build.
+  pikiappDomains: ['localhost', 'picki-staging.91.134.240.158.sslip.io', 'piki-staging.mylabs.live'],
   // Stripe TEST key: staging must never take live payments. The staging
   // Supabase project's edge functions need STRIPE_SECRET_KEY set to the
   // matching sk_test_ secret before online payment can be tested.

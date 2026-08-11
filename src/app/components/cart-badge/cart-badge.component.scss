@@ -14,9 +14,10 @@ $roll-ms: 480ms;
   font-size: 1.2rem;
   // M3 elevation for FAB (level 3)
   box-shadow: var(--mat-sys-level3);
-  // FAB uses primary-container with on-primary-container text
-  background-color: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
+  // Filled primary (darker pink) instead of the FAB's primary-container:
+  // the pale pill blended into the page (user feedback 2026-08-11).
+  background-color: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
   // Own compositor layer: the bounce animates transform only, so it never
   // re-rasterizes the button mid-animation (that read as stutter).
   will-change: transform;
@@ -32,7 +33,7 @@ $roll-ms: 480ms;
   }
 
   mat-icon {
-    color: var(--mat-sys-on-primary-container);
+    color: var(--mat-sys-on-primary);
   }
 }
 
@@ -40,7 +41,7 @@ $roll-ms: 480ms;
   margin-left: 8px;
   font-weight: bold;
   font-size: 1.1em;
-  color: var(--mat-sys-on-primary-container);
+  color: var(--mat-sys-on-primary);
 }
 
 /* ---------------------------------------------------------------------------

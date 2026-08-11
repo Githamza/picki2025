@@ -133,9 +133,11 @@
     margin-top: -8px;
   }
 
-  /* Stacked on phones (user decision 2026-08-11, reversing 2026-08-08):
-     centered stepper on top, full-width button below. */
-  @media (max-width: 480px) {
+  /* Stacked on phones AND any portrait screen (user decision 2026-08-11,
+     reversing 2026-08-08): centered stepper on top, full-width button
+     below. Portrait matters beyond 480px — the kiosk tablet held in
+     portrait is ~800px wide yet renders the phone layout. */
+  @media (max-width: 480px), (orientation: portrait) {
     padding: 12px 16px;
     gap: 10px;
 

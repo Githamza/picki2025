@@ -53,8 +53,16 @@
     }
   }
 
+  .add-to-cart-button.visually-disabled {
+    /* aria-disabled instead of [disabled]: the tap must still fire so the
+       host can navigate to the blocking step (FR4d: no dead taps). */
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
   .add-to-cart-button {
     flex: 1;
+    min-width: 0;
     font-size: 1.2rem;
     padding: 16px 32px;
     letter-spacing: 0.5px;
@@ -68,22 +76,36 @@
     gap: 12px;
     height: 56px;
 
+    /* The MDC label is a flex item with min-width:auto — without this it
+       never shrinks, so text + price overflow and clip at the pill edges. */
+    ::ng-deep .mdc-button__label {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+    }
+
     .button-content {
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
+      min-width: 0;
+      gap: 12px;
 
       .button-text {
         font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .button-price {
+        flex-shrink: 0;
         font-weight: 700;
         background-color: rgba(255, 255, 255, 0.2);
         padding: 4px 12px;
         border-radius: 16px;
-        margin-left: 16px;
       }
     }
 
@@ -111,18 +133,44 @@
     margin-top: -8px;
   }
 
-  @media (max-width: 480px) {
-    flex-direction: column;
+  /* Stacked on phones AND any portrait screen (user decision 2026-08-11,
+     reversing 2026-08-08): centered stepper on top, full-width button
+     below. Portrait matters beyond 480px — the kiosk tablet held in
+     portrait is ~800px wide yet renders the phone layout. */
+  @media (max-width: 480px), (orientation: portrait) {
     padding: 12px 16px;
-    gap: 12px;
+    gap: 10px;
 
     .quantity-controls {
       width: 100%;
       justify-content: center;
+      gap: 4px;
+
+      .quantity-button {
+        width: 48px;
+        height: 48px;
+        min-height: 48px;
+      }
+
+      .quantity-value {
+        min-width: 28px;
+      }
     }
 
     .add-to-cart-button {
+      flex: 1 1 100%;
       width: 100%;
+      font-size: 1rem;
+      letter-spacing: 0;
+      padding: 0 16px;
+
+      .button-content {
+        gap: 8px;
+
+        .button-price {
+          padding: 4px 10px;
+        }
+      }
     }
   }
 

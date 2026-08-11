@@ -1,0 +1,58 @@
+<section
+  class="step-section"
+  [class.step-section--active]="active() && showHeader()"
+  [class.step-section--satisfied]="isSatisfied()"
+  [class.step-section--headerless]="!showHeader()"
+>
+  @if (showHeader()) {
+  <button
+    type="button"
+    class="step-header"
+    matRipple
+    (click)="edit.emit()"
+    [attr.aria-expanded]="active()"
+  >
+    <mat-icon class="step-state-icon" aria-hidden="true">
+      {{ isSatisfied() ? "check_circle" : "radio_button_unchecked" }}
+    </mat-icon>
+    <span class="step-name storefront-card-title">{{ step().name }}</span>
+
+    @if (active()) {
+      <span class="step-status storefront-body">{{ statusLabel() }}</span>
+    } @else if (selectedNames()) {
+      <span class="step-choice storefront-body">{{ selectedNames() }}</span>
+      <span class="step-edit">modifier</span>
+    } @else {
+      <span class="step-status storefront-body">{{ statusLabel() }}</span>
+    }
+  </button>
+  }
+
+  @if (active()) {
+    @if (showHeader() && step().description) {
+      <p class="step-description storefront-body">{{ step().description }}</p>
+    }
+    <!-- Always in the layout: emptying the hint must not shift the
+         options below (visibility toggles, the row stays). -->
+    <p
+      class="selection-hint"
+      role="status"
+      [style.visibility]="hint() ? 'visible' : 'hidden'"
+    >
+      {{ hint() || ' ' }}
+    </p>
+
+    <div class="options-container" [style.--option-columns]="optionColumns()">
+      @for (option of availableOptions(); track option.id) {
+        <app-product-option-card
+          [option]="option"
+          [step]="step()"
+          [isSelected]="isSelected(option)"
+          [isDisabled]="!option.isAvailable || isOutOfStock(option)"
+          [isOutOfStock]="isOutOfStock(option)"
+          (optionClicked)="optionClicked.emit($event)"
+        ></app-product-option-card>
+      }
+    </div>
+  }
+</section>

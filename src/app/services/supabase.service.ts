@@ -346,6 +346,76 @@ export class SupabaseService implements OnDestroy {
     return data;
   }
 
+  // Upsell pool (SPEC-UPSELL.md): available one-tap products whose category
+  // carries an upsellable type. Multi-step products are excluded because the
+  // suggestion surfaces add directly to the cart without a step flow.
+  async getUpsellProducts(
+    vendorId: string,
+    categoryTypes: readonly string[],
+    orderType?: string
+  ) {
+    // orderType is optional like getAccessories': the dining preference is
+    // only collected at checkout, so browsing-time pools are unfiltered.
+    let query = this.supabase
+      .from('products')
+      .select('*, category:categories!inner(category_type)')
+      .eq('vendor_id', vendorId)
+      .eq('is_available', true)
+      .eq('is_multi_step', false)
+      .in('category.category_type', [...categoryTypes]);
+
+    if (orderType) {
+      query = query.contains('applicable_order_types', [orderType]);
+    }
+
+    const { data, error } = await query.order('display_order');
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Menus (multi-step products) whose step options reference the given
+  // product, cheapest first (SPEC-UPSELL.md convert-to-menu). step_ids is an
+  // int[] with no FK, so the walk is three queries: options -> steps -> menus.
+  async getMenusContainingProduct(productId: number, vendorId: string) {
+    const { data: options, error: optionsError } = await this.supabase
+      .from('product_step_options')
+      .select('step_ids')
+      .eq('product_id', productId)
+      .eq('vendor_id', vendorId);
+    if (optionsError) throw optionsError;
+
+    const stepIds = [
+      ...new Set((options ?? []).flatMap((o) => o.step_ids ?? [])),
+    ];
+    if (stepIds.length === 0) return [];
+
+    const { data: steps, error: stepsError } = await this.supabase
+      .from('product_steps')
+      .select('product_id')
+      .in('id', stepIds);
+    if (stepsError) throw stepsError;
+
+    const menuIds = [
+      ...new Set(
+        (steps ?? [])
+          .map((s) => s.product_id)
+          .filter((id): id is number => id !== null)
+      ),
+    ];
+    if (menuIds.length === 0) return [];
+
+    const { data: menus, error: menusError } = await this.supabase
+      .from('products')
+      .select('*')
+      .in('id', menuIds)
+      .eq('is_available', true)
+      .eq('is_multi_step', true)
+      .order('price');
+    if (menusError) throw menusError;
+    return menus;
+  }
+
   // Banners
   async getBanners(vendorId?: string) {
     let query = this.supabase.from('banners').select('*').eq('is_active', true);

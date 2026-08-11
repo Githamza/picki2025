@@ -2,10 +2,10 @@ import {
   Component,
   OnInit,
   OnDestroy,
+  computed,
   inject,
   signal,
   Input,
-  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -15,9 +15,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
-import { Store } from '@ngrx/store';
-import { Observable, Subject, combineLatest } from 'rxjs';
+import { Store, ActionsSubject } from '@ngrx/store';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Observable, Subject, combineLatest, race, timer, of } from 'rxjs';
 import {
+  switchMap,
   takeUntil,
   take,
   map,
@@ -26,20 +28,14 @@ import {
   startWith,
   skip,
 } from 'rxjs/operators';
-import {
-  BreakpointObserver,
-  Breakpoints,
-  LayoutModule,
-} from '@angular/cdk/layout';
+import { LayoutModule } from '@angular/cdk/layout';
 
 // Material imports
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -47,7 +43,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatRippleModule } from '@angular/material/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatTabGroup } from '@angular/material/tabs';
 import { MatDialog } from '@angular/material/dialog';
 
 // Store imports
@@ -63,19 +58,20 @@ import {
 } from '../../models/multi-step-product.model';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { ProductOptionCardComponent } from './product-option-card/product-option-card.component';
-import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
+import { StepSectionComponent } from './step-section/step-section.component';
 import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData, CustomisationSelectionResult } from './customisation-selection-dialog/customisation-selection-dialog.component';
 import { ProductService, Product } from '../../services/product.service';
+import {
+  UpsellService,
+  findUnambiguousPreselection,
+  categoryGridPath,
+} from '../../services/upsell.service';
 import { Customisation } from '../../models/customisation.interface';
+import { CartCelebrationService } from '../../services/cart-celebration.service';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
 import { ActivatedRoute } from '@angular/router';
-
-// Interface for summary data
-interface StepSummary {
-  step: ProductStep;
-  selectedOptions: ProductStepOption[];
-}
+import { LayoutService } from '../../services/layout.service';
 
 // Interface to track customization selections per option
 interface OptionCustomisationSelection {
@@ -90,13 +86,11 @@ interface OptionCustomisationSelection {
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    MatTabsModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
     MatRadioModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule,
     MatChipsModule,
     MatDividerModule,
     MatBadgeModule,
@@ -105,8 +99,7 @@ interface OptionCustomisationSelection {
     MatInputModule,
     MatFormFieldModule,
     LayoutModule,
-    ProductOptionCardComponent,
-    VendorCurrencyPipe,
+    StepSectionComponent,
     AddToCartBarComponent,
   ],
   templateUrl: './add-product-multi-step.component.html',
@@ -116,17 +109,17 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   // Add input property to receive product ID from parent
   @Input() productId!: number;
 
-  // ViewChild to access the tab group
-  @ViewChild('tabGroup', { static: false }) tabGroup!: MatTabGroup;
-
   private destroy$ = new Subject<void>();
   private fb = inject(FormBuilder);
   private store = inject(Store<AppState>);
   private vendorNavigation = inject(VendorNavigationService);
-  private breakpointObserver = inject(BreakpointObserver);
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
+  private upsellService = inject(UpsellService);
+  private cartCelebration = inject(CartCelebrationService);
+  private actionsSubject = inject(ActionsSubject);
   private router = inject(ActivatedRoute);
+  private layout = inject(LayoutService);
 
   // Observables
   configuration$ = this.store.select(
@@ -157,77 +150,80 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     MultiStepProductSelectors.selectIsConfigurationComplete
   );
   totalPrice$ = this.store.select(MultiStepProductSelectors.selectTotalPrice);
-  previousStepsSummary$ = this.store.select(
-    MultiStepProductSelectors.selectPreviousStepsSummary
+  // Scroll shell (FR4d): every store step renders as a section.
+  visibleSteps$ = this.steps$;
+
+  activeStepId$ = combineLatest([this.steps$, this.currentStepIndex$]).pipe(
+    map(([steps, index]) => (index !== null ? steps[index]?.id ?? null : null)),
+    distinctUntilChanged()
   );
 
-  // Summary data observable for the summary step
-  summaryData$ = combineLatest([this.steps$, this.stepSelections$]).pipe(
-    map(([steps, selections]): StepSummary[] => {
-      return steps
-        .filter(
-          (step) =>
-            step.stepType !== 'summary' &&
-            selections[step.id]?.selectedOptionIds?.length > 0
-        )
-        .map((step): StepSummary => {
-          const availableOptions = this.getAvailableOptions(step);
-          return {
-            step,
-            selectedOptions:
-              selections[step.id]?.selectedOptionIds
-                ?.map((optionId) =>
-                  availableOptions.find((option) => option.id === optionId)
-                )
-                .filter((option): option is ProductStepOption => !!option) || [],
-          };
-        });
-    })
-  );
+  // ------------------------------------------------------------------
+  // Focus shell (user decision 2026-08-09): ONE step per page on every
+  // form factor — centered title, no other steps visible. After the last
+  // step, a review page lists the collapsed choices for editing.
+  // ------------------------------------------------------------------
+  private readonly stepsSig = toSignal(this.steps$, {
+    initialValue: [] as ProductStep[],
+  });
+  private readonly stepIndexSig = toSignal(this.currentStepIndex$);
+  private readonly selectionsSig = toSignal(this.stepSelections$);
 
-  // Add mobile detection observable
-  isMobile$: Observable<boolean>;
+  readonly focusStep = computed(() => {
+    const steps = this.stepsSig();
+    const index = this.stepIndexSig();
+    return index != null ? (steps[index] ?? null) : null;
+  });
 
-  constructor() {
-    // Add mobile detection
-    this.isMobile$ = this.breakpointObserver
-      .observe([Breakpoints.Handset])
-      .pipe(
-        map((result) => result.matches),
-        startWith(false),
-        distinctUntilChanged()
-      );
+  readonly focusStepNumber = computed(() => (this.stepIndexSig() ?? 0) + 1);
+  readonly focusStepCount = computed(() => this.stepsSig().length);
+
+  private readonly focusSelection = computed(() => {
+    const step = this.focusStep();
+    if (!step) return { count: 0, isValid: false };
+    const selection = (this.selectionsSig() ?? {})[step.id];
+    return {
+      count: selection?.selectedOptionIds?.length ?? 0,
+      isValid: selection?.isValid ?? false,
+    };
+  });
+
+  /** "Continuer" for a satisfied multi-select below its max (single-select
+   *  and maxed multi-select auto-advance; empty optional gets "Passer"). */
+  readonly showContinue = computed(() => {
+    const step = this.focusStep();
+    const { count, isValid } = this.focusSelection();
+    return (
+      !!step &&
+      step.stepType === 'multi-select' &&
+      isValid &&
+      count > 0 &&
+      count < step.maxSelections
+    );
+  });
+
+  readonly showSkip = computed(() => {
+    const step = this.focusStep();
+    const { count } = this.focusSelection();
+    return !!step && !step.isRequired && count === 0;
+  });
+
+  continueToNext(): void {
+    const step = this.focusStep();
+    if (step) {
+      this.advanceAfterSelection(step);
+    }
   }
 
-  // Combined observable for showing add-to-cart section
-  showAddToCartSection$ = combineLatest([
-    this.isConfigurationComplete$,
-    this.steps$,
-    this.currentStepIndex$,
-    this.currentStep$,
-  ]).pipe(
-    map(([isComplete, steps, currentIndex, currentStep]) => {
-      // Track current step as visited
-      if (currentIndex !== null && steps.length > 0) {
-        this.visitedSteps.add(currentIndex);
-      }
-
-      // Check if all steps have been visited
-      const allStepsVisited = this.areAllStepsVisited(steps.length);
-
-      // Check if current step is summary step
-      const isOnSummaryStep = currentStep?.stepType === 'summary';
-
-      // Show if user is on summary step OR (all required steps are complete OR all steps have been visited)
-      return isOnSummaryStep && isComplete && allStepsVisited;
-    })
-  );
 
   // Local state
   stepForms: { [stepId: number]: FormGroup } = {};
   quantity: number = 1;
-  visitedSteps: Set<number> = new Set(); // Track which steps have been visited
   comment = signal(''); // Comment for the menu
+  /** Comment field stays collapsed behind a toggle — most orders never use it. */
+  commentOpen = signal(false);
+  /** Steps the customer has already seen active (edit-aware advance). */
+  private offeredStepIds = new Set<number>();
 
   // Track customisation selections for each step option
   optionCustomisationSelections = new Map<string, Map<number, number[]>>(); // Key: `${stepId}-${optionId}`
@@ -272,38 +268,35 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         this.cartQuantityMap = map;
       });
 
-    // Mark initial step as visited
-    this.currentStepIndex$
-      .pipe(
-        takeUntil(this.destroy$),
-        filter((index) => index !== null)
-      )
-      .subscribe((index) => {
-        if (index !== null) {
-          this.visitedSteps.add(index);
+    // Track which steps have been offered to the customer (drives the
+    // edit-aware advance: an optional step is visited once, never forced
+    // open again).
+    this.activeStepId$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((stepId) => {
+        if (stepId !== null) {
+          this.offeredStepIds.add(stepId);
         }
       });
 
-    // Setup auto-scroll for mobile when step changes
-    // combineLatest([this.currentStepIndex$, this.isMobile$])
-    //   .pipe(
-    //     takeUntil(this.destroy$),
-    //     filter(([stepIndex, isMobile]) => stepIndex !== null && isMobile),
-    //     // Skip the first emission to avoid scrolling on initial load
-    //     skip(1)
-    //   )
-    //   .subscribe(() => {
-    //     // Use setTimeout to ensure the DOM has updated after the step change
-    //     setTimeout(() => {
-    //       this.scrollToCurrentStep();
-    //     }, 150);
-    //   });
+    // Auto-scroll the newly active section into view (skip initial load)
+    this.activeStepId$
+      .pipe(takeUntil(this.destroy$), skip(1))
+      .subscribe((stepId) => {
+        if (stepId === null) return;
+        setTimeout(() => {
+          // Anchor the whole focus page (progress + centered title), not
+          // the section — otherwise the header scrolls out of view.
+          document
+            .querySelector('.focus-shell')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.visitedSteps.clear(); // Clear visited steps tracking
     this.optionCustomisationSelections.clear(); // Clear customisation selections
     this.store.dispatch(MultiStepProductActions.resetConfiguration());
   }
@@ -318,7 +311,28 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         steps.forEach((step) => {
           this.createStepForm(step);
         });
+        this.applyUpsellPreselect(steps);
       });
+  }
+
+  /**
+   * Convert-to-menu entry (SPEC-UPSELL.md): when the customer accepted the
+   * upgrade, preselect the option matching the replaced product — but only
+   * when unambiguous (one match, single-select step). Patching the form
+   * flows through the normal valueChanges -> store path.
+   */
+  private upsellPreselectApplied = false;
+
+  private applyUpsellPreselect(steps: ProductStep[]): void {
+    if (this.upsellPreselectApplied) return;
+    this.upsellPreselectApplied = true;
+    const productId = this.upsellService.consumePreselect(this.productId);
+    if (productId == null) return;
+    const match = findUnambiguousPreselection(steps, productId);
+    if (!match) return;
+    this.stepForms[match.stepId]?.patchValue({
+      selectedOption: match.optionId.toString(),
+    });
   }
 
   private createStepForm(step: ProductStep): void {
@@ -349,7 +363,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   }
 
   private updateStepSelection(step: ProductStep): void {
-    console.log('updateStepSelection', step);
     const form = this.stepForms[step.id];
     if (!form) return;
 
@@ -380,27 +393,61 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Navigation methods
-  onStepChange(stepIndex: number): void {
-    console.log('onStepChange', stepIndex);
-    // Track the step as visited
-    this.visitedSteps.add(stepIndex);
-    this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
+  /**
+   * Post-selection navigation (user decision 2026-08-08): go to the next
+   * INCOMPLETE step — never re-open steps that are already chosen. When a
+   * customer edits a completed step, everything stays collapsed ("all
+   * done") instead of re-walking the flow. Falls back to any earlier
+   * incomplete step, else one past the end (nothing active).
+   */
+  advanceAfterSelection(fromStep: ProductStep): void {
+    combineLatest([this.steps$, this.stepSelections$])
+      .pipe(take(1))
+      .subscribe(([steps, selections]) => {
+        const fromIndex = steps.findIndex((s) => s.id === fromStep.id);
+        const isIncomplete = (s: ProductStep) =>
+          !(selections[s.id]?.isValid ?? false);
+        // A valid-but-empty optional step still deserves ONE visit; once
+        // offered, it is never forced open again.
+        const needsVisit = (s: ProductStep) =>
+          isIncomplete(s) ||
+          (!s.isRequired &&
+            (selections[s.id]?.selectedOptionIds?.length ?? 0) === 0 &&
+            !this.offeredStepIds.has(s.id));
+
+        const after = steps.findIndex((s, i) => i > fromIndex && needsVisit(s));
+        const anywhere = steps.findIndex(
+          (s, i) => i !== fromIndex && isIncomplete(s)
+        );
+        const target =
+          after !== -1 ? after : anywhere !== -1 ? anywhere : steps.length;
+
+        this.transitionStep(() =>
+          this.store.dispatch(
+            MultiStepProductActions.setCurrentStep({ stepIndex: target })
+          )
+        );
+      });
   }
 
-  goNext(): void {
-    console.log('goNext');
-    this.store.dispatch(MultiStepProductActions.nextStep());
+  /** Step changes run inside a view transition (focus-step slide, see
+   *  styles.scss); instant switch where the API is unsupported. */
+  private transitionStep(apply: () => void): void {
+    if (document.startViewTransition) {
+      document.startViewTransition(apply);
+    } else {
+      apply();
+    }
   }
 
   goPrevious(): void {
-    console.log('goPrevious');
-    this.store.dispatch(MultiStepProductActions.previousStep());
+    this.transitionStep(() =>
+      this.store.dispatch(MultiStepProductActions.previousStep())
+    );
   }
 
   // Add to cart
   addToCart(): void {
-    console.log('addToCart');
     combineLatest([this.configuration$, this.isConfigurationComplete$])
       .pipe(
         take(1),
@@ -408,23 +455,66 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       )
       .subscribe(([configuration]) => {
         if (configuration) {
-          // Create multiple dispatch calls for quantity > 1
-          for (let i = 0; i < this.quantity; i++) {
-            this.store.dispatch(
-              MultiStepProductActions.addMultiStepProductToCart({
-                configuration,
-                comment: this.comment().trim() || undefined,
-                optionCustomisationSelections: this.optionCustomisationSelections,
-              })
-            );
-          }
-const category = this.router.snapshot.paramMap.get('category');
-if (category) {
-          // Navigate back to products or show success message
-          this.vendorNavigation.navigateWithVendor(['promotional-banner', category, 'products']);
-        } else {
-          this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
-        }
+          // Wait for the effect's success before deciding the upsell offer:
+          // the nested-drink check must see the menu already in the cart
+          // (SPEC-UPSELL.md — no prompt when the menu includes a drink).
+          // The timer is a safety net so navigation can never hang.
+          const outcome$ = this.actionsSubject.pipe(
+            filter(
+              (action) =>
+                action.type ===
+                  MultiStepProductActions.addMultiStepProductToCartSuccess
+                    .type ||
+                action.type ===
+                  MultiStepProductActions.addMultiStepProductToCartFailure.type
+            ),
+            take(1)
+          );
+          race(outcome$, timer(3000))
+            .pipe(
+              switchMap((outcome) => {
+                const succeeded =
+                  typeof outcome !== 'number' &&
+                  outcome.type ===
+                    MultiStepProductActions.addMultiStepProductToCartSuccess
+                      .type;
+                return (
+                  succeeded
+                    ? this.upsellService.decidePostAddOffer(
+                        configuration.baseProduct
+                      )
+                    : of(null)
+                ).pipe(map((offer) => ({ offer, succeeded })));
+              }),
+              take(1),
+              takeUntil(this.destroy$)
+            )
+            // Menu adds only ever get the pool tier — decidePostAddOffer
+            // skips the convert tier for multi-step products (SPEC-UPSELL.md).
+            .subscribe(({ offer, succeeded }) => {
+              // Navigate directly: the router's withViewTransitions owns the
+              // leave animation. Wrapping the navigation in a manual
+              // document.startViewTransition aborts BOTH transitions
+              // (nested startViewTransition = invalid state).
+              // Post-add lands on the category grid (user decision
+              // 2026-08-11); cancel/close still returns to the product grid.
+              this.upsellService.completePostAdd(offer, categoryGridPath());
+              if (succeeded) {
+                this.cartCelebration.celebrate();
+              }
+            });
+
+          // One dispatch carrying the quantity. (Dispatching N times raced
+          // the effect's async metadata build and only the last add
+          // survived — the x2/x3 basket bug.)
+          this.store.dispatch(
+            MultiStepProductActions.addMultiStepProductToCart({
+              configuration,
+              quantity: this.quantity,
+              comment: this.comment().trim() || undefined,
+              optionCustomisationSelections: this.optionCustomisationSelections,
+            })
+          );
         }
       });
   }
@@ -471,6 +561,39 @@ if (category) {
     return this.stepForms[stepId] || null;
   }
 
+  selectedIdsFor(
+    stepId: number,
+    selections: { [stepId: number]: { selectedOptionIds: number[] } } | null
+  ): number[] {
+    return selections?.[stepId]?.selectedOptionIds ?? [];
+  }
+
+  outOfStockIdsFor(step: ProductStep): number[] {
+    return step.options
+      .filter((option) => this.isOptionEffectivelyOutOfStock(option))
+      .map((option) => option.id);
+  }
+
+  activateStep(stepIndex: number): void {
+    this.transitionStep(() =>
+      this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }))
+    );
+  }
+
+  /** Disabled add-to-cart tap → jump to the first incomplete step (FR4d). */
+  goToFirstIncompleteStep(): void {
+    combineLatest([this.steps$, this.stepSelections$])
+      .pipe(take(1))
+      .subscribe(([steps, selections]) => {
+        const index = steps.findIndex(
+          (step) => !(selections[step.id]?.isValid ?? false)
+        );
+        if (index >= 0) {
+          this.activateStep(index);
+        }
+      });
+  }
+
   getAvailableOptions(step: ProductStep): ProductStepOption[] {
     return step.options.filter((option) => option.isAvailable);
   }
@@ -499,9 +622,10 @@ if (category) {
     if (form) {
       form.get('selectedOption')?.setValue(optionId.toString());
       
-      // Automatically advance to next step after a brief delay for visual feedback
+      // Advance after a brief delay for visual feedback (FR4d edit rule:
+      // never re-open steps that are already chosen).
       setTimeout(() => {
-        this.goNext();
+        this.advanceAfterSelection(step);
       }, 300);
     }
   }
@@ -541,10 +665,10 @@ if (category) {
       (key) => optionsControl.value[key] === true
     ).length;
     
-    // If max selections reached, auto-advance to next step
+    // If max selections reached, auto-advance (same edit-aware rule)
     if (step.maxSelections && selectedCount === step.maxSelections) {
       setTimeout(() => {
-        this.goNext();
+        this.advanceAfterSelection(step);
       }, 300);
     }
   }
@@ -567,81 +691,6 @@ if (category) {
       return form.get('selectedOption')?.value === optionId.toString();
     } else {
       return form.get('options')?.get(optionId.toString())?.value || false;
-    }
-  }
-
-  // Check if all steps have been visited
-  areAllStepsVisited(totalSteps: number): boolean {
-    return totalSteps > 0 && this.visitedSteps.size >= totalSteps;
-  }
-
-  // Open image zoom dialog
-  openImageZoom(imageUrl: string, imageName: string): void {
-    this.dialog.open(ImageZoomDialogComponent, {
-      data: { imageUrl, imageName } as ImageZoomDialogData,
-      maxWidth: '90vw',
-      maxHeight: '90vh',
-      panelClass: 'image-zoom-dialog-panel',
-    });
-  }
-
-  // Handle image click from child component
-  onImageClicked(event: { imageUrl: string; imageName: string }): void {
-    this.openImageZoom(event.imageUrl, event.imageName);
-  }
-
-  // Helper method to scroll to current tab content
-  private scrollToCurrentStep(): void {
-    if (!this.tabGroup) return;
-
-    // Get the selected tab index
-    const selectedIndex = this.tabGroup.selectedIndex;
-    if (selectedIndex === null || selectedIndex === undefined) return;
-
-    // Find the tab label to ensure the tab name is visible
-    const tabLabels = document.querySelectorAll('.mat-mdc-tab');
-    const activeTabLabel = tabLabels[selectedIndex] as HTMLElement;
-
-    if (!activeTabLabel) return;
-
-    // Account for sticky elements
-    const stickyHeaderHeight = 39; // .step-actions sticky bar
-    const additionalOffset = 190; // Extra padding for visibility
-    const totalOffset = stickyHeaderHeight + additionalOffset;
-
-    // Try to find scrollable parent container
-    let scrollableContainer: HTMLElement | null = null;
-    let parent = activeTabLabel.parentElement;
-    
-    while (parent && parent !== document.body) {
-      const overflow = window.getComputedStyle(parent).overflowY;
-      if (overflow === 'auto' || overflow === 'scroll') {
-        scrollableContainer = parent;
-        break;
-      }
-      parent = parent.parentElement;
-    }
-
-    if (scrollableContainer) {
-      // Scroll within container
-      const containerRect = scrollableContainer.getBoundingClientRect();
-      const elementRect = activeTabLabel.getBoundingClientRect();
-      const relativeTop = elementRect.top - containerRect.top;
-      const targetScrollTop = scrollableContainer.scrollTop + relativeTop - totalOffset;
-
-      scrollableContainer.scrollTo({
-        top: targetScrollTop,
-        behavior: 'smooth'
-      });
-    } else {
-      // Scroll the window
-      const elementRect = activeTabLabel.getBoundingClientRect();
-      const absoluteTop = window.pageYOffset + elementRect.top;
-      
-      window.scrollTo({
-        top: absoluteTop - totalOffset,
-        behavior: 'smooth'
-      });
     }
   }
 

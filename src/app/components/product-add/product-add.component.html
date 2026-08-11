@@ -32,8 +32,20 @@
   </div>
 
   <ng-template #loadingOrNotFound>
-    <div *ngIf="productsLoading$ | async; else productNotFound" class="product-loading">
-      <mat-spinner diameter="40"></mat-spinner>
+    <!-- Skeleton mirroring the product layout (image left, text right) -->
+    <div
+      *ngIf="productsLoading$ | async; else productNotFound"
+      class="product-loading"
+      aria-busy="true"
+      aria-label="Chargement du produit"
+    >
+      <div class="skeleton skeleton-image"></div>
+      <div class="skeleton-lines">
+        <div class="skeleton skeleton-line title"></div>
+        <div class="skeleton skeleton-line price"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line short"></div>
+      </div>
     </div>
     <ng-template #productNotFound>
       <div class="product-not-found">

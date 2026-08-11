@@ -27,6 +27,7 @@ import {
 } from '../../../services/vendor.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { VendorCurrencyPipe } from '../../pipes/vendor-currency.pipe';
+import { KioskModeService } from '../../../services/kiosk-mode.service';
 
 export interface DiningPreferenceSelectorResult {
   preference: OrderType;
@@ -58,6 +59,11 @@ export class DiningPreferenceSelectorComponent implements OnInit {
   private fb = inject(FormBuilder);
   private vendorService = inject(VendorService);
   readonly deliverySelection = inject(DeliverySelectionService);
+  private kioskModeService = inject(KioskModeService);
+
+  /** FR4: kiosk customers pick a counter number after ordering and take
+   *  their order immediately — no table number, no asap/later question. */
+  readonly kioskActive = this.kioskModeService.active;
 
   @Input() enabledOrderTypes: OrderType[] = [];
   @Input() initialPreference: OrderType | null = null;
@@ -180,6 +186,9 @@ export class DiningPreferenceSelectorComponent implements OnInit {
   // Auto-switch from ASAP to Later when outside pickup hours for take-away
   private readonly pickupHoursBlockAsapEffect = effect(() => {
     const withinPickup = this.isCurrentlyWithinPickupHours();
+    // Kiosk: the timing UI is hidden and orders are always immediate —
+    // never flip to 'later' behind the customer's back.
+    if (this.kioskActive()) return;
     if (!withinPickup && this.selectedPreference === 'take-away' && this.selectedTiming === 'asap') {
       this.selectTiming('later');
     }
@@ -262,10 +271,10 @@ export class DiningPreferenceSelectorComponent implements OnInit {
     if (this.initialPreference && this.enabledOrderTypes.includes(this.initialPreference)) {
       this.selectedPreference = this.initialPreference;
       this.showTimingSelection = true;
-      this.selectedTiming = this.initialTiming;
+      this.selectedTiming = this.kioskActive() ? 'asap' : this.initialTiming;
       this.showDateTimeSelection = this.selectedTiming === 'later';
 
-      if (this.initialScheduledTime) {
+      if (this.initialScheduledTime && !this.kioskActive()) {
         this.selectedTime = this.initialScheduledTime;
       }
       if (this.initialTableNumber) {
@@ -279,6 +288,12 @@ export class DiningPreferenceSelectorComponent implements OnInit {
   selectPreference(preference: OrderType): void {
     this.selectedPreference = preference;
     this.showTimingSelection = true;
+
+    if (this.kioskActive()) {
+      // The asap/later question is hidden on the kiosk.
+      this.selectedTiming = 'asap';
+      this.showDateTimeSelection = false;
+    }
 
     if (preference !== 'delivery') {
       this.deliverySelection.clear();
@@ -364,7 +379,12 @@ export class DiningPreferenceSelectorComponent implements OnInit {
     const result: DiningPreferenceSelectorResult = {
       preference: this.selectedPreference,
       timing: this.selectedTiming,
-      tableNumber: this.selectedPreference === 'eat-in' && this.tableNumber ? this.tableNumber : undefined,
+      tableNumber:
+        this.selectedPreference === 'eat-in' &&
+        !this.kioskActive() &&
+        this.tableNumber
+          ? this.tableNumber
+          : undefined,
       isValid,
     };
 

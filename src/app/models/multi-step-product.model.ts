@@ -3,7 +3,7 @@ export interface ProductStep {
   productId: number;
   name: string;
   displayOrder: number;
-  stepType: 'single-select' | 'multi-select' | 'summary';
+  stepType: 'single-select' | 'multi-select' | 'text-input';
   description?: string;
   isRequired: boolean;
   minSelections: number;

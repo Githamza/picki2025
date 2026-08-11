@@ -39,6 +39,7 @@ import { UberDeliveryProvider } from './services/delivery/uber-delivery.provider
 import { StuartDeliveryProvider } from './services/delivery/stuart-delivery.provider';
 import { JustEatDeliveryProvider } from './services/delivery/just-eat-delivery.provider';
 import { ClarityService } from './services/clarity.service';
+import { CartCelebrationService } from './services/cart-celebration.service';
 import { environment } from '../environments/environment';
 
 // Register French locale
@@ -47,7 +48,31 @@ registerLocaleData(localeFr);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withViewTransitions()),
+    provideRouter(
+      routes,
+      withViewTransitions({
+        onViewTransitionCreated: ({ transition, to, from }) => {
+          // The cart badge defers its post-add roll + bounce until the page
+          // transition has finished — otherwise the celebration plays behind
+          // the transition overlay and is barely visible.
+          inject(CartCelebrationService).noteViewTransition(
+            transition.finished
+          );
+          // FR3: honor reduced motion at the API level, not just in CSS.
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            transition.skipTransition();
+            return;
+          }
+          // Skip category-to-category hops inside the same grid: animating
+          // the grid onto itself reads as a flash, not motion.
+          const toUrl = to.toString();
+          const fromUrl = from.toString();
+          if (/\/products$/.test(toUrl) && /\/products$/.test(fromUrl)) {
+            transition.skipTransition();
+          }
+        },
+      })
+    ),
     provideAnimations(),
     provideAppInitializer(() => {
       inject(ClarityService).initialize();

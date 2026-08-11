@@ -113,3 +113,10 @@ remotion/out/
 *.jks
 android/app/release/
 android/keystore.properties
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+.DS_Store

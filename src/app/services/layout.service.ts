@@ -1,0 +1,84 @@
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+
+/**
+ * The storefront's four layout form factors (SPEC.md FR1).
+ * `kiosk` is a mode, not a viewport size — KioskModeService activates it,
+ * and it only renders in landscape; a kiosk held in portrait falls back
+ * to the phone layout while keeping every kiosk behaviour.
+ */
+export type FormFactor =
+  | 'phone'
+  | 'tablet-portrait'
+  | 'tablet-landscape'
+  | 'kiosk';
+
+/**
+ * Individual media queries observed by the service.
+ * phonePortrait/phoneLandscape mirror the two halves of the CDK's
+ * `Breakpoints.Handset` union — kept separate because BreakpointState
+ * keys entries by individual query.
+ */
+export const LAYOUT_QUERIES = {
+  phonePortrait: '(max-width: 599.98px) and (orientation: portrait)',
+  phoneLandscape: '(max-width: 959.98px) and (orientation: landscape)',
+  landscape: '(orientation: landscape)',
+  coarsePointer: '(pointer: coarse)',
+} as const;
+
+/**
+ * Single source of layout truth for the storefront (SPEC.md FR1).
+ * Storefront components must consume this instead of BreakpointObserver;
+ * direct BreakpointObserver use remains only in admin components.
+ */
+@Injectable({ providedIn: 'root' })
+export class LayoutService {
+  private readonly breakpointObserver = inject(BreakpointObserver);
+
+  /** Flipped by KioskModeService when the kiosk experience is active. */
+  private readonly kioskMode = signal(false);
+
+  /** KioskModeService owns kiosk activation (vendor flag + native wrapper). */
+  setKioskMode(active: boolean): void {
+    this.kioskMode.set(active);
+  }
+
+  private readonly state = toSignal(
+    this.breakpointObserver.observe(Object.values(LAYOUT_QUERIES)),
+    {
+      initialValue: { matches: false, breakpoints: {} } as BreakpointState,
+    }
+  );
+
+  private matches(query: string): boolean {
+    return this.state().breakpoints[query] ?? false;
+  }
+
+  readonly isLandscape = computed(() =>
+    this.matches(LAYOUT_QUERIES.landscape)
+  );
+
+  readonly isTouch = computed(() =>
+    this.matches(LAYOUT_QUERIES.coarsePointer)
+  );
+
+  readonly isKiosk = computed(() => this.kioskMode());
+
+  readonly formFactor = computed<FormFactor>(() => {
+    if (this.kioskMode()) {
+      // The kiosk shell is landscape-sized; in portrait the tablet
+      // renders the mobile view instead (user decision 2026-08-11).
+      // Kiosk behaviours (attract screen, idle reset, counter payment,
+      // chrome) key off KioskModeService.active, not this form factor.
+      return this.isLandscape() ? 'kiosk' : 'phone';
+    }
+    const isPhone =
+      this.matches(LAYOUT_QUERIES.phonePortrait) ||
+      this.matches(LAYOUT_QUERIES.phoneLandscape);
+    if (isPhone) {
+      return 'phone';
+    }
+    return this.isLandscape() ? 'tablet-landscape' : 'tablet-portrait';
+  });
+}

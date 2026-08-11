@@ -22,10 +22,12 @@
   border-radius: 12px;
 }
 /* Global styles for Material 3 */
+/* No max-width here: the storefront must fill kiosk-sized screens
+   (SPEC.md FR1). The admin shell keeps its own 1440px cap in
+   admin-layout.component.scss. */
 html,
 body {
   height: 100%;
-  max-width: 1440px;
   margin: auto;
 }
 
@@ -123,11 +125,105 @@ body {
 ::view-transition-old(product-add) {
   animation-duration: 0.3s;
   animation-name: move-out;
+  animation-timing-function: var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
 }
 
 ::view-transition-new(product-add) {
   animation-name: move-in;
   animation-duration: 0.2s;
+  animation-timing-function: var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* Multi-step focus pages: forward-feeling slide between steps (and into
+   the review page). Old page fades left, new page slides in from right. */
+::view-transition-old(focus-step) {
+  animation: fade-out 0.15s ease both,
+    slide-to-left 0.2s var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)) both;
+}
+
+::view-transition-new(focus-step) {
+  animation: fade-in 0.2s ease both,
+    slide-from-right 0.25s var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1)) both;
+}
+
+/* FR3: shared-element morphs (clicked tile/card -> destination hero).
+   M3 medium duration + emphasized easing. */
+::view-transition-group(category-hero),
+::view-transition-group(product-hero) {
+  animation-duration: 0.3s;
+  animation-timing-function: var(--mat-sys-motion-easing-emphasized, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* Cart badge: pinned above page transitions. Its own snapshot layer sits
+   over the page groups (so the incoming grid never covers it), but every
+   entrance/travel animation is disabled — it neither morphs nor fades in,
+   it is simply there. Leaving pages keeps the default fade-out. Its
+   post-add celebration (odometer roll + bounce) is a CSS animation inside
+   the live element, deferred until the transition ends
+   (CartCelebrationService.whenPageSettled). */
+::view-transition-group(cart-badge),
+::view-transition-image-pair(cart-badge),
+::view-transition-new(cart-badge) {
+  animation: none;
+}
+
+/* Post-add congratulation snackbar (CartCelebrationService). */
+.cart-celebration-snackbar {
+  --mdc-snackbar-container-color: var(--mat-sys-primary-container);
+  --mdc-snackbar-supporting-text-color: var(--mat-sys-on-primary-container);
+
+  .mdc-snackbar__surface {
+    border-radius: var(--mat-sys-corner-large, 16px);
+    box-shadow: var(--mat-sys-level3);
+  }
+
+  .mdc-snackbar__label {
+    font: var(--mat-sys-title-small);
+    text-align: center;
+  }
+}
+
+/* FR3: reduced motion disables every view-transition animation outright.
+   The router additionally calls skipTransition() (app.config.ts). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Storefront type scale (SPEC.md Design Direction / T12).
+   M3 typography tokens are the single source; the .kiosk-mode root class
+   (set by KioskModeService in the kiosk phase) steps display sizes up for
+   ~1m viewing distance.
+--------------------------------------------------------------------------- */
+.storefront-display {
+  font: var(--mat-sys-headline-medium);
+}
+.storefront-section-title {
+  font: var(--mat-sys-headline-small);
+}
+.storefront-card-title {
+  font: var(--mat-sys-title-medium);
+}
+.storefront-body {
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-on-surface-variant);
+}
+.storefront-price {
+  font: var(--mat-sys-title-medium);
+}
+
+.kiosk-mode {
+  .storefront-display { font: var(--mat-sys-display-small); }
+  .storefront-section-title { font: var(--mat-sys-headline-medium); }
+  .storefront-card-title { font: var(--mat-sys-title-large); }
+  .storefront-body { font: var(--mat-sys-body-large); }
+  .storefront-price { font: var(--mat-sys-title-large); }
 }
 
 /* Global snackbar styles */
@@ -274,4 +370,18 @@ button:focus-visible,
 }
 .mdc-notched-outline__notch {
   border-right: none !important;
+}
+
+/* Skeleton loading placeholder (shared by product + multi-step pages).
+   Reduced motion is already handled by the global animation kill above. */
+.skeleton {
+  background: var(--mat-sys-surface-container-highest);
+  border-radius: var(--mat-sys-corner-small, 4px);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
 }

@@ -37,12 +37,13 @@ import { UtilsService } from '../../shared/utils.service';
 import { PromotionalBannerComponent } from '../promotional-banner/promotional-banner.component';
 import { HorizontalCategoryMenuComponent } from '../horizontal-category-menu/horizontal-category-menu.component';
 import { CategoryGridComponent } from '../category-grid/category-grid.component';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { LayoutService } from '../../services/layout.service';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { CachedImageDirective } from '../../shared/directives/cached-image.directive';
+import { ViewTransitionNameDirective } from '../../shared/directives/view-transition-name.directive';
 
 @Component({
   selector: 'app-product-grid',
@@ -60,13 +61,14 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
     HorizontalCategoryMenuComponent,
     VendorCurrencyPipe,
     CachedImageDirective,
+    ViewTransitionNameDirective,
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductGridComponent implements OnInit, OnDestroy {
-  private breakpointObserver = inject(BreakpointObserver);
+  private layout = inject(LayoutService);
   private vendorNavigation = inject(VendorNavigationService);
   private vendorService = inject(VendorService);
   private route = inject(ActivatedRoute);
@@ -129,10 +131,24 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     });
   });
 
-  // Responsive signals
-  isHandset$ = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
+  // FR2: horizontal category scroller on portrait form factors (the
+  // landscape shell provides the persistent rail instead).
+  readonly showHorizontalMenu = computed(() => {
+    const factor = this.layout.formFactor();
+    return factor === 'phone' || factor === 'tablet-portrait';
+  });
+
+  // FR2 column counts for the card grid
+  readonly gridColumns = computed(() => {
+    switch (this.layout.formFactor()) {
+      case 'phone':
+        return 2;
+      case 'tablet-portrait':
+        return 3;
+      default:
+        return 4;
+    }
+  });
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   private subscriptions = new Subscription();
@@ -213,7 +229,11 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     return product.stockQuantity - cartQty <= 0;
   }
 
-  addToCart(product: Product) {
+  addToCart(product: Product, event?: Event) {
+    // Morph source: the clicked card's image becomes the product hero.
+    const img = (event?.currentTarget as HTMLElement | undefined)?.querySelector('img');
+    img?.style.setProperty('view-transition-name', 'product-hero');
+
     // Create a URL-friendly version of the product name
     const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
 

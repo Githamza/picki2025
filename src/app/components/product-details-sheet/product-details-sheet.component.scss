@@ -38,18 +38,18 @@ img {
     font-size: 1.1rem;
     font-weight: 500;
     margin-bottom: 8px;
-    color: #444;
+    color: var(--mat-sys-on-surface);
   }
 
   .long-description {
     font-size: 0.95rem;
     line-height: 1.6;
-    color: #666;
+    color: var(--mat-sys-on-surface-variant);
   }
 
   .description {
     line-height: 1.6;
-    color: #555;
+    color: var(--mat-sys-on-surface-variant);
     font-size: 1rem;
   }
 }

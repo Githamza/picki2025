@@ -331,7 +331,7 @@ export class FailedPaymentComponent implements OnInit {
 
   retryPayment(): void {
     // Navigate back to cart to retry payment
-    this.vendorNavigation.navigateWithVendor('cartdetails');
+    this.vendorNavigation.navigateWithVendor('promotional-banner');
   }
 
   goToMenu(): void {

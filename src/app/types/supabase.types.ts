@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -72,9 +92,9 @@ export type Database = {
           id: string
           is_closed: boolean
           open_time: string | null
+          pickup_close_time: string | null
           pickup_enabled: boolean
           pickup_open_time: string | null
-          pickup_close_time: string | null
           updated_at: string | null
           vendor_id: string
         }
@@ -85,9 +105,9 @@ export type Database = {
           id?: string
           is_closed?: boolean
           open_time?: string | null
+          pickup_close_time?: string | null
           pickup_enabled?: boolean
           pickup_open_time?: string | null
-          pickup_close_time?: string | null
           updated_at?: string | null
           vendor_id: string
         }
@@ -98,9 +118,9 @@ export type Database = {
           id?: string
           is_closed?: boolean
           open_time?: string | null
+          pickup_close_time?: string | null
           pickup_enabled?: boolean
           pickup_open_time?: string | null
-          pickup_close_time?: string | null
           updated_at?: string | null
           vendor_id?: string
         }
@@ -116,6 +136,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          category_type: string | null
           created_at: string | null
           description: string | null
           display_order: number | null
@@ -128,6 +149,7 @@ export type Database = {
           vendorId: string | null
         }
         Insert: {
+          category_type?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -140,6 +162,7 @@ export type Database = {
           vendorId?: string | null
         }
         Update: {
+          category_type?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -565,6 +588,7 @@ export type Database = {
           product_name: string
           quantity: number
           total_price: number
+          tva_rate: number
           unit_price: number
           vendor_id: string | null
         }
@@ -578,6 +602,7 @@ export type Database = {
           product_name: string
           quantity: number
           total_price: number
+          tva_rate?: number
           unit_price: number
           vendor_id?: string | null
         }
@@ -591,6 +616,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           total_price?: number
+          tva_rate?: number
           unit_price?: number
           vendor_id?: string | null
         }
@@ -1062,56 +1088,71 @@ export type Database = {
       }
       products: {
         Row: {
+          applicable_order_types: string[] | null
           category_id: number | null
           created_at: string | null
           display_order: number
           has_customisations: boolean | null
+          icon_emoji: string | null
           id: number
           image_url: string | null
+          is_accessory: boolean
           is_available: boolean | null
           is_multi_step: boolean | null
           long_description: string | null
+          max_quantity_per_order: number | null
           name: string
           no_catalogable: boolean | null
           price: number
           short_description: string | null
           stock_quantity: number | null
+          tva_rate: number
           updated_at: string | null
           vendor_id: string | null
         }
         Insert: {
+          applicable_order_types?: string[] | null
           category_id?: number | null
           created_at?: string | null
           display_order?: number
           has_customisations?: boolean | null
+          icon_emoji?: string | null
           id?: number
           image_url?: string | null
+          is_accessory?: boolean
           is_available?: boolean | null
           is_multi_step?: boolean | null
           long_description?: string | null
+          max_quantity_per_order?: number | null
           name: string
           no_catalogable?: boolean | null
           price: number
           short_description?: string | null
           stock_quantity?: number | null
+          tva_rate?: number
           updated_at?: string | null
           vendor_id?: string | null
         }
         Update: {
+          applicable_order_types?: string[] | null
           category_id?: number | null
           created_at?: string | null
           display_order?: number
           has_customisations?: boolean | null
+          icon_emoji?: string | null
           id?: number
           image_url?: string | null
+          is_accessory?: boolean
           is_available?: boolean | null
           is_multi_step?: boolean | null
           long_description?: string | null
+          max_quantity_per_order?: number | null
           name?: string
           no_catalogable?: boolean | null
           price?: number
           short_description?: string | null
           stock_quantity?: number | null
+          tva_rate?: number
           updated_at?: string | null
           vendor_id?: string | null
         }
@@ -1260,6 +1301,38 @@ export type Database = {
           },
         ]
       }
+      vendor_just_eat_daas_settings: {
+        Row: {
+          collect_point_id: string
+          created_at: string | null
+          tenant: string
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          collect_point_id: string
+          created_at?: string | null
+          tenant?: string
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          collect_point_id?: string
+          created_at?: string | null
+          tenant?: string
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_just_eat_daas_settings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_metadata: {
         Row: {
           city: string | null
@@ -1314,7 +1387,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
-          public_key: string
+          public_key: string | null
           sandbox_public_key: string | null
           sandbox_secret_key: string | null
           sandbox_shop_id: string | null
@@ -1326,7 +1399,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
-          public_key: string
+          public_key?: string | null
           sandbox_public_key?: string | null
           sandbox_secret_key?: string | null
           sandbox_shop_id?: string | null
@@ -1338,7 +1411,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
-          public_key?: string
+          public_key?: string | null
           sandbox_public_key?: string | null
           sandbox_secret_key?: string | null
           sandbox_shop_id?: string | null
@@ -1350,6 +1423,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_paygreen_credentials_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_private_info: {
+        Row: {
+          created_at: string | null
+          national_id: string | null
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          national_id?: string | null
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          national_id?: string | null
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_private_info_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: true
             referencedRelation: "vendors"
@@ -1416,6 +1518,7 @@ export type Database = {
           info_message: string | null
           info_message_enabled: boolean
           is_active: boolean | null
+          kiosk_enabled: boolean
           logo_url: string | null
           online_payments_enabled: boolean
           orders_suspended_at: string | null
@@ -1452,6 +1555,7 @@ export type Database = {
           info_message?: string | null
           info_message_enabled?: boolean
           is_active?: boolean | null
+          kiosk_enabled?: boolean
           logo_url?: string | null
           online_payments_enabled?: boolean
           orders_suspended_at?: string | null
@@ -1488,6 +1592,7 @@ export type Database = {
           info_message?: string | null
           info_message_enabled?: boolean
           is_active?: boolean | null
+          kiosk_enabled?: boolean
           logo_url?: string | null
           online_payments_enabled?: boolean
           orders_suspended_at?: string | null
@@ -1519,8 +1624,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_full_order: {
+        Args: { p_items: Json; p_order: Json }
+        Returns: Json
+      }
       decrement_stock_for_order: { Args: { p_order_id: string }; Returns: Json }
       is_vendor_order: { Args: { order_id: string }; Returns: boolean }
+      jwt_vendor_ids: { Args: never; Returns: string[] }
       order_item_belongs_to_user: {
         Args: { item_order_id: string }
         Returns: boolean
@@ -1528,6 +1638,7 @@ export type Database = {
       reserve_stock_for_order: { Args: { p_order_id: string }; Returns: Json }
       reset_daily_product_stock: { Args: never; Returns: undefined }
       restore_stock_for_order: { Args: { p_order_id: string }; Returns: Json }
+      save_order_delivery: { Args: { p: Json }; Returns: undefined }
       user_is_vendor_for_order_item: {
         Args: { item_vendor_id: string }
         Returns: boolean
@@ -1687,6 +1798,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       coupon_discount_type: ["percentage", "fixed"],
@@ -1716,3 +1830,4 @@ export const Constants = {
     },
   },
 } as const
+

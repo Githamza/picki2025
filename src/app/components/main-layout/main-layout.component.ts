@@ -1,10 +1,15 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, Router } from '@angular/router';
 import { materialComponents } from '../../material.components';
 import { CategoryMenuComponent } from '../category-menu/category-menu.component';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { map } from 'rxjs/operators';
 import { CartBadgeComponent } from '../cart-badge/cart-badge.component';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
 import { RestaurantStatusService } from '../../services/restaurant-status.service';
@@ -18,6 +23,11 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../../store/models/app.state';
 import * as CategoryActions from '../../store/actions/category.actions';
 import { PromotionalBannerComponent } from "../promotional-banner/promotional-banner.component";
+import { LayoutService } from '../../services/layout.service';
+import { KioskModeService } from '../../services/kiosk-mode.service';
+import { KioskNativeService } from '../../services/kiosk-native.service';
+import { CancelOrderDialogComponent } from '../kiosk/cancel-order-dialog/cancel-order-dialog.component';
+import { AttractScreenComponent } from '../kiosk/attract-screen/attract-screen.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -28,12 +38,17 @@ import { PromotionalBannerComponent } from "../promotional-banner/promotional-ba
     ...materialComponents,
     CategoryMenuComponent,
     CartBadgeComponent,
+    AttractScreenComponent,
 ],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
-  private breakpointObserver = inject(BreakpointObserver);
+  private layout = inject(LayoutService);
+  private kioskMode = inject(KioskModeService);
+  // Instantiated for its side effects (native kiosk affordances, FR5).
+  private kioskNative = inject(KioskNativeService);
   protected diningPreferenceService = inject(DiningPreferenceService);
   private vendorNavigation = inject(VendorNavigationService);
   private restaurantStatusService = inject(RestaurantStatusService);
@@ -44,10 +59,19 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   private subscription = new Subscription();
 
-  // Use BreakpointObserver for responsive design (material design 3 way)
-  isHandset$ = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
+  // LayoutService is the storefront's single source of layout truth (FR1)
+  readonly isPhone = computed(() => this.layout.formFactor() === 'phone');
+
+  // FR4: kiosk chrome (no theme toggle, cancel-order affordance)
+  readonly isKiosk = this.kioskMode.active;
+  readonly attractVisible = this.kioskMode.attractVisible;
+
+  // FR2: the persistent category rail exists only on landscape form factors;
+  // phone and tablet-portrait navigate via the horizontal scroller.
+  readonly showRail = computed(() => {
+    const factor = this.layout.formFactor();
+    return factor === 'tablet-landscape' || factor === 'kiosk';
+  });
 
   menuOpened = true;
 
@@ -140,6 +164,18 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
       document.documentElement.classList.remove('dark-mode');
     }
   }
+  cancelKioskOrder(): void {
+    this.dialog
+      .open(CancelOrderDialogComponent, { maxWidth: '420px' })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.kioskMode.resetSession();
+          this.vendorNavigation.navigateWithVendor('promotional-banner');
+        }
+      });
+  }
+
   gotoRestaurantHomepage() {
     // Clear selected category when navigating to products
     this.store.dispatch(CategoryActions.clearSelectedCategory());

@@ -15,12 +15,7 @@
   >
     <mat-card-content>
       <div class="option-card-content">
-        <div
-          class="option-image"
-          *ngIf="option.imageUrl"
-          [class.mobile-only-zoom]="isMobile"
-          (click)="onImageClick($event)"
-        >
+        <div class="option-image" *ngIf="option.imageUrl">
           <img [src]="option.imageUrl" [alt]="option.name" />
         </div>
 

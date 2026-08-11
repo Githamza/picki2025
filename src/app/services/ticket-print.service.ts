@@ -109,6 +109,42 @@ export class TicketPrintService {
     }
   }
 
+  /**
+   * Kiosk (FR4): print the customer's ticket right after the order is placed.
+   *
+   * Best-effort — a printer problem must never block the kiosk confirmation
+   * screen, so this only logs on failure. The order is recorded as printed so
+   * the dashboard auto-print on the same tablet cannot print it a second time.
+   */
+  async printKioskOrderTicket(order: Order): Promise<void> {
+    if (!this.isNative) {
+      return;
+    }
+    const settings = await this.printerSettings.load();
+    if (!settings.address) {
+      // Printer settings are per-app (Capacitor Preferences): a fresh shop
+      // APK install has none until /kiosk/setup is used on this device.
+      console.warn(
+        `Kiosk ticket skipped for order ${order.orderNumber}: no printer configured on this device (/kiosk/setup)`
+      );
+      return;
+    }
+
+    await this.loadPrintedIds();
+    if (this.printedIds.includes(order.id)) {
+      return;
+    }
+    await this.markPrinted(order.id);
+    try {
+      await this.printOrder(order);
+    } catch (error) {
+      console.error(
+        `Kiosk ticket printing failed for order ${order.orderNumber}`,
+        error
+      );
+    }
+  }
+
   /** Print one order's ticket. Rejects on printer errors so callers can report. */
   async printOrder(order: Order): Promise<void> {
     const settings = await this.printerSettings.load();

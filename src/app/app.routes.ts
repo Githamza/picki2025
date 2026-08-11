@@ -4,7 +4,6 @@ import { VendorLayoutComponent } from './components/vendor-layout/vendor-layout.
 import { VendorSelectionComponent } from './components/vendor-selection/vendor-selection.component';
 import { ProductGridComponent } from './components/product-grid/product-grid.component';
 import { ProductAddComponent } from './components/product-add/product-add.component';
-// import { CartDetailsPageComponent } from './components/cart-details-page/cart-details-page.component';
 import { WelcomeScreenComponent } from './components/welcome-screen/welcome-screen.component';
 import { PaymentSuccessComponent } from './components/payment-success/payment-success.component';
 import { PaymentFailedComponent } from './components/payment-failed/payment-failed.component';
@@ -19,6 +18,7 @@ import { VendorCacheTestComponent } from './components/vendor-cache-test/vendor-
 import { CategoryGridComponent } from './components/category-grid/category-grid.component';
 import { PromotionalBannerComponent } from './components/promotional-banner/promotional-banner.component';
 import { customDomainVendorGuard } from './guards/custom-domain-vendor.guard';
+import { kioskEntryGuard, kioskSetupGuard } from './guards/kiosk-entry.guard';
 import { OrdersQueueComponent } from './components/orders-queue/orders-queue.component';
 
 // Shared vendor app route tree (mounted either at /vendor/:vendorSlug or at / on custom domains)
@@ -66,11 +66,19 @@ const vendorAppChildren: Routes = [
           { path: 'products', component: ProductGridComponent },
         ],
       },
+      // Post-add upsell page (SPEC-UPSELL.md): entered only via a staged
+      // offer; a direct visit redirects back to the product grid.
+      {
+        path: 'upsell',
+        loadComponent: () =>
+          import('./components/upsell-page/upsell-page.component').then(
+            (m) => m.UpsellPageComponent
+          ),
+      },
       { path: ':category/product/:productName', component: ProductAddComponent },
       // Product page without category in URL (e.g. /product/:productName)
       // Must be declared before the ':category/...' route to avoid conflicts.
       { path: 'product/:productName', component: ProductAddComponent },
-      // { path: 'cartdetails', component: CartDetailsPageComponent },
     ],
   },
 ];
@@ -127,6 +135,31 @@ export const routes: Routes = [
             },
           },
         ],
+      },
+    ],
+  },
+
+  // Shop APK entry point: login (if needed) then straight to the
+  // authenticated vendor's storefront. The entry guard always redirects, so
+  // that route needs no component. `/kiosk/setup` is the tablet's device
+  // configuration page (printer…), reached via the attract screen's hidden
+  // maintenance gesture.
+  {
+    path: 'kiosk',
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        canActivate: [kioskEntryGuard],
+        children: [],
+      },
+      {
+        path: 'setup',
+        canActivate: [kioskSetupGuard],
+        loadComponent: () =>
+          import('./components/kiosk/kiosk-setup/kiosk-setup.component').then(
+            (m) => m.KioskSetupComponent
+          ),
       },
     ],
   },

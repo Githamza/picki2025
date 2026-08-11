@@ -621,6 +621,7 @@ export class ProductAdminService {
         `
         id,
         name,
+        category_type,
         description,
         is_active,
         display_order,

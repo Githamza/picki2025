@@ -1,11 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { map } from 'rxjs/operators';
 
 import { AppState } from '../../store/models/app.state';
 import * as CategorySelectors from '../../store/selectors/category.selectors';
@@ -15,6 +13,7 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { VendorService } from '../../services/vendor.service';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
 import { CachedImageDirective } from '../../shared/directives/cached-image.directive';
+import { LayoutService } from '../../services/layout.service';
 
 @Component({
   selector: 'app-category-grid',
@@ -22,18 +21,28 @@ import { CachedImageDirective } from '../../shared/directives/cached-image.direc
   imports: [CommonModule, MatCardModule, MatProgressSpinnerModule, CachedImageDirective],
   templateUrl: './category-grid.component.html',
   styleUrls: ['./category-grid.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryGridComponent implements OnInit {
   private store = inject(Store<AppState>);
   private vendorNavigation = inject(VendorNavigationService);
-  private breakpointObserver = inject(BreakpointObserver);
+  private layout = inject(LayoutService);
+
+  // FR2 column counts: phone 2, tablet-portrait 3, landscape/kiosk 4
+  readonly columns = computed(() => {
+    switch (this.layout.formFactor()) {
+      case 'phone':
+        return 2;
+      case 'tablet-portrait':
+        return 3;
+      default:
+        return 4;
+    }
+  });
 
   categories$!: Observable<Category[]>;
   loading$!: Observable<boolean>;
   error$!: Observable<string | null>;
-  isHandset$ = this.breakpointObserver
-    .observe(Breakpoints.Handset)
-    .pipe(map((result) => result.matches));
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
 
@@ -45,7 +54,12 @@ export class CategoryGridComponent implements OnInit {
 
   }
 
-  selectCategory(category: Category) {
+  selectCategory(category: Category, event?: Event) {
+    // Name only the clicked tile's image so it morphs into the product
+    // grid's category header (view-transition names must be unique).
+    const img = (event?.currentTarget as HTMLElement | undefined)?.querySelector('img');
+    img?.style.setProperty('view-transition-name', 'category-hero');
+
     this.store.dispatch(
       CategoryActions.selectCategory({ categoryId: category.id })
     );

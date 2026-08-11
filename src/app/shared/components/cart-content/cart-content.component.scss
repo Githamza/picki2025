@@ -1,0 +1,206 @@
+/* Cart body styles — moved verbatim from cart-details-sheet (FR7).
+   The host (sheet or panel) owns outer sizing; :host is the flex column. */
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cart-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.cart-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 0 0;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  background: inherit;
+}
+
+.cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cart-item {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+.cart-item:last-child {
+  border-bottom: none;
+}
+.item-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.item-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  --mdc-icon-button-state-layer-size: 28px;
+  --mdc-icon-button-icon-size: 18px;
+}
+.qty-btn mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+.qty-value {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.9em;
+}
+.item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.item-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+}
+.item-title-row > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.item-title {
+  font-weight: 500;
+}
+.item-price {
+  font-weight: 400;
+  font-size: 0.85em;
+  color: var(--mat-sys-on-surface-variant);
+  margin-left: auto;
+  white-space: nowrap;
+  padding-left: 8px;
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}
+.price-value {
+  min-width: 96px;
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .price-value {
+    min-width: auto;
+  }
+  .item-title-row {
+    gap: 4px;
+  }
+  .qty-controls + .item-price {
+    margin-left: 0;
+  }
+}
+.fee-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 0 0;
+  font-size: 0.95em;
+  color: var(--mat-sys-on-surface-variant);
+}
+.fee-row-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fee-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--mat-sys-on-surface-variant);
+}
+.fee-price {
+  color: var(--mat-sys-on-surface);
+}
+.coupon-input-row {
+  display: block;
+  margin: 8px 0 4px 0;
+}
+.discount-row {
+  color: var(--mat-sys-tertiary);
+}
+.discount-icon {
+  color: var(--mat-sys-tertiary);
+}
+.discount-value {
+  color: var(--mat-sys-tertiary);
+  font-weight: 500;
+}
+.empty-cart {
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 24px 0;
+}
+.checkout-btn {
+  width: 100%;
+  margin-top: 0;
+}
+.checkout-btn-validate {
+  font-weight: bold;
+  margin-top: 0;
+}
+.item-comment {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-style: italic;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9em;
+}
+.item-comment mat-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}
+.stock-error-message {
+  color: var(--mat-sys-error);
+  font-size: 0.85em;
+  padding: 4px 0 0 0;
+}
+.accessory-fee-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95em;
+  padding: 4px 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+.accessory-item-emoji-inline {
+  font-size: 18px;
+  margin-right: 4px;
+}

@@ -35,7 +35,11 @@ import { VendorService } from '../../services/vendor.service';
         {{ error }}
       </div>
 
-      <div class="chips-container" *ngIf="categories$ | async as categories">
+      <mat-chip-listbox
+        class="chips-container"
+        aria-label="Filtrer par catégorie"
+        *ngIf="categories$ | async as categories"
+      >
         <mat-chip-option
           (click)="selectAllProducts()"
           [selected]="(selectedCategoryId$ | async) === null"
@@ -66,7 +70,7 @@ import { VendorService } from '../../services/vendor.service';
           </ng-template>
           {{ category.name }}
         </mat-chip-option>
-      </div>
+      </mat-chip-listbox>
     </div>
   `,
   styles: [
@@ -90,6 +94,13 @@ import { VendorService } from '../../services/vendor.service';
         gap: 8px;
         padding: 0 16px;
         min-width: min-content;
+      }
+
+      /* mat-chip-listbox renders an inner chip-set that wraps by default,
+         stacking chips into rows on mobile. Force a single scrollable
+         line (the host handles overflow-x). */
+      .chips-container ::ng-deep .mdc-evolution-chip-set__chips {
+        flex-wrap: nowrap;
       }
 
       .loader-container {

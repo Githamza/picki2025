@@ -7,6 +7,7 @@
           [alt]="product.name"
           title="Product image"
           class="product-image"
+          appViewTransitionName="product-hero"
         />
       </div>
 
@@ -41,9 +42,31 @@
 
   </div>
 
-  <!-- Comment Section -->
+  <!-- Upsell strip: drinks/desserts pool (hidden entirely when empty) -->
+  <div class="upsell-section" *ngIf="upsellSuggestions().length > 0">
+    <app-accessories-strip
+      stripTitle="Pour accompagner"
+      [accessories]="upsellSuggestions()"
+      [cartAccessories]="cartItemsForStrip()"
+      (add)="onUpsellAdd($event)"
+      (increment)="onUpsellIncrement($event)"
+      (decrement)="onUpsellDecrement($event)"
+      (remove)="onUpsellRemove($event)"
+    ></app-accessories-strip>
+  </div>
+
+  <!-- Comment Section (collapsed behind a toggle) -->
   <div class="comment-section">
-    <mat-form-field class="comment-field">
+    <button
+      *ngIf="!commentOpen()"
+      mat-button
+      class="comment-toggle"
+      (click)="commentOpen.set(true)"
+    >
+      <mat-icon>add</mat-icon>
+      Ajouter un commentaire
+    </button>
+    <mat-form-field class="comment-field" *ngIf="commentOpen()">
       <mat-label>Commentaires (optionnel)</mat-label>
       <textarea
         matInput

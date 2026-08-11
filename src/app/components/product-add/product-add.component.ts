@@ -1,16 +1,8 @@
-import {
-  Component,
-  Injector,
-  OnInit,
-  HostListener,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
+import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Store } from '@ngrx/store';
 import {
   Observable,
@@ -18,21 +10,17 @@ import {
   map,
   switchMap,
   tap,
-  combineLatest,
   distinctUntilChanged,
-  startWith,
   filter,
-  debounceTime,
+  take,
   takeUntil,
   shareReplay,
 } from 'rxjs';
 import { AppState } from '../../store/models/app.state';
 import * as ProductSelectors from '../../store/selectors/product.selectors';
 import * as ProductActions from '../../store/actions/product.actions';
-import * as MultiStepProductSelectors from '../../store/selectors/multi-step-product.selectors';
 import * as MultiStepProductActions from '../../store/actions/multi-step-product.actions';
 import { Product } from '../../services/product.service';
-import { UtilsService } from '../../shared/utils.service';
 import { addToCart } from '../../store/actions/cart.actions';
 import { selectCartQuantityByProductId } from '../../store/selectors/cart.selectors';
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
@@ -40,16 +28,20 @@ import { VendorService } from '../../services/vendor.service';
 import { AddProductMultiStepComponent } from '../add-product-multi-step/add-product-multi-step.component';
 import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility.service';
 import { RegularProductViewComponent } from './regular-product-view/regular-product-view.component';
+import {
+  UpsellService,
+  productGridPath,
+  categoryGridPath,
+} from '../../services/upsell.service';
+import { CartCelebrationService } from '../../services/cart-celebration.service';
 
 @Component({
   selector: 'app-product-add',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     AddProductMultiStepComponent,
     RegularProductViewComponent,
   ],
@@ -69,12 +61,11 @@ export class ProductAddComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private store: Store<AppState>,
-    private utilsService: UtilsService,
-    private injector: Injector,
-    private router: Router,
     private vendorNavigation: VendorNavigationService,
     private vendorService: VendorService,
-    private cartBadgeVisibilityService: CartBadgeVisibilityService
+    private cartBadgeVisibilityService: CartBadgeVisibilityService,
+    private upsellService: UpsellService,
+    private cartCelebration: CartCelebrationService
   ) {}
 
   ngOnInit(): void {
@@ -150,18 +141,20 @@ export class ProductAddComponent implements OnInit, OnDestroy {
     }
   }
 
-  private navigateBackToProducts(): void {
-    const category = this.route.snapshot.paramMap.get('category');
-    if (category) {
-      this.vendorNavigation.navigateWithVendor([
-        'promotional-banner',
-        category,
-        'products',
-      ]);
-      return;
-    }
+  private returnPathSegments(): string[] {
+    return productGridPath(this.route.snapshot.paramMap.get('category'));
+  }
 
-    this.vendorNavigation.navigateWithVendor(['promotional-banner', 'products']);
+  private navigateBackToProducts(): void {
+    this.vendorNavigation.navigateWithVendor(this.returnPathSegments());
+  }
+
+  private transitionTo(navigate: () => void): void {
+    // The router's withViewTransitions owns the leave animation. Wrapping
+    // the navigation in a manual document.startViewTransition aborts BOTH
+    // transitions (nested startViewTransition = invalid state), so
+    // navigate directly.
+    navigate();
   }
 
   incrementQuantity(): void {
@@ -186,31 +179,45 @@ export class ProductAddComponent implements OnInit, OnDestroy {
     comment?: string;
     customisationSelections?: Map<number, number[]>;
   }): void {
-    this.store.dispatch(
-      addToCart({
-        product: data.product,
-        quantity: this.quantity,
-        comment: data.comment,
-        customisationSelections: data.customisationSelections,
-      })
-    );
-    // Navigate to the products page with smooth transition
-    if (document.startViewTransition) {
-      document.startViewTransition(() => {
-        this.navigateBackToProducts();
+    const pendingAdd = {
+      quantity: this.quantity,
+      comment: data.comment,
+      customisationSelections: data.customisationSelections,
+    };
+    const performAdd = () => {
+      this.store.dispatch(addToCart({ product: data.product, ...pendingAdd }));
+      this.cartCelebration.celebrate();
+    };
+    // Decide BEFORE dispatching: a convert offer defers the add until the
+    // customer chooses on the upsell page — decline adds the product there,
+    // accept replaces it with the menu (SPEC-UPSELL.md). Pool offers and
+    // no-offer adds go to the cart immediately as before.
+    this.upsellService
+      .decidePostAddOffer(data.product, pendingAdd)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe({
+        next: (offer) => {
+          if (offer?.tier !== 'convert') {
+            performAdd();
+          }
+          // Post-add lands on the category grid (user decision 2026-08-11);
+          // cancel/close still returns to the product grid.
+          this.transitionTo(() =>
+            this.upsellService.completePostAdd(offer, categoryGridPath())
+          );
+        },
+        error: () => {
+          performAdd();
+          this.transitionTo(() =>
+            this.vendorNavigation.navigateWithVendor(categoryGridPath())
+          );
+        },
       });
-    } else {
-      // Fallback for browsers that don't support view transitions
-      this.navigateBackToProducts();
-    }
   }
 
   closePage(): void {
     this.navigateBackToProducts();
   }
-
-  // Handle swipe gestures on mobile
-  private touchStartX: number | null = null;
 
   ngOnDestroy(): void {
     // Show cart badge when leaving product add page

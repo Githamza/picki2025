@@ -125,7 +125,7 @@ export class PaymentFailedComponent {
 
   retryPayment() {
     // Navigate back to cart to retry payment
-    this.vendorNavigation.navigateWithVendor('cartdetails');
+    this.vendorNavigation.navigateWithVendor('promotional-banner');
   }
 
   goHome() {

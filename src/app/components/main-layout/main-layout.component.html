@@ -1,28 +1,31 @@
 <!-- Main Layout without overlay -->
 <div class="layout-container">
-  <mat-toolbar color="primary" class="toolbar mat-elevation-z2">
+  <!-- Kiosk attract screen (FR4): greets between customer sessions -->
+  @if (isKiosk() && attractVisible()) {
+    <app-attract-screen></app-attract-screen>
+  }
+  <mat-toolbar color="primary" class="toolbar">
     <!-- Restaurant Logo and Name -->
-    <div
-      class="brand-section"
-      *ngIf="currentVendor$ | async as vendor"
-      (click)="gotoRestaurantHomepage()"
-    >
-      <img
-        *ngIf="vendor.logo_url"
-        [src]="vendor.logo_url"
-        [alt]="vendor.business_name + ' logo'"
-        class="restaurant-logo"
-        [title]="vendor.business_name"
-      />
-      <mat-icon
-        *ngIf="!vendor.logo_url"
-        class="restaurant-logo-fallback"
-        [title]="vendor.business_name"
-      >
-        restaurant
-      </mat-icon>
-      <span class="restaurant-name">{{ vendor.business_name }}</span>
-    </div>
+    @if (currentVendor$ | async; as vendor) {
+      <div class="brand-section" (click)="gotoRestaurantHomepage()">
+        @if (vendor.logo_url) {
+          <img
+            [src]="vendor.logo_url"
+            [alt]="vendor.business_name + ' logo'"
+            class="restaurant-logo"
+            [title]="vendor.business_name"
+          />
+        } @else {
+          <mat-icon
+            class="restaurant-logo-fallback"
+            [title]="vendor.business_name"
+          >
+            restaurant
+          </mat-icon>
+        }
+        <span class="restaurant-name">{{ vendor.business_name }}</span>
+      </div>
+    }
 
     <span class="toolbar-spacer"></span>
 
@@ -34,38 +37,74 @@
       aria-label="Changer la préférence de restauration"
     >
       <span class="preference-text">{{
-        diningPreferenceService.getDiningPreferenceText(!(isHandset$ | async))
+        diningPreferenceService.getDiningPreferenceText(!isPhone())
       }}</span>
       <mat-icon class="change-icon" iconPositionEnd>edit</mat-icon>
     </button>
 
-    <!-- Restaurant Info Icon -->
-    <button
-      mat-icon-button
-      (click)="openRestaurantInfo()"
-      aria-label="Informations du restaurant"
-      matTooltip="Info"
-      matTooltipPosition="below"
-    >
-      <mat-icon class="material-symbols-rounded">info</mat-icon>
-    </button>
+    <!-- Kiosk (FR4): always-available cancel; no theme toggle -->
+    @if (isKiosk()) {
+      <button
+        mat-stroked-button
+        class="kiosk-cancel-button"
+        (click)="cancelKioskOrder()"
+      >
+        <mat-icon>close</mat-icon>
+        Annuler la commande
+      </button>
+    }
 
-    <button
-      mat-icon-button
-      (click)="toggleTheme()"
-      aria-label="Basculer le thème"
-    >
-      <mat-icon class="material-symbols-rounded">{{
-        isDarkTheme ? "light_mode" : "dark_mode"
-      }}</mat-icon>
-    </button>
+    <!-- Secondary actions: inline on tablet+, overflow menu on phone -->
+    @if (!isPhone()) {
+      <button
+        mat-icon-button
+        (click)="openRestaurantInfo()"
+        aria-label="Informations du restaurant"
+        matTooltip="Info"
+        matTooltipPosition="below"
+      >
+        <mat-icon class="material-symbols-rounded">info</mat-icon>
+      </button>
+
+      @if (!isKiosk()) {
+        <button
+          mat-icon-button
+          (click)="toggleTheme()"
+          aria-label="Basculer le thème"
+        >
+          <mat-icon class="material-symbols-rounded">{{
+            isDarkTheme ? "light_mode" : "dark_mode"
+          }}</mat-icon>
+        </button>
+      }
+    } @else {
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="toolbarMenu"
+        aria-label="Plus d'options"
+      >
+        <mat-icon class="material-symbols-rounded">more_vert</mat-icon>
+      </button>
+      <mat-menu #toolbarMenu="matMenu">
+        <button mat-menu-item (click)="openRestaurantInfo()">
+          <mat-icon class="material-symbols-rounded">info</mat-icon>
+          <span>Informations du restaurant</span>
+        </button>
+        <button mat-menu-item (click)="toggleTheme()">
+          <mat-icon class="material-symbols-rounded">{{
+            isDarkTheme ? "light_mode" : "dark_mode"
+          }}</mat-icon>
+          <span>{{ isDarkTheme ? "Thème clair" : "Thème sombre" }}</span>
+        </button>
+      </mat-menu>
+    }
   </mat-toolbar>
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav
-      [mode]="(isHandset$ | async) ? 'over' : 'side'"
-      [opened]="menuOpened && !(isHandset$ | async)"
-      class="sidenav mat-elevation-z1"
-      [class.mat-rounded-medium]="!(isHandset$ | async)"
+      [mode]="isPhone() ? 'over' : 'side'"
+      [opened]="menuOpened && showRail()"
+      class="sidenav"
+      [class.mat-rounded-medium]="!isPhone()"
     >
       <app-category-menu></app-category-menu>
     </mat-sidenav>
@@ -76,5 +115,9 @@
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
-  <app-cart-badge *ngIf="showCartBadge$ | async"></app-cart-badge>
+  <!-- Cart entry point on every form factor (user decision 2026-08-08:
+       no persistent panel, kiosk included — the badge opens the sheet) -->
+  @if (showCartBadge$ | async) {
+    <app-cart-badge></app-cart-badge>
+  }
 </div>

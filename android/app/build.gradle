@@ -4,7 +4,20 @@ android {
     namespace = "com.pikiapp.tablet"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.pikiapp.tablet"
+        // Overridable so the shop/admin/staging APKs can be installed side
+        // by side. See the android:sync* scripts in package.json; keep the
+        // label map in sync with capacitor.config.ts.
+        def pickiAppId = System.getenv('PICKI_APP_ID') ?: 'com.pikiapp.tablet'
+        def pickiLabels = [
+            'com.pikiapp.tablet': '@string/app_name',
+            'com.pikiapp.tablet.staging': 'Picki Staging',
+            'com.pikiapp.admin': 'Picki Admin',
+            'com.pikiapp.admin.staging': 'Picki Admin Staging',
+        ]
+        applicationId pickiAppId
+        manifestPlaceholders = [
+            appLabel: System.getenv('PICKI_APP_NAME') ?: (pickiLabels[pickiAppId] ?: pickiAppId)
+        ]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

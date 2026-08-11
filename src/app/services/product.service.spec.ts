@@ -3,7 +3,13 @@ import { ProductService } from './product.service';
 import { SupabaseService } from './supabase.service';
 import { CategoryService } from './category.service';
 import { CustomisationService } from './customisation.service';
+import { Customisation } from '../models/customisation.interface';
+import { UPSELLABLE_CATEGORY_TYPES } from '../models/category-type.model';
 import { of } from 'rxjs';
+
+// The Supabase query builders give these service methods exact row types;
+// the lightweight mocks below intentionally carry only the fields the
+// ProductService mapping reads, hence the ReturnType casts at the spy sites.
 
 describe('ProductService', () => {
   let service: ProductService;
@@ -15,7 +21,9 @@ describe('ProductService', () => {
     const supabaseSpy = jasmine.createSpyObj('SupabaseService', [
       'getProducts',
       'getAllProducts',
-      'getProductById'
+      'getProductById',
+      'getUpsellProducts',
+      'getMenusContainingProduct'
     ]);
     
     const categorySpy = jasmine.createSpyObj('CategoryService', [
@@ -76,7 +84,9 @@ describe('ProductService', () => {
       ];
 
       // Setup spies
-      mockSupabaseService.getProducts.and.returnValue(Promise.resolve(mockProducts));
+      mockSupabaseService.getProducts.and.returnValue(
+        Promise.resolve(mockProducts) as unknown as ReturnType<SupabaseService['getProducts']>
+      );
       mockCategoryService.getCategories.and.returnValue(of(mockCategories));
       mockCustomisationService.getProductCustomisations.and.returnValue(of([]));
 
@@ -113,18 +123,20 @@ describe('ProductService', () => {
 
       // Mock customisations
       const mockCustomisations = [
-        { 
-          id: 1, 
-          name: 'Size', 
+        {
+          id: 1,
+          name: 'Size',
           options: [
-            { id: 1, name: 'Small', price: 0 },
-            { id: 2, name: 'Large', price: 2 }
+            { id: 1, name: 'Small', price_adjustment: 0 },
+            { id: 2, name: 'Large', price_adjustment: 2 }
           ]
         }
-      ];
+      ] as unknown as Customisation[];
 
       // Setup spies
-      mockSupabaseService.getProductById.and.returnValue(Promise.resolve(mockProduct));
+      mockSupabaseService.getProductById.and.returnValue(
+        Promise.resolve(mockProduct) as unknown as ReturnType<SupabaseService['getProductById']>
+      );
       mockCustomisationService.getProductCustomisations.and.returnValue(of(mockCustomisations));
 
       // Call the method
@@ -142,6 +154,99 @@ describe('ProductService', () => {
           done();
         },
         error: done.fail
+      });
+    });
+  });
+
+  describe('getUpsellPool', () => {
+    const poolRows = [
+      {
+        id: 9104,
+        name: 'Coca-Cola',
+        price: 2.5,
+        category_id: 9002,
+        vendor_id: 'vendor1',
+        is_multi_step: false,
+        display_order: 2
+      }
+    ];
+
+    it('queries the upsellable category types and maps rows to Product', (done) => {
+      mockSupabaseService.getUpsellProducts.and.returnValue(
+        Promise.resolve(poolRows) as unknown as ReturnType<SupabaseService['getUpsellProducts']>
+      );
+
+      service.getUpsellPool('vendor1', 'eat-in').subscribe({
+        next: (products) => {
+          expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledWith(
+            'vendor1',
+            UPSELLABLE_CATEGORY_TYPES,
+            'eat-in'
+          );
+          expect(products.length).toBe(1);
+          expect(products[0].name).toBe('Coca-Cola');
+          expect(products[0].price).toBe(2.5);
+          done();
+        },
+        error: done.fail
+      });
+    });
+
+    it('caches per vendor and order type', (done) => {
+      mockSupabaseService.getUpsellProducts.and.returnValue(
+        Promise.resolve(poolRows) as unknown as ReturnType<SupabaseService['getUpsellProducts']>
+      );
+
+      service.getUpsellPool('vendor1', 'eat-in').subscribe(() => {
+        service.getUpsellPool('vendor1', 'eat-in').subscribe((cached) => {
+          expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledTimes(1);
+          expect(cached.length).toBe(1);
+
+          // A different order type is a different cache entry.
+          service.getUpsellPool('vendor1', 'take-away').subscribe(() => {
+            expect(mockSupabaseService.getUpsellProducts).toHaveBeenCalledTimes(2);
+            done();
+          });
+        });
+      });
+    });
+
+    it('the v1 upsellable set is boisson + dessert', () => {
+      expect(UPSELLABLE_CATEGORY_TYPES).toEqual(['boisson', 'dessert']);
+    });
+  });
+
+  describe('getMenusContaining', () => {
+    it('maps containing menus and caches per vendor + product', (done) => {
+      const menuRows = [
+        {
+          id: 9103,
+          name: 'Menu Burger',
+          price: 12,
+          category_id: 9001,
+          vendor_id: 'vendor1',
+          is_multi_step: true,
+          display_order: 2
+        }
+      ];
+      mockSupabaseService.getMenusContainingProduct.and.returnValue(
+        Promise.resolve(menuRows) as unknown as ReturnType<
+          SupabaseService['getMenusContainingProduct']
+        >
+      );
+
+      service.getMenusContaining(9101, 'vendor1').subscribe((menus) => {
+        expect(menus.length).toBe(1);
+        expect(menus[0].name).toBe('Menu Burger');
+        expect(menus[0].isMultiStep).toBeTrue();
+
+        service.getMenusContaining(9101, 'vendor1').subscribe((cached) => {
+          expect(
+            mockSupabaseService.getMenusContainingProduct
+          ).toHaveBeenCalledTimes(1);
+          expect(cached.length).toBe(1);
+          done();
+        });
       });
     });
   });
@@ -167,7 +272,9 @@ describe('ProductService', () => {
       ];
 
       // Setup spies
-      mockSupabaseService.getAllProducts.and.returnValue(Promise.resolve(mockProducts));
+      mockSupabaseService.getAllProducts.and.returnValue(
+        Promise.resolve(mockProducts) as unknown as ReturnType<SupabaseService['getAllProducts']>
+      );
       mockCategoryService.getCategories.and.returnValue(of(mockCategories));
       mockCustomisationService.getProductCustomisations.and.returnValue(of([]));
 

@@ -33,11 +33,17 @@ export type UpsellOffer =
 
 export const POOL_OFFER_MAX_ITEMS = 4;
 
-/** The product grid the customer came from — post-add return target. */
+/** The product grid the customer came from — cancel/close return target. */
 export function productGridPath(category: string | null): string[] {
   return category
     ? ['promotional-banner', category, 'products']
     : ['promotional-banner', 'products'];
+}
+
+/** Post-add return target (user decision 2026-08-11): back to the
+ *  category grid, not the product grid the customer came from. */
+export function categoryGridPath(): string[] {
+  return ['promotional-banner', 'categories'];
 }
 
 // Convert-accept preselection is best-effort and unambiguous-only (plan
@@ -88,9 +94,9 @@ export class UpsellService {
   private _pendingOffer = signal<UpsellOffer | null>(null);
   readonly pendingOffer = this._pendingOffer.asReadonly();
 
-  // Where the upsell page returns to on dismiss (the grid the customer came
-  // from); staged together with the offer.
-  private _returnPath = signal<string[]>(['promotional-banner', 'products']);
+  // Where the upsell page returns to on dismiss; staged together with the
+  // offer (post-add: the category grid).
+  private _returnPath = signal<string[]>(categoryGridPath());
   readonly returnPath = this._returnPath.asReadonly();
 
   // Convert-accept handoff: the menu flow preselects this product's option

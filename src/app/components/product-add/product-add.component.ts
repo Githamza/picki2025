@@ -28,7 +28,11 @@ import { VendorService } from '../../services/vendor.service';
 import { AddProductMultiStepComponent } from '../add-product-multi-step/add-product-multi-step.component';
 import { CartBadgeVisibilityService } from '../../services/cart-badge-visibility.service';
 import { RegularProductViewComponent } from './regular-product-view/regular-product-view.component';
-import { UpsellService, productGridPath } from '../../services/upsell.service';
+import {
+  UpsellService,
+  productGridPath,
+  categoryGridPath,
+} from '../../services/upsell.service';
 import { CartCelebrationService } from '../../services/cart-celebration.service';
 
 @Component({
@@ -196,13 +200,17 @@ export class ProductAddComponent implements OnInit, OnDestroy {
           if (offer?.tier !== 'convert') {
             performAdd();
           }
+          // Post-add lands on the category grid (user decision 2026-08-11);
+          // cancel/close still returns to the product grid.
           this.transitionTo(() =>
-            this.upsellService.completePostAdd(offer, this.returnPathSegments())
+            this.upsellService.completePostAdd(offer, categoryGridPath())
           );
         },
         error: () => {
           performAdd();
-          this.transitionTo(() => this.navigateBackToProducts());
+          this.transitionTo(() =>
+            this.vendorNavigation.navigateWithVendor(categoryGridPath())
+          );
         },
       });
   }

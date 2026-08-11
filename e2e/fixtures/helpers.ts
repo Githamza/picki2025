@@ -62,19 +62,21 @@ export async function openProduct(page: Page, name: string): Promise<void> {
 
 /** Product grid → product page → add to cart. Since SPEC-UPSELL the add can
  *  detour through the /upsell page (convert or pool tier, at most once per
- *  tier per session) — decline it so journeys land back on the grid. */
+ *  tier per session) — decline it. Post-add lands on the category grid
+ *  (user decision 2026-08-11). */
 export async function addSimpleProductToCart(page: Page): Promise<void> {
   await openProduct(page, E2E_VENDOR.products.simple.name);
   await page.locator('.add-to-cart-button').click();
   await dismissUpsellIfOffered(page);
 }
 
-/** Decline the post-add upsell page when it appears; no-op otherwise. */
+/** Decline the post-add upsell page when it appears; no-op otherwise.
+ *  Either way the flow ends on the category grid. */
 export async function dismissUpsellIfOffered(page: Page): Promise<void> {
-  await page.waitForURL(/\/(upsell|products)/, { timeout: 10_000 });
+  await page.waitForURL(/\/(upsell|categories)/, { timeout: 10_000 });
   if (page.url().includes('/upsell')) {
     await page.getByRole('button', { name: /non merci/i }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
   }
 }
 

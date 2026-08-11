@@ -152,7 +152,7 @@ test.describe('multi-step product — focus shell', () => {
 
     // The menu has no drink → SPEC-UPSELL pool tier may detour; decline it.
     await dismissUpsellIfOffered(page);
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
     await expect(page.locator('app-cart-badge')).toContainText('(2)');
   });
 
@@ -167,7 +167,7 @@ test.describe('multi-step product — focus shell', () => {
 
     // The menu has no drink → SPEC-UPSELL pool tier may detour; decline it.
     await dismissUpsellIfOffered(page);
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
     await page.locator('app-cart-badge button').click();
     const sheet = page.getByRole('dialog');
     const itemTitle = sheet.getByText(E2E_VENDOR.products.multiStep.name).first();

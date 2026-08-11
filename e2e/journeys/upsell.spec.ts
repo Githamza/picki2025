@@ -62,9 +62,10 @@ test.describe('upsell — post-add journeys', () => {
       page.getByText(E2E_VENDOR.products.multiStep.name)
     ).toBeVisible();
     await page.getByRole('button', { name: /non merci/i }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
 
     // 2nd add: convert tier consumed, no drink in the cart → pool tier.
+    await openCategory(page, E2E_VENDOR.categories.burgers);
     await openProduct(page, E2E_VENDOR.products.simple.name);
     await addAndExpectUpsell(page, /Une petite soif/);
     await page
@@ -73,12 +74,13 @@ test.describe('upsell — post-add journeys', () => {
       .click();
     // Adding a suggestion flips the CTA to "Continuer".
     await page.getByRole('button', { name: /continuer/i }).click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
 
-    // 3rd add: both tiers consumed this session → straight back to the grid.
+    // 3rd add: both tiers consumed this session → straight to categories.
+    await openCategory(page, E2E_VENDOR.categories.burgers);
     await openProduct(page, E2E_VENDOR.products.simple.name);
     await page.locator('.add-to-cart-button').click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
 
     // The suggested drink is a normal cart line; checkout completes.
     await openCartSheet(page);
@@ -145,7 +147,7 @@ test.describe('upsell — untyped vendor sees zero upsell UI', () => {
 
     await expect(page.getByText('Pour accompagner')).toHaveCount(0);
     await page.locator('.add-to-cart-button').click();
-    await expect(page).toHaveURL(/\/products/);
+    await expect(page).toHaveURL(/\/categories/);
     await expect(page).not.toHaveURL(/\/upsell/);
   });
 });

@@ -64,7 +64,7 @@ import { ProductService, Product } from '../../services/product.service';
 import {
   UpsellService,
   findUnambiguousPreselection,
-  productGridPath,
+  categoryGridPath,
 } from '../../services/upsell.service';
 import { Customisation } from '../../models/customisation.interface';
 import { CartCelebrationService } from '../../services/cart-celebration.service';
@@ -446,10 +446,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
     );
   }
 
-  private returnPathSegments(): string[] {
-    return productGridPath(this.router.snapshot.paramMap.get('category'));
-  }
-
   // Add to cart
   addToCart(): void {
     combineLatest([this.configuration$, this.isConfigurationComplete$])
@@ -500,10 +496,9 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
               // leave animation. Wrapping the navigation in a manual
               // document.startViewTransition aborts BOTH transitions
               // (nested startViewTransition = invalid state).
-              this.upsellService.completePostAdd(
-                offer,
-                this.returnPathSegments()
-              );
+              // Post-add lands on the category grid (user decision
+              // 2026-08-11); cancel/close still returns to the product grid.
+              this.upsellService.completePostAdd(offer, categoryGridPath());
               if (succeeded) {
                 this.cartCelebration.celebrate();
               }

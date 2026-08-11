@@ -21,8 +21,8 @@
   }
 </div>
 
-<!-- Table Number for Eat-In -->
-@if (selectedPreference === 'eat-in') {
+<!-- Table Number for Eat-In (not on the kiosk: FR4) -->
+@if (selectedPreference === 'eat-in' && !kioskActive()) {
 <div class="timing-section">
   <h3>Numero de table</h3>
   <mat-form-field class="time-field">
@@ -40,8 +40,8 @@
 </div>
 }
 
-<!-- Timing Options for Take Away -->
-@if (selectedPreference === 'take-away') {
+<!-- Timing Options for Take Away (not on the kiosk: always immediate) -->
+@if (selectedPreference === 'take-away' && !kioskActive()) {
 <div class="timing-section">
   <h3>Quand souhaitez-vous recuperer votre commande ?</h3>
 

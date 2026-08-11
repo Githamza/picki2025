@@ -134,8 +134,15 @@ const MAINTENANCE_TAP_WINDOW_MS = 3000;
         bottom: 10vh;
         left: 50%;
         transform: translateX(-50%);
+        /* left: 50% halves the shrink-to-fit space, which off-centers the
+           pill once the text wraps (portrait) — size to content instead. */
+        width: max-content;
+        max-width: calc(100vw - 32px);
+        box-sizing: border-box;
         display: flex;
         align-items: center;
+        justify-content: center;
+        text-align: center;
         gap: 16px;
         padding: 20px 40px;
         border-radius: 999px;

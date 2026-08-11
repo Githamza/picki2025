@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 
-import { kioskEntryGuard } from './kiosk-entry.guard';
+import { kioskEntryGuard, kioskSetupGuard } from './kiosk-entry.guard';
 import { AuthService } from '../services/auth.service';
 import { VendorService } from '../services/vendor.service';
 
@@ -15,6 +15,7 @@ describe('kioskEntryGuard', () => {
   let vendorService: {
     loadVendors: jasmine.Spy;
     getVendorSlug: jasmine.Spy;
+    setCurrentVendor: jasmine.Spy;
     vendors$: BehaviorSubject<any[]>;
   };
   let router: Router;
@@ -30,6 +31,7 @@ describe('kioskEntryGuard', () => {
     vendorService = {
       loadVendors: jasmine.createSpy('loadVendors').and.resolveTo(undefined),
       getVendorSlug: jasmine.createSpy('getVendorSlug').and.returnValue('granola'),
+      setCurrentVendor: jasmine.createSpy('setCurrentVendor'),
       vendors$: new BehaviorSubject<any[]>([vendor]),
     };
 
@@ -83,5 +85,43 @@ describe('kioskEntryGuard', () => {
     const result = await runGuard();
 
     expect(router.serializeUrl(result)).toContain('/admin/login');
+  });
+
+  describe('kioskSetupGuard', () => {
+    const runSetupGuard = (): Promise<boolean | UrlTree> =>
+      TestBed.runInInjectionContext(
+        () => kioskSetupGuard({} as any, {} as any) as Promise<boolean | UrlTree>
+      );
+
+    it('redirects a logged-out user to login with returnUrl=/kiosk/setup', async () => {
+      const result = await runSetupGuard();
+
+      expect(router.serializeUrl(result as UrlTree)).toBe(
+        '/admin/login?returnUrl=%2Fkiosk%2Fsetup'
+      );
+    });
+
+    it('sets the vendor context and allows a logged-in user through', async () => {
+      authService.isAuthenticated.and.returnValue(true);
+      authService.currentUser.and.returnValue({ id: 'u1', vendorId: 'vendor-1' });
+
+      const result = await runSetupGuard();
+
+      expect(result).toBe(true);
+      expect(vendorService.setCurrentVendor).toHaveBeenCalledWith(
+        jasmine.objectContaining({ id: 'vendor-1' })
+      );
+    });
+
+    it('sends a user with no matching vendor back to login', async () => {
+      authService.isAuthenticated.and.returnValue(true);
+      authService.currentUser.and.returnValue({ id: 'u1', vendorId: 'unknown' });
+
+      const result = await runSetupGuard();
+
+      const url = router.serializeUrl(result as UrlTree);
+      expect(url).toContain('/admin/login');
+      expect(url).toContain('returnUrl=%2Fkiosk%2Fsetup');
+    });
   });
 });

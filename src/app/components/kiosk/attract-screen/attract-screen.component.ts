@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -19,6 +20,11 @@ import * as PromotionalBannersActions from '../../../store/actions/promotional-b
 import * as PromotionalBannersSelectors from '../../../store/selectors/promotional-banners.selectors';
 import { VendorService } from '../../../services/vendor.service';
 import { KioskModeService } from '../../../services/kiosk-mode.service';
+
+/** Maintenance gesture: this many taps on the hidden hotspot… */
+const MAINTENANCE_TAP_COUNT = 5;
+/** …within this window opens the device setup page (`/kiosk/setup`). */
+const MAINTENANCE_TAP_WINDOW_MS = 3000;
 
 /**
  * Kiosk attract screen (SPEC.md FR4): full-screen idle state cycling the
@@ -66,6 +72,15 @@ import { KioskModeService } from '../../../services/kiosk-mode.service';
         <mat-icon aria-hidden="true">touch_app</mat-icon>
         <span>Touchez pour commander</span>
       </div>
+
+      <!-- Hidden maintenance gesture: 5 taps here within 3s opens the
+           device setup page (printer…). Deliberately invisible so
+           customers only ever see "touch to order". -->
+      <div
+        class="maintenance-hotspot"
+        (click)="onMaintenanceTap($event)"
+        aria-hidden="true"
+      ></div>
     </div>
   `,
   styles: [
@@ -144,6 +159,13 @@ import { KioskModeService } from '../../../services/kiosk-mode.service';
           transform: translateX(-50%) scale(1.06);
         }
       }
+      .maintenance-hotspot {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 110px;
+        height: 110px;
+      }
     `,
   ],
 })
@@ -151,6 +173,7 @@ export class AttractScreenComponent implements OnInit, OnDestroy {
   private readonly store = inject(Store<AppState>);
   private readonly vendorService = inject(VendorService);
   private readonly kiosk = inject(KioskModeService);
+  private readonly router = inject(Router);
 
   readonly vendor = toSignal(this.vendorService.currentVendor$, {
     initialValue: null as any,
@@ -179,6 +202,9 @@ export class AttractScreenComponent implements OnInit, OnDestroy {
 
   private rotation?: ReturnType<typeof setInterval>;
 
+  private maintenanceTaps = 0;
+  private maintenanceTimer?: ReturnType<typeof setTimeout>;
+
   constructor() {
     // Load the vendor's banners into the store (same action the
     // promotional banner uses).
@@ -204,9 +230,39 @@ export class AttractScreenComponent implements OnInit, OnDestroy {
     if (this.rotation) {
       clearInterval(this.rotation);
     }
+    if (this.maintenanceTimer) {
+      clearTimeout(this.maintenanceTimer);
+    }
   }
 
   start(): void {
     this.kiosk.startSession();
+  }
+
+  /**
+   * Hidden hotspot taps. Stops propagation so a stray tap in the corner
+   * never starts a customer session; a lone tap simply does nothing.
+   */
+  onMaintenanceTap(event: Event): void {
+    event.stopPropagation();
+
+    this.maintenanceTaps++;
+    if (this.maintenanceTaps >= MAINTENANCE_TAP_COUNT) {
+      this.maintenanceTaps = 0;
+      if (this.maintenanceTimer) {
+        clearTimeout(this.maintenanceTimer);
+        this.maintenanceTimer = undefined;
+      }
+      this.router.navigateByUrl('/kiosk/setup');
+      return;
+    }
+
+    if (this.maintenanceTimer) {
+      clearTimeout(this.maintenanceTimer);
+    }
+    this.maintenanceTimer = setTimeout(() => {
+      this.maintenanceTaps = 0;
+      this.maintenanceTimer = undefined;
+    }, MAINTENANCE_TAP_WINDOW_MS);
   }
 }

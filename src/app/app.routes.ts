@@ -18,7 +18,7 @@ import { VendorCacheTestComponent } from './components/vendor-cache-test/vendor-
 import { CategoryGridComponent } from './components/category-grid/category-grid.component';
 import { PromotionalBannerComponent } from './components/promotional-banner/promotional-banner.component';
 import { customDomainVendorGuard } from './guards/custom-domain-vendor.guard';
-import { kioskEntryGuard } from './guards/kiosk-entry.guard';
+import { kioskEntryGuard, kioskSetupGuard } from './guards/kiosk-entry.guard';
 import { OrdersQueueComponent } from './components/orders-queue/orders-queue.component';
 
 // Shared vendor app route tree (mounted either at /vendor/:vendorSlug or at / on custom domains)
@@ -140,12 +140,28 @@ export const routes: Routes = [
   },
 
   // Shop APK entry point: login (if needed) then straight to the
-  // authenticated vendor's storefront. The guard always redirects, so the
-  // route needs no component.
+  // authenticated vendor's storefront. The entry guard always redirects, so
+  // that route needs no component. `/kiosk/setup` is the tablet's device
+  // configuration page (printer…), reached via the attract screen's hidden
+  // maintenance gesture.
   {
     path: 'kiosk',
-    canActivate: [kioskEntryGuard],
-    children: [],
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        canActivate: [kioskEntryGuard],
+        children: [],
+      },
+      {
+        path: 'setup',
+        canActivate: [kioskSetupGuard],
+        loadComponent: () =>
+          import('./components/kiosk/kiosk-setup/kiosk-setup.component').then(
+            (m) => m.KioskSetupComponent
+          ),
+      },
+    ],
   },
 
   // Cache test route (development only)

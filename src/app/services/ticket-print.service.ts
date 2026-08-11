@@ -122,6 +122,11 @@ export class TicketPrintService {
     }
     const settings = await this.printerSettings.load();
     if (!settings.address) {
+      // Printer settings are per-app (Capacitor Preferences): a fresh shop
+      // APK install has none until /kiosk/setup is used on this device.
+      console.warn(
+        `Kiosk ticket skipped for order ${order.orderNumber}: no printer configured on this device (/kiosk/setup)`
+      );
       return;
     }
 

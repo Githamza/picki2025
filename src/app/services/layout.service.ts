@@ -4,8 +4,9 @@ import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
 
 /**
  * The storefront's four layout form factors (SPEC.md FR1).
- * `kiosk` is a mode, not a viewport size — it activates in Phase 6 via
- * KioskModeService; until then formFactor never returns it.
+ * `kiosk` is a mode, not a viewport size — KioskModeService activates it,
+ * and it only renders in landscape; a kiosk held in portrait falls back
+ * to the phone layout while keeping every kiosk behaviour.
  */
 export type FormFactor =
   | 'phone'
@@ -66,7 +67,11 @@ export class LayoutService {
 
   readonly formFactor = computed<FormFactor>(() => {
     if (this.kioskMode()) {
-      return 'kiosk';
+      // The kiosk shell is landscape-sized; in portrait the tablet
+      // renders the mobile view instead (user decision 2026-08-11).
+      // Kiosk behaviours (attract screen, idle reset, counter payment,
+      // chrome) key off KioskModeService.active, not this form factor.
+      return this.isLandscape() ? 'kiosk' : 'phone';
     }
     const isPhone =
       this.matches(LAYOUT_QUERIES.phonePortrait) ||

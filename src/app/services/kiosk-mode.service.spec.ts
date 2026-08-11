@@ -92,14 +92,26 @@ describe('KioskModeService', () => {
     ).toBeFalse();
   });
 
-  it('promotes the LayoutService form factor to kiosk when active', () => {
+  it('promotes the LayoutService form factor to kiosk on landscape', () => {
     simulateKioskDevice();
     const service = TestBed.inject(KioskModeService);
     const layout = TestBed.inject(LayoutService);
+    emit([LAYOUT_QUERIES.landscape]);
     vendor$.next({ kiosk_enabled: true });
     TestBed.tick();
     expect(service.active()).toBeTrue();
     expect(layout.formFactor()).toBe('kiosk');
+  });
+
+  it('renders the mobile view in kiosk portrait (active, phone layout)', () => {
+    simulateKioskDevice();
+    const service = TestBed.inject(KioskModeService);
+    const layout = TestBed.inject(LayoutService);
+    emit([]); // portrait: no landscape media query match
+    vendor$.next({ kiosk_enabled: true });
+    TestBed.tick();
+    expect(service.active()).toBeTrue();
+    expect(layout.formFactor()).toBe('phone');
   });
 
   it('deactivates when the vendor changes to a non-kiosk one', () => {

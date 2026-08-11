@@ -18,6 +18,7 @@ import { VendorCacheTestComponent } from './components/vendor-cache-test/vendor-
 import { CategoryGridComponent } from './components/category-grid/category-grid.component';
 import { PromotionalBannerComponent } from './components/promotional-banner/promotional-banner.component';
 import { customDomainVendorGuard } from './guards/custom-domain-vendor.guard';
+import { kioskEntryGuard } from './guards/kiosk-entry.guard';
 import { OrdersQueueComponent } from './components/orders-queue/orders-queue.component';
 
 // Shared vendor app route tree (mounted either at /vendor/:vendorSlug or at / on custom domains)
@@ -136,6 +137,15 @@ export const routes: Routes = [
         ],
       },
     ],
+  },
+
+  // Shop APK entry point: login (if needed) then straight to the
+  // authenticated vendor's storefront. The guard always redirects, so the
+  // route needs no component.
+  {
+    path: 'kiosk',
+    canActivate: [kioskEntryGuard],
+    children: [],
   },
 
   // Cache test route (development only)

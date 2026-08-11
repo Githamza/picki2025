@@ -9,6 +9,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { MatDialog } from '@angular/material/dialog';
+import { Capacitor } from '@capacitor/core';
 
 import { LayoutService } from './layout.service';
 import { VendorService } from './vendor.service';
@@ -24,9 +25,11 @@ const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
 /**
  * Self-ordering kiosk mode (SPEC.md FR4).
  *
- * Activation: `vendors.kiosk_enabled` AND a landscape form factor — the
- * mounted-tablet posture. A kiosk-enabled vendor's phone customers keep
- * the normal storefront (plan T29/T30 assumption).
+ * Activation: `vendors.kiosk_enabled` AND running inside the Capacitor
+ * wrapper — the APK *is* the kiosk hardware. Orientation is irrelevant
+ * (the tablet may auto-rotate). A kiosk-enabled vendor's customers on
+ * their own phones or desktops use a browser, never the wrapper, so
+ * they keep the normal storefront.
  *
  * Session lifecycle: the attract screen greets between customers; a tap
  * starts a session; after `idleMs` without input, a non-empty cart gets a
@@ -61,15 +64,17 @@ export class KioskModeService {
     initialValue: [] as CartItem[],
   });
 
+  /**
+   * The Capacitor APK is the kiosk hardware: the native wrapper marks
+   * this device as a kiosk. `__KIOSK_DEVICE__` lets e2e (which runs in
+   * a browser) simulate the wrapper.
+   */
+  private readonly isKioskDevice =
+    Capacitor.isNativePlatform() || !!(window as any).__KIOSK_DEVICE__;
+
   readonly active = computed(() => {
     const vendor = this.vendor() as { kiosk_enabled?: boolean } | null;
-    if (!vendor?.kiosk_enabled) {
-      return false;
-    }
-    // isLandscape (not formFactor) avoids self-reference once the form
-    // factor is promoted to 'kiosk'; phones never qualify.
-    const factor = this.layout.formFactor();
-    return this.layout.isLandscape() && factor !== 'phone';
+    return !!vendor?.kiosk_enabled && this.isKioskDevice;
   });
 
   /** Attract screen visibility — true between customer sessions. */

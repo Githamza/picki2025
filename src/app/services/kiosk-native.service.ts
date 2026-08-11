@@ -1,7 +1,6 @@
 import { Injectable, effect, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { StatusBar } from '@capacitor/status-bar';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 
@@ -14,8 +13,10 @@ import { KioskModeService } from './kiosk-mode.service';
  * `Capacitor.isNativePlatform()`, and plugin failures are non-fatal (a
  * kiosk without keep-awake still takes orders).
  *
- * - kiosk active  -> lock landscape, hide the status bar, keep awake
- * - kiosk inactive -> unlock, show, allow sleep
+ * - kiosk active  -> hide the status bar, keep awake
+ * - kiosk inactive -> show the status bar, allow sleep
+ * - orientation is never locked: the OS auto-rotates and the layout
+ *   adapts (kiosk activation does not depend on orientation).
  * - hardware back  -> in kiosk mode never exits the app; otherwise the
  *   default in-app back navigation applies.
  */
@@ -53,11 +54,9 @@ export class KioskNativeService {
   private async applyNativeState(active: boolean): Promise<void> {
     try {
       if (active) {
-        await ScreenOrientation.lock({ orientation: 'landscape' });
         await StatusBar.hide();
         await KeepAwake.keepAwake();
       } else {
-        await ScreenOrientation.unlock();
         await StatusBar.show();
         await KeepAwake.allowSleep();
       }

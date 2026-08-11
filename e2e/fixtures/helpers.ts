@@ -115,22 +115,40 @@ export async function checkoutPayAtCounter(page: Page): Promise<void> {
     await dialog.getByRole('button', { name: /confirmer/i }).click();
   }
 
-  // Step 2 — customer details.
-  await expect(
-    dialog.getByRole('heading', { name: /informations de commande/i })
-  ).toBeVisible();
-  await dialog.getByLabel(/^nom/i).fill(E2E_VENDOR.customer.nom);
-  await dialog.getByLabel(/prenom/i).fill(E2E_VENDOR.customer.prenom);
-  await dialog.getByLabel(/email/i).fill(E2E_VENDOR.customer.email);
-  await dialog.getByLabel(/telephone/i).fill(E2E_VENDOR.customer.phone);
+  // Step 2 — customer details. Kiosk mode (FR4) asks only for a phone
+  // number on an on-screen keypad; the full form appears otherwise.
+  const phoneOnly = await dialog
+    .getByRole('heading', { name: /votre numéro de téléphone/i })
+    .waitFor({ state: 'visible', timeout: 2000 })
+    .then(() => true)
+    .catch(() => false);
 
-  // Labels must not carry a literal asterisk — Material's required
-  // marker provides it (the "Nom **" defect).
-  const starredLabels = await dialog
-    .locator('mat-label')
-    .filter({ hasText: '*' })
-    .count();
-  expect(starredLabels, 'labels must not hard-code asterisks').toBe(0);
+  if (phoneOnly) {
+    // The keypad has no '+': type the national form (+33… -> 0…), which
+    // is what the phone validator expects from kiosk customers.
+    const digits = E2E_VENDOR.customer.phone
+      .replace(/^\+33/, '0')
+      .replace(/\D/g, '');
+    for (const digit of digits) {
+      await dialog.getByRole('button', { name: digit, exact: true }).click();
+    }
+  } else {
+    await expect(
+      dialog.getByRole('heading', { name: /informations de commande/i })
+    ).toBeVisible();
+    await dialog.getByLabel(/^nom/i).fill(E2E_VENDOR.customer.nom);
+    await dialog.getByLabel(/prenom/i).fill(E2E_VENDOR.customer.prenom);
+    await dialog.getByLabel(/email/i).fill(E2E_VENDOR.customer.email);
+    await dialog.getByLabel(/telephone/i).fill(E2E_VENDOR.customer.phone);
+
+    // Labels must not carry a literal asterisk — Material's required
+    // marker provides it (the "Nom **" defect).
+    const starredLabels = await dialog
+      .locator('mat-label')
+      .filter({ hasText: '*' })
+      .count();
+    expect(starredLabels, 'labels must not hard-code asterisks').toBe(0);
+  }
 
   // Pay-at-counter vendors (and kiosks) submit with honest copy — no
   // "paiement" button when no payment screen follows.

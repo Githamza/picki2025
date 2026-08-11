@@ -38,7 +38,7 @@ export class LayoutService {
   /** Flipped by KioskModeService when the kiosk experience is active. */
   private readonly kioskMode = signal(false);
 
-  /** KioskModeService owns kiosk activation (vendor flag + posture). */
+  /** KioskModeService owns kiosk activation (vendor flag + native wrapper). */
   setKioskMode(active: boolean): void {
     this.kioskMode.set(active);
   }

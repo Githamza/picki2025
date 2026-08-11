@@ -20,7 +20,14 @@ describe('KioskModeService', () => {
     breakpoints$.next({ matches: matched.length > 0, breakpoints });
   }
 
+  /** Simulate the Capacitor wrapper (the tablet APK) — must be set
+   *  before the service is instantiated, like the real wrapper. */
+  function simulateKioskDevice(): void {
+    (window as any).__KIOSK_DEVICE__ = true;
+  }
+
   beforeEach(() => {
+    delete (window as any).__KIOSK_DEVICE__;
     breakpoints$ = new BehaviorSubject<BreakpointState>({
       matches: false,
       breakpoints: {},
@@ -41,20 +48,21 @@ describe('KioskModeService', () => {
   });
 
   afterEach(() => {
+    delete (window as any).__KIOSK_DEVICE__;
     document.documentElement.classList.remove('kiosk-mode');
   });
 
   it('is inactive without a kiosk-enabled vendor', () => {
+    simulateKioskDevice();
     const service = TestBed.inject(KioskModeService);
-    emit([LAYOUT_QUERIES.landscape]);
     vendor$.next({ kiosk_enabled: false });
     TestBed.tick();
     expect(service.active()).toBeFalse();
   });
 
-  it('activates for a kiosk-enabled vendor on landscape', () => {
+  it('activates for a kiosk-enabled vendor on a kiosk device', () => {
+    simulateKioskDevice();
     const service = TestBed.inject(KioskModeService);
-    emit([LAYOUT_QUERIES.landscape]);
     vendor$.next({ kiosk_enabled: true });
     TestBed.tick();
     expect(service.active()).toBeTrue();
@@ -63,18 +71,31 @@ describe('KioskModeService', () => {
     ).toBeTrue();
   });
 
-  it('stays inactive on phones even when the vendor flag is on', () => {
+  it('activates regardless of orientation (auto-rotate)', () => {
+    simulateKioskDevice();
     const service = TestBed.inject(KioskModeService);
+    // Portrait posture: kiosk activation must not care.
     emit([LAYOUT_QUERIES.phonePortrait]);
     vendor$.next({ kiosk_enabled: true });
     TestBed.tick();
+    expect(service.active()).toBeTrue();
+  });
+
+  it('stays inactive in a browser even when the vendor flag is on', () => {
+    const service = TestBed.inject(KioskModeService);
+    emit([LAYOUT_QUERIES.landscape]);
+    vendor$.next({ kiosk_enabled: true });
+    TestBed.tick();
     expect(service.active()).toBeFalse();
+    expect(
+      document.documentElement.classList.contains('kiosk-mode')
+    ).toBeFalse();
   });
 
   it('promotes the LayoutService form factor to kiosk when active', () => {
+    simulateKioskDevice();
     const service = TestBed.inject(KioskModeService);
     const layout = TestBed.inject(LayoutService);
-    emit([LAYOUT_QUERIES.landscape]);
     vendor$.next({ kiosk_enabled: true });
     TestBed.tick();
     expect(service.active()).toBeTrue();
@@ -82,8 +103,8 @@ describe('KioskModeService', () => {
   });
 
   it('deactivates when the vendor changes to a non-kiosk one', () => {
+    simulateKioskDevice();
     const service = TestBed.inject(KioskModeService);
-    emit([LAYOUT_QUERIES.landscape]);
     vendor$.next({ kiosk_enabled: true });
     TestBed.tick();
     expect(service.active()).toBeTrue();

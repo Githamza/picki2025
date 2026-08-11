@@ -10,13 +10,26 @@ import {
 /**
  * Kiosk mode (SPEC.md FR4, plan T30+): activation matrix and chrome.
  * Seeded vendor e2e-kiosk has kiosk_enabled = true AND online payments on.
+ *
+ * Activation = vendor flag AND the Capacitor wrapper (the tablet APK).
+ * E2e runs in a browser, so it simulates the wrapper via the
+ * `__KIOSK_DEVICE__` hook. Orientation no longer matters; the session
+ * journeys run on two projects only to bound suite runtime.
  */
 const KIOSK_PATH = '/vendor/e2e-kiosk';
-const LANDSCAPE = ['tablet-landscape', 'kiosk-landscape'];
+const KIOSK_PROJECTS = ['tablet-landscape', 'kiosk-landscape'];
+
+/** Simulate the Capacitor wrapper — must run before app scripts load. */
+async function simulateKioskDevice(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    (window as any).__KIOSK_DEVICE__ = true;
+  });
+}
 
 /** Enter the kiosk storefront, tapping through the attract screen.
  *  The attract appears only after the vendor loads — wait for it. */
 async function enterKiosk(page: import('@playwright/test').Page) {
+  await simulateKioskDevice(page);
   await page.goto(KIOSK_PATH);
   const attract = page.locator('app-attract-screen');
   await attract.waitFor({ state: 'visible', timeout: 10_000 });
@@ -26,49 +39,59 @@ async function enterKiosk(page: import('@playwright/test').Page) {
 }
 
 test.describe('kiosk mode — activation and chrome', () => {
-  test('kiosk-enabled vendor on landscape gets kiosk chrome', async ({
+  test('kiosk-enabled vendor on a kiosk device gets kiosk chrome on any viewport', async ({
     page,
-  }, testInfo) => {
+  }) => {
+    await simulateKioskDevice(page);
     await page.goto(KIOSK_PATH);
     await expect(page).toHaveURL(/promotional-banner/);
-    const landscape = LANDSCAPE.includes(testInfo.project.name);
 
-    // FR4: the attract screen greets on load in kiosk mode only.
-    if (landscape) {
-      await page
-        .locator('app-attract-screen')
-        .waitFor({ state: 'visible', timeout: 10_000 });
-      await expect(
-        page.getByText('Touchez pour commander')
-      ).toBeVisible();
-      await page.locator('app-attract-screen').click();
-    } else {
-      // Portrait: the attract screen must never appear.
-      await expect(
-        page.getByRole('heading', { name: 'Menus' })
-      ).toBeVisible();
-      await expect(page.locator('app-attract-screen')).toHaveCount(0);
-    }
-    await expect(
-      page.getByRole('heading', { name: 'Menus' })
-    ).toBeVisible();
+    // FR4: the attract screen greets on load — every viewport, the
+    // wrapper decides, not the orientation.
+    await page
+      .locator('app-attract-screen')
+      .waitFor({ state: 'visible', timeout: 10_000 });
+    await expect(page.getByText('Touchez pour commander')).toBeVisible();
+    await page.locator('app-attract-screen').click();
+    await expect(page.locator('app-attract-screen')).toBeHidden();
+
+    // Activation is what's under test — the storefront grid itself is
+    // laid out for tablet-and-up viewports, so don't assert it here.
     const kioskClass = await page.evaluate(() =>
       document.documentElement.classList.contains('kiosk-mode')
     );
-    expect(kioskClass).toBe(landscape);
+    expect(kioskClass).toBe(true);
 
     // Cancel affordance only in kiosk mode; theme toggle never in kiosk mode.
-    expect(
-      await page.getByRole('button', { name: /annuler la commande/i }).isVisible()
-    ).toBe(landscape);
-    if (landscape) {
-      await expect(
-        page.getByRole('button', { name: /basculer le thème/i })
-      ).toHaveCount(0);
-    }
+    await expect(
+      page.getByRole('button', { name: /annuler la commande/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /basculer le thème/i })
+    ).toHaveCount(0);
+  });
+
+  test('browser (no wrapper) never gets kiosk chrome, even kiosk-enabled', async ({
+    page,
+  }) => {
+    await page.goto(KIOSK_PATH);
+    await expect(page).toHaveURL(/promotional-banner/);
+    await expect(
+      page.getByRole('heading', { name: 'Menus' })
+    ).toBeVisible();
+    await expect(page.locator('app-attract-screen')).toHaveCount(0);
+    const kioskClass = await page.evaluate(() =>
+      document.documentElement.classList.contains('kiosk-mode')
+    );
+    expect(kioskClass).toBe(false);
+    await expect(
+      page.getByRole('button', { name: /annuler la commande/i })
+    ).toHaveCount(0);
   });
 
   test('non-kiosk vendor never gets kiosk chrome', async ({ page }) => {
+    // Even on a kiosk device: the vendor flag still gates activation.
+    await simulateKioskDevice(page);
     await page.goto('/vendor/e2e-cafe');
     await expect(page).toHaveURL(/promotional-banner/);
     const kioskClass = await page.evaluate(() =>
@@ -84,8 +107,8 @@ test.describe('kiosk mode — activation and chrome', () => {
     page,
   }, testInfo) => {
     test.skip(
-      !LANDSCAPE.includes(testInfo.project.name),
-      'kiosk chrome is landscape-only'
+      !KIOSK_PROJECTS.includes(testInfo.project.name),
+      'kiosk journeys sampled on two projects to bound runtime'
     );
 
     await enterKiosk(page);
@@ -108,8 +131,8 @@ test.describe('kiosk mode — activation and chrome', () => {
     page,
   }, testInfo) => {
     test.skip(
-      !LANDSCAPE.includes(testInfo.project.name),
-      'kiosk chrome is landscape-only'
+      !KIOSK_PROJECTS.includes(testInfo.project.name),
+      'kiosk journeys sampled on two projects to bound runtime'
     );
 
     // Shorten the SPEC timings (60s -> 2s idle, 20s -> 2s countdown).
@@ -141,8 +164,8 @@ test.describe('kiosk mode — activation and chrome', () => {
     page,
   }, testInfo) => {
     test.skip(
-      !LANDSCAPE.includes(testInfo.project.name),
-      'kiosk chrome is landscape-only'
+      !KIOSK_PROJECTS.includes(testInfo.project.name),
+      'kiosk journeys sampled on two projects to bound runtime'
     );
 
     await page.addInitScript(() => {
@@ -161,8 +184,8 @@ test.describe('kiosk mode — activation and chrome', () => {
 test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(
-      !LANDSCAPE.includes(testInfo.project.name),
-      'kiosk mode is landscape-only'
+      !KIOSK_PROJECTS.includes(testInfo.project.name),
+      'kiosk journeys sampled on two projects to bound runtime'
     );
   });
 
@@ -191,7 +214,10 @@ test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
     await expect(page.locator('.kiosk-confirmation')).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.locator('.kiosk-order-number')).toHaveText(
+    // Customer-facing short number (3 digits) + full reference in small
+    // print (FR4: the customer reads 3 digits out at the counter).
+    await expect(page.locator('.kiosk-order-number')).toHaveText(/^\d{3}$/);
+    await expect(page.locator('.kiosk-order-number-full')).toHaveText(
       /\d{6}-\d{6}/
     );
     await expect(page.getByText('Payez au comptoir', { exact: false })).toBeVisible();
@@ -210,8 +236,8 @@ test.describe('kiosk checkout — forced pay at counter (FR4a)', () => {
 test.describe('kiosk combo builder — one step per screen (FR4b)', () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(
-      !LANDSCAPE.includes(testInfo.project.name),
-      'kiosk mode is landscape-only'
+      !KIOSK_PROJECTS.includes(testInfo.project.name),
+      'kiosk journeys sampled on two projects to bound runtime'
     );
   });
 

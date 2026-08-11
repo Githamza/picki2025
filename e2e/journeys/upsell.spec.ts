@@ -134,15 +134,11 @@ test.describe('upsell — post-add journeys', () => {
 
 test.describe('upsell — untyped vendor sees zero upsell UI', () => {
   const KIOSK_PATH = '/vendor/e2e-kiosk';
-  const LANDSCAPE = ['tablet-landscape', 'kiosk-landscape'];
 
-  test('no strip, no post-add detour', async ({ page }, testInfo) => {
+  test('no strip, no post-add detour', async ({ page }) => {
+    // Plain browser: kiosk mode needs the Capacitor wrapper, so the
+    // kiosk-enabled vendor renders the normal storefront (no attract).
     await page.goto(KIOSK_PATH);
-    if (LANDSCAPE.includes(testInfo.project.name)) {
-      const attract = page.locator('app-attract-screen');
-      await attract.waitFor({ state: 'visible', timeout: 10_000 });
-      await attract.click();
-    }
     await expect(page.getByRole('heading', { name: 'Menus' })).toBeVisible();
     await page.getByRole('heading', { name: 'Menus' }).click();
     await openProduct(page, 'Wrap Poulet');

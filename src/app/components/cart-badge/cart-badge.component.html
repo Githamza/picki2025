@@ -1,15 +1,36 @@
-<ng-container *ngIf="showBadge$ | async">
-  <button
-    *ngIf="cartCount$ | async as count; else nothing"
-    class="cart-badge"
-    appViewTransitionName="cart-badge"
-    mat-fab
-    extended
-    aria-label="View cart"
-    (click)="openCartDetails()"
-  >
-    <mat-icon>shopping_cart</mat-icon>
-    <span class="cart-count"> Voir mon panier ({{ count }})</span>
-  </button>
-</ng-container>
-<ng-template #nothing></ng-template>
+@if (showBadge$ | async) {
+  @if (count() > 0) {
+    <button
+      class="cart-badge"
+      [class.cart-badge--bounce]="bounce()"
+      mat-fab
+      extended
+      [attr.aria-label]="
+        'Voir mon panier, ' + count() + (count() > 1 ? ' articles' : ' article')
+      "
+      (click)="openCartDetails()"
+    >
+      <mat-icon>shopping_cart</mat-icon>
+      <span class="cart-count" aria-hidden="true">
+        Voir mon panier&nbsp;(<span class="cart-odometer"
+          >@for (cell of cells(); track $index) {<span
+            class="digit"
+            [class.digit--roll]="cell.roll"
+            [class.digit--up]="cell.roll && cell.dir === 'up'"
+            [class.digit--down]="cell.roll && cell.dir === 'down'"
+            ><span class="digit-drum"
+              >@if (cell.roll) {<span class="digit-glyph">{{
+                cell.dir === 'down' ? cell.curr : cell.prev
+              }}</span
+              ><span class="digit-glyph">{{
+                cell.dir === 'down' ? cell.prev : cell.curr
+              }}</span
+              >} @else {<span class="digit-glyph">{{ cell.curr }}</span
+              >}</span
+            ></span
+          >}</span
+        >)
+      </span>
+    </button>
+  }
+}

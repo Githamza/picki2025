@@ -18,6 +18,7 @@ import {
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { AccessoriesStripComponent } from '../accessories-strip/accessories-strip.component';
 import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder';
+import { CartCelebrationService } from '../../services/cart-celebration.service';
 
 // Post-add upsell page (SPEC-UPSELL.md): one decision per screen, focus-shell
 // styling. A routed page — never a dialog — so the kiosk idle-warning's
@@ -38,7 +39,7 @@ import { PRODUCT_PLACEHOLDER_IMAGE } from '../../shared/utils/image-placeholder'
         @if (currentOffer.tier === 'convert') {
           <h1 class="upsell-title">Et si vous en faisiez un menu&nbsp;?</h1>
           <p class="upsell-subtitle">
-            {{ currentOffer.replacedProduct.name }} existe aussi en menu.
+            {{ currentOffer.deferredAdd.product.name }} existe aussi en menu.
           </p>
           <div class="menu-card">
             <img
@@ -180,6 +181,7 @@ export class UpsellPageComponent implements OnInit {
   private vendorNavigation = inject(VendorNavigationService);
   private store = inject(Store);
   private destroyRef = inject(DestroyRef);
+  private cartCelebration = inject(CartCelebrationService);
 
   readonly placeholderImage = PRODUCT_PLACEHOLDER_IMAGE;
   readonly offer = this.upsellService.pendingOffer;
@@ -205,23 +207,28 @@ export class UpsellPageComponent implements OnInit {
     return this.cartItems().some((item) => poolIds.has(item.product.id));
   }
 
+  // The convert offer arrives with the add DEFERRED: the product is not in
+  // the cart yet. Accept discards it (the menu replaces it); decline is the
+  // moment the original add actually happens.
   acceptConvert(): void {
     const currentOffer = this.offer();
     if (currentOffer?.tier !== 'convert') {
       return;
     }
-    this.store.dispatch(
-      removeCartItem({ productId: currentOffer.replacedProduct.id })
-    );
     this.upsellService.stagePreselect(
       currentOffer.menu.id,
-      currentOffer.replacedProduct.id
+      currentOffer.deferredAdd.product.id
     );
     this.upsellService.clearOffer();
     this.vendorNavigation.navigateWithVendor(['product', currentOffer.menu.name]);
   }
 
   dismiss(): void {
+    const currentOffer = this.offer();
+    if (currentOffer?.tier === 'convert') {
+      this.store.dispatch(addToCart({ ...currentOffer.deferredAdd }));
+      this.cartCelebration.celebrate();
+    }
     this.upsellService.clearOffer();
     this.vendorNavigation.navigateWithVendor(this.upsellService.returnPath());
   }

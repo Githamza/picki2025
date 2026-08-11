@@ -1,5 +1,5 @@
 <div class="add-to-cart-bar">
-  <div class="quantity-controls">
+  <div class="quantity-controls" *ngIf="showQuantityControls">
     <button
       mat-fab
       color="warn"
@@ -28,7 +28,7 @@
     mat-flat-button
     color="primary"
     class="add-to-cart-button"
-    (click)="disabled ? disabledClick.emit() : addToCart.emit()"
+    (click)="onAddClick()"
     [class.visually-disabled]="disabled"
     [attr.aria-disabled]="disabled"
   >

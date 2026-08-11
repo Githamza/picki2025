@@ -1,465 +1,75 @@
-.product-title {
-  font: var(--mat-sys-headline-small);
-
-  @media (max-width: 768px) {
-    font: var(--mat-sys-headline-small);
-  }
-}
+// Same focused column as the simple product page — steps read better
+// narrow than stretched across a wide screen.
 .multi-step-container {
   margin: 0 auto;
   padding: 32px;
+  max-width: 800px;
+  width: 100%;
   display: flex;
   flex-direction: column;
-
-  .product-header {
-    margin-bottom: 24px;
-
-    .product-info-card {
-      display: flex;
-      justify-content: space-between;
-      .price-info {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-
-        .total-price {
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: var(--mat-primary);
-        }
-      }
-    }
-  }
-
-  .steps-summary {
-    margin-bottom: 24px;
-
-    .summary-card {
-      .summary-list {
-        .summary-item {
-          margin-bottom: 16px;
-
-          .step-name {
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--mat-sys-on-surface);
-          }
-
-          .selected-options {
-            mat-chip-listbox {
-              margin: 0;
-
-              .selected-option-chip {
-                margin: 4px;
-                background-color: var(--mat-sys-primary-container);
-                color: var(--mat-sys-on-primary-container);
-                font-size: 0.875rem;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .multi-step-tabs {
-    .step-label {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-
-      .step-title {
-        font-weight: 500;
-      }
-
-      .step-requirements {
-        color: var(--mat-error);
-        font-weight: bold;
-      }
-    }
-
-    .step-content {
-      padding: 16px 0;
-
-      .step-description {
-        margin-bottom: 16px;
-
-        p {
-          color: var(--mat-on-surface-variant);
-          margin: 0;
-        }
-      }
-
-      .selection-info {
-        margin-bottom: 16px;
-
-        .selection-hint {
-          font-style: italic;
-          color: var(--mat-on-surface-variant);
-          margin: 0;
-          font-size: 0.875rem;
-        }
-      }
-
-      .options-container {
-        margin-bottom: 24px;
-        overflow: auto;
-
-        .hidden-form-controls {
-          display: none;
-        }
-
-        .option-cards-list {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 16px;
-          padding: 0;
-
-          @media (min-width: 768px) {
-            padding: 20px;
-          }
-        }
-
-        .option-card {
-          cursor: pointer;
-          transition: all 0.3s ease;
-          border-radius: 12px;
-          border: 2px solid transparent;
-          overflow: hidden;
-          background: var(--mat-sys-surface-container-low);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-          &:hover:not(.disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-          }
-
-          &.selected {
-            border-color: var(--mat-primary);
-            background: var(--mat-sys-primary-container);
-            box-shadow: 0 4px 16px rgba(var(--mat-primary-rgb), 0.3);
-
-            .selection-indicator {
-              opacity: 1;
-            }
-          }
-
-          &.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-
-            &:hover {
-              transform: none;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            }
-          }
-
-          mat-card-content {
-            padding: 0;
-
-            .option-card-content {
-              position: relative;
-              display: flex;
-              flex-direction: column;
-              height: 100%;
-
-              .option-image {
-                width: 100%;
-                height: 120px;
-                overflow: hidden;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: var(--mat-sys-surface-variant);
-
-                img {
-                  width: 100%;
-                  height: 100%;
-                  object-fit: cover;
-                  border-radius: 0;
-                  display: block;
-                  border: none;
-                  transition: filter 0.3s;
-                }
-              }
-
-              .option-info {
-                text-align: center;
-                padding: 16px 8px 4px 8px;
-                .option-name {
-                  font-weight: 700;
-                  font-size: 1.1rem;
-                  color: var(--mat-sys-on-surface);
-                  margin-bottom: 2px;
-                }
-              }
-
-              .option-price {
-                text-align: center;
-                padding-bottom: 12px;
-                .price-adjustment {
-                  font-size: 0.95rem;
-                  font-weight: 600;
-                  padding: 4px 14px;
-                  border-radius: 16px;
-                  background: var(--mat-sys-surface-container-low);
-                  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-                  &.positive {
-                    color: var(--mat-sys-error);
-                    background-color: var(--mat-sys-error-container);
-                  }
-                  &.negative {
-                    color: var(--mat-sys-tertiary);
-                    background-color: var(--mat-sys-tertiary-container);
-                  }
-                  &.neutral {
-                    color: var(--mat-sys-on-surface-variant);
-                    background-color: var(--mat-sys-surface-variant);
-                    font-style: italic;
-                  }
-                }
-              }
-
-              .selection-indicator {
-                position: absolute;
-                top: 8px;
-                right: 8px;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                mat-icon {
-                  color: var(--mat-primary);
-                  font-size: 28px;
-                  height: 28px;
-                  width: 28px;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-::ng-deep .mat-mdc-tab-header-pagination {
-  display: none !important;
-}
-.step-actions {
-  background-color: var(--mat-sys-surface-container);
-  position: sticky;
-  bottom: 0px;
-  z-index: 1000;
-  place-items: space-between;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 1000;
-  &.bottom-up {
-    @media (max-width: 768px) {
-      bottom: 136px;
-    }
-    @media (min-width: 768px) {
-      bottom: 86px;
-    }
-  }
-  .spacer {
-    flex: 1;
-  }
-
-  .previous-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .next-btn,
-  .add-to-cart-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .add-to-cart-btn {
-    background-color: var(--mat-success);
-    color: var(--mat-on-success);
-  }
 }
 
-// Comment Section (outside add-to-cart)
+// Comment Section (review page, collapsed behind a toggle)
 .comment-section {
   padding: 16px;
   background-color: var(--mat-sys-surface-container);
   margin-bottom: 8px;
+
+  .comment-toggle {
+    color: var(--mat-sys-on-surface-variant);
+
+    mat-icon {
+      margin-right: 4px;
+    }
+  }
 
   .comment-field {
     width: 100%;
   }
 }
 
+// Loading skeleton mirroring the focus page (progress, title, option grid)
+.loading-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 
-// Summary Step Styles
-@keyframes summaryRowSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
+  .skeleton-progress {
+    width: min(320px, 70%);
+    height: 6px;
+    border-radius: 999px;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .skeleton-step-title {
+    width: 220px;
+    max-width: 60%;
+    height: 28px;
   }
-}
 
-.summary-container {
-  padding: 4px 0;
+  .skeleton-options {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
 
-  .summary-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-
-    .summary-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding-bottom: 16px;
-      margin-bottom: 4px;
-      border-bottom: 2px solid var(--mat-sys-primary);
-
-      .summary-header-icon {
-        font-size: 22px;
-        height: 22px;
-        width: 22px;
-        color: var(--mat-sys-primary);
-      }
-
-      .summary-header-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: var(--mat-sys-on-surface);
-        letter-spacing: 0.01em;
-      }
-    }
-
-    .summary-items {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .summary-row {
-      padding: 14px 0;
-      border-bottom: 1px solid var(--mat-sys-outline-variant);
-      animation: summaryRowSlideIn 0.3s ease-out both;
-
-      .summary-row-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-
-        .summary-step-index {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background-color: var(--mat-sys-primary);
-          color: var(--mat-sys-on-primary);
-          font-size: 0.7rem;
-          font-weight: 700;
-          flex-shrink: 0;
-        }
-
-        .summary-step-name {
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: var(--mat-sys-on-surface-variant);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
-      }
-
-      .summary-options {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding-left: 32px;
-
-        .summary-option-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          border-radius: 20px;
-          background-color: var(--mat-sys-primary-container);
-          transition: transform 0.15s ease;
-
-          &:hover {
-            transform: scale(1.03);
-          }
-
-          .chip-icon {
-            font-size: 16px;
-            height: 16px;
-            width: 16px;
-            color: var(--mat-sys-primary);
-          }
-
-          .chip-label {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--mat-sys-on-primary-container);
-          }
-
-          .chip-price {
-            font-size: 0.78rem;
-            font-weight: 700;
-            padding: 1px 6px;
-            border-radius: 8px;
-
-            &.positive {
-              color: var(--mat-sys-error);
-              background-color: var(--mat-sys-error-container);
-            }
-            &.negative {
-              color: var(--mat-sys-tertiary);
-              background-color: var(--mat-sys-tertiary-container);
-            }
-          }
-        }
-      }
-    }
-
-    .summary-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 0 4px;
-      margin-top: 4px;
-
-      .summary-total-label {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--mat-sys-on-surface);
-      }
-
-      .summary-total-amount {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: var(--mat-sys-primary);
-      }
+    .skeleton-option {
+      height: 160px;
+      border-radius: 12px;
     }
   }
 }
 
-.loading-container,
 .error-container {
   max-width: 800px;
   margin: 0 auto;
   padding: 16px;
 
-  .loading-card,
   .error-card {
-    .loading-content,
     .error-content {
       display: flex;
       flex-direction: column;
@@ -467,10 +77,6 @@
       gap: 16px;
       padding: 32px;
       text-align: center;
-
-      mat-spinner {
-        margin-bottom: 8px;
-      }
 
       mat-icon {
         font-size: 48px;
@@ -486,7 +92,6 @@
   }
 }
 
-// Responsive design
 @media (max-width: 768px) {
   .multi-step-container {
     position: sticky;
@@ -495,137 +100,24 @@
     padding: 8px;
     padding-bottom: 24px;
 
-    .multi-step-tabs {
-      .step-content {
-        .options-container {
-          padding-top: 16px;
-          overflow: auto;
-          .option-cards-list {
-            .option-card {
-              mat-card-content {
-                .option-card-content {
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 4px;
-
-                  .option-image img {
-                    width: 40px;
-                    height: 40px;
-                  }
-
-                  .option-price {
-                    align-self: flex-end;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      .step-actions {
-        bottom: 8px;
-        padding: 12px;
-        border-radius: 8px;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-
-        .spacer {
-          display: none;
-        }
-
-        .previous-btn {
-          order: 2;
-        }
-
-        .next-btn,
-        .add-to-cart-btn {
-          order: 1;
-          justify-content: center;
-        }
-      }
-    }
-
-    // Responsive styles for comment section
     .comment-section {
       padding: 12px;
       margin-bottom: 8px;
-
-      .comment-field {
-        width: 100%;
-      }
-    }
-
-    // Responsive styles for summary section
-    .summary-container {
-      .summary-content {
-        .summary-row {
-          padding: 10px 0;
-
-          .summary-row-header {
-            gap: 8px;
-            margin-bottom: 6px;
-
-            .summary-step-index {
-              width: 20px;
-              height: 20px;
-              font-size: 0.65rem;
-            }
-
-            .summary-step-name {
-              font-size: 0.75rem;
-            }
-          }
-
-          .summary-options {
-            padding-left: 28px;
-            gap: 6px;
-
-            .summary-option-chip {
-              padding: 4px 10px;
-              gap: 4px;
-
-              .chip-icon {
-                font-size: 14px;
-                height: 14px;
-                width: 14px;
-              }
-
-              .chip-label {
-                font-size: 0.8rem;
-              }
-
-              .chip-price {
-                font-size: 0.72rem;
-              }
-            }
-          }
-        }
-      }
     }
   }
 }
-.mat-mdc-tab-group,
-.mat-mdc-tab-header {
-  background-color: transparent;
-}
-.mat-mdc-tab-body-wrapper {
-  height: 500px;
-  overflow: auto;
-}
-::ng-deep .mat-mdc-tab-body-content {
-  padding: 0px 8px 24px 8px !important;
-}
-:host ::ng-deep .mat-mdc-tab-header {
-  z-index: 1000;
-  background-color: var(--mat-sys-surface-container);
-}
-
 
 /* Focus shell (2026-08-09): one step per page, centered title,
    no other steps on screen. Kiosk scales via .kiosk-mode type step-up. */
 .focus-shell {
+  // Carries the view-transition-name for the between-steps slide
+  // (::view-transition-*(focus-step) animations live in styles.scss).
+  .focus-step-page {
+    display: flex;
+    flex-direction: column;
+    view-transition-name: focus-step;
+  }
+
   .focus-progress {
     display: flex;
     flex-direction: column;

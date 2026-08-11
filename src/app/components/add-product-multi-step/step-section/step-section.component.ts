@@ -74,7 +74,6 @@ export class StepSectionComponent {
   readonly outOfStockOptionIds = input<number[]>([]);
 
   readonly optionClicked = output<{ step: ProductStep; optionId: number }>();
-  readonly imageClicked = output<{ imageUrl: string; imageName: string }>();
   /** Header tap on a collapsed section — parent re-activates the step. */
   readonly edit = output<void>();
 

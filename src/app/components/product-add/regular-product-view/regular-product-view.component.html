@@ -55,9 +55,18 @@
     ></app-accessories-strip>
   </div>
 
-  <!-- Comment Section -->
+  <!-- Comment Section (collapsed behind a toggle) -->
   <div class="comment-section">
-    <mat-form-field class="comment-field">
+    <button
+      *ngIf="!commentOpen()"
+      mat-button
+      class="comment-toggle"
+      (click)="commentOpen.set(true)"
+    >
+      <mat-icon>add</mat-icon>
+      Ajouter un commentaire
+    </button>
+    <mat-form-field class="comment-field" *ngIf="commentOpen()">
       <mat-label>Commentaires (optionnel)</mat-label>
       <textarea
         matInput

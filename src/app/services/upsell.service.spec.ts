@@ -4,12 +4,15 @@ import { of } from 'rxjs';
 
 import {
   UpsellService,
+  UpsellOffer,
   POOL_OFFER_MAX_ITEMS,
   findUnambiguousPreselection,
+  productGridPath,
 } from './upsell.service';
 import { ProductStep } from '../models/multi-step-product.model';
 import { ProductService, Product } from './product.service';
 import { VendorService } from './vendor.service';
+import { VendorNavigationService } from './vendor-navigation.service';
 import { DiningPreferenceService } from './dining-preference.service';
 import { selectCartItems } from '../store/selectors/cart.selectors';
 import { CartItem } from '../store/models/app.state';
@@ -36,6 +39,7 @@ function cartItem(p: Product, metadata?: unknown): CartItem {
 describe('UpsellService', () => {
   let store: MockStore;
   let mockProductService: jasmine.SpyObj<ProductService>;
+  let navSpy: jasmine.SpyObj<VendorNavigationService>;
   const burger = product(9101, 'Burger Classique');
   const pool = [product(9104, 'Coca'), product(9107, 'Eau'), product(9108, 'Tiramisu')];
 
@@ -46,6 +50,9 @@ describe('UpsellService', () => {
     ]);
     mockProductService.getUpsellPool.and.returnValue(of(pool));
     mockProductService.getMenusContaining.and.returnValue(of([]));
+    navSpy = jasmine.createSpyObj('VendorNavigationService', [
+      'navigateWithVendor',
+    ]);
 
     TestBed.configureTestingModule({
       providers: [
@@ -54,6 +61,7 @@ describe('UpsellService', () => {
           selectors: [{ selector: selectCartItems, value: cartItems }],
         }),
         { provide: ProductService, useValue: mockProductService },
+        { provide: VendorNavigationService, useValue: navSpy },
         {
           provide: VendorService,
           useValue: { getCurrentVendor: () => ({ id: 'v1' }) },
@@ -96,6 +104,16 @@ describe('UpsellService', () => {
   it('stays silent when the cart already holds a pool item directly', (done) => {
     const service = setup([cartItem(burger), cartItem(product(9104, 'Coca'))]);
     service.decidePostAddOffer(burger).subscribe((offer) => {
+      expect(offer).toBeNull();
+      done();
+    });
+  });
+
+  it('stays silent when the added product is itself a pool item (decide runs pre-add)', (done) => {
+    // The decision now happens BEFORE the cart dispatch, so the just-added
+    // drink is not in the cart yet — it must still suppress the pool tier.
+    const service = setup([cartItem(burger)]);
+    service.decidePostAddOffer(product(9104, 'Coca')).subscribe((offer) => {
       expect(offer).toBeNull();
       done();
     });
@@ -158,10 +176,31 @@ describe('UpsellService', () => {
         expect(offer?.tier).toBe('convert');
         if (offer?.tier === 'convert') {
           expect(offer.menu.id).toBe(9103);
-          expect(offer.replacedProduct.id).toBe(9101);
+          expect(offer.deferredAdd.product.id).toBe(9101);
+          expect(offer.deferredAdd.quantity).toBe(1);
         }
         done();
       });
+    });
+
+    it('carries the pending add payload so nothing is added before the choice', (done) => {
+      const service = setup();
+      mockProductService.getMenusContaining.and.returnValue(of([menu]));
+      service
+        .decidePostAddOffer(burger, { quantity: 2, comment: 'sans oignons' })
+        .subscribe((offer) => {
+          if (offer?.tier === 'convert') {
+            expect(offer.deferredAdd).toEqual({
+              product: burger,
+              quantity: 2,
+              comment: 'sans oignons',
+              customisationSelections: undefined,
+            });
+            done();
+          } else {
+            done.fail('expected a convert offer');
+          }
+        });
     });
 
     it('picks the cheapest menu when several contain the product', (done) => {
@@ -258,5 +297,41 @@ describe('UpsellService', () => {
     store.overrideSelector(selectCartItems, []);
     store.refreshState();
     expect(service.pendingOffer()).toBeNull();
+  });
+
+  describe('completePostAdd (shared post-add routing)', () => {
+    const returnPath = ['promotional-banner', 'Burgers', 'products'];
+
+    it('with no offer, returns straight to the grid', () => {
+      const service = setup();
+      service.completePostAdd(null, returnPath);
+      expect(navSpy.navigateWithVendor).toHaveBeenCalledWith(returnPath);
+      expect(service.pendingOffer()).toBeNull();
+    });
+
+    it('with an offer, stages it with the return path and routes to /upsell', () => {
+      const service = setup();
+      const offer: UpsellOffer = { tier: 'pool', products: pool };
+      service.completePostAdd(offer, returnPath);
+      expect(service.pendingOffer()).toEqual(offer);
+      expect(navSpy.navigateWithVendor).toHaveBeenCalledWith(['upsell']);
+    });
+  });
+
+  describe('productGridPath', () => {
+    it('includes the category when present', () => {
+      expect(productGridPath('Burgers')).toEqual([
+        'promotional-banner',
+        'Burgers',
+        'products',
+      ]);
+    });
+
+    it('falls back to the plain grid without a category', () => {
+      expect(productGridPath(null)).toEqual([
+        'promotional-banner',
+        'products',
+      ]);
+    });
   });
 });

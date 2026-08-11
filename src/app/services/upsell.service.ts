@@ -5,6 +5,7 @@ import { Store } from '@ngrx/store';
 
 import { ProductService, Product } from './product.service';
 import { VendorService } from './vendor.service';
+import { VendorNavigationService } from './vendor-navigation.service';
 import { DiningPreferenceService } from './dining-preference.service';
 import { selectCartItems } from '../store/selectors/cart.selectors';
 import { CartItem } from '../store/models/app.state';
@@ -15,11 +16,29 @@ import {
 
 // One post-add offer, at most, per add — and each tier at most once per
 // order session (SPEC-UPSELL.md). The session resets when the cart empties.
+
+/** A convert offer DEFERS the add: the product only enters the cart if the
+ *  customer declines the menu. This payload is everything needed to perform
+ *  the add at decline time (accept discards it — the menu replaces it). */
+export interface DeferredAdd {
+  product: Product;
+  quantity: number;
+  comment?: string;
+  customisationSelections?: Map<number, number[]>;
+}
+
 export type UpsellOffer =
-  | { tier: 'convert'; menu: Product; replacedProduct: Product }
+  | { tier: 'convert'; menu: Product; deferredAdd: DeferredAdd }
   | { tier: 'pool'; products: Product[] };
 
 export const POOL_OFFER_MAX_ITEMS = 4;
+
+/** The product grid the customer came from — post-add return target. */
+export function productGridPath(category: string | null): string[] {
+  return category
+    ? ['promotional-banner', category, 'products']
+    : ['promotional-banner', 'products'];
+}
 
 // Convert-accept preselection is best-effort and unambiguous-only (plan
 // decision 6): exactly one option referencing the product, in a single-select
@@ -48,7 +67,19 @@ export class UpsellService {
   private store = inject(Store);
   private productService = inject(ProductService);
   private vendorService = inject(VendorService);
+  private vendorNavigation = inject(VendorNavigationService);
   private diningPreferenceService = inject(DiningPreferenceService);
+
+  /** Post-add routing (SPEC-UPSELL.md): a staged offer detours through the
+   *  upsell page; otherwise straight back to the grid. */
+  completePostAdd(offer: UpsellOffer | null, returnPath: string[]): void {
+    if (offer) {
+      this.stageOffer(offer, returnPath);
+      this.vendorNavigation.navigateWithVendor(['upsell']);
+    } else {
+      this.vendorNavigation.navigateWithVendor(returnPath);
+    }
+  }
 
   private convertTierShown = signal(false);
   private poolTierShown = signal(false);
@@ -81,13 +112,19 @@ export class UpsellService {
     });
   }
 
-  decidePostAddOffer(addedProduct: Product): Observable<UpsellOffer | null> {
-    return this.convertOffer(addedProduct).pipe(
-      switchMap((offer) => (offer ? of(offer) : this.poolOffer()))
+  decidePostAddOffer(
+    addedProduct: Product,
+    pendingAdd?: Omit<DeferredAdd, 'product'>
+  ): Observable<UpsellOffer | null> {
+    return this.convertOffer(addedProduct, pendingAdd).pipe(
+      switchMap((offer) => (offer ? of(offer) : this.poolOffer(addedProduct)))
     );
   }
 
-  private convertOffer(added: Product): Observable<UpsellOffer | null> {
+  private convertOffer(
+    added: Product,
+    pendingAdd?: Omit<DeferredAdd, 'product'>
+  ): Observable<UpsellOffer | null> {
     if (this.convertTierShown() || added.isMultiStep) {
       return of(null);
     }
@@ -105,13 +142,18 @@ export class UpsellService {
         return {
           tier: 'convert' as const,
           menu: cheapest,
-          replacedProduct: added,
+          deferredAdd: {
+            product: added,
+            quantity: pendingAdd?.quantity ?? 1,
+            comment: pendingAdd?.comment,
+            customisationSelections: pendingAdd?.customisationSelections,
+          },
         };
       })
     );
   }
 
-  private poolOffer(): Observable<UpsellOffer | null> {
+  private poolOffer(added: Product): Observable<UpsellOffer | null> {
     if (this.poolTierShown()) {
       return of(null);
     }
@@ -127,7 +169,10 @@ export class UpsellService {
         if (pool.length === 0) {
           return null;
         }
-        if (this.cartContainsAny(new Set(pool.map((p) => p.id)))) {
+        const poolIds = new Set(pool.map((p) => p.id));
+        // The decision runs BEFORE the cart dispatch on the simple-product
+        // path, so the just-added product must count as in-cart here.
+        if (poolIds.has(added.id) || this.cartContainsAny(poolIds)) {
           return null;
         }
         this.poolTierShown.set(true);

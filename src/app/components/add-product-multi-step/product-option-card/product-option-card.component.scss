@@ -63,17 +63,7 @@
         align-items: center;
         justify-content: center;
         background: var(--mat-sys-surface-container);
-        cursor: pointer; // Default cursor for desktop (card selection)
-
-        // Only show zoom cursor on mobile
-        &.mobile-only-zoom {
-          cursor: zoom-in;
-        }
-
-        // Ensure pointer cursor on desktop (non-mobile)
-        @media (min-width: 769px) {
-          cursor: pointer;
-        }
+        cursor: pointer;
 
         img {
           width: 100%;

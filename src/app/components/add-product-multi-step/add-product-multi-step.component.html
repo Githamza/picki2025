@@ -2,56 +2,59 @@
   <div class="multi-step-container focus-shell">
     @if (focusStep(); as step) {
       <!-- FOCUS PAGE (user decision 2026-08-09): one step per page,
-           centered title, nothing from other steps on screen. -->
-      <div class="focus-progress">
-        <span class="focus-progress-label storefront-body">
-          Étape {{ focusStepNumber() }} sur {{ focusStepCount() }}
-        </span>
-        <div class="focus-progress-bar" aria-hidden="true">
-          <div
-            class="focus-progress-fill"
-            [style.width.%]="(focusStepNumber() / focusStepCount()) * 100"
-          ></div>
+           centered title, nothing from other steps on screen. The wrapper
+           carries the view-transition-name for the step slide. -->
+      <div class="focus-step-page">
+        <div class="focus-progress">
+          <span class="focus-progress-label storefront-body">
+            Étape {{ focusStepNumber() }} sur {{ focusStepCount() }}
+          </span>
+          <div class="focus-progress-bar" aria-hidden="true">
+            <div
+              class="focus-progress-fill"
+              [style.width.%]="(focusStepNumber() / focusStepCount()) * 100"
+            ></div>
+          </div>
         </div>
-      </div>
 
-      <h2 class="focus-title storefront-section-title">{{ step.name }}</h2>
-      @if (step.description) {
-        <p class="focus-description storefront-body">{{ step.description }}</p>
-      }
-
-      <app-step-section
-        [id]="'step-section-' + step.id"
-        [step]="step"
-        [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
-        [active]="true"
-        [showHeader]="false"
-        [outOfStockOptionIds]="outOfStockIdsFor(step)"
-        (optionClicked)="onOptionClicked($event)"
-        (imageClicked)="onImageClicked($event)"
-      ></app-step-section>
-
-      <div class="focus-actions">
-        @if (focusStepNumber() > 1) {
-          <button mat-button class="focus-back" (click)="goPrevious()">
-            <mat-icon>arrow_back</mat-icon>
-            Retour
-          </button>
+        <h2 class="focus-title storefront-section-title">{{ step.name }}</h2>
+        @if (step.description) {
+          <p class="focus-description storefront-body">{{ step.description }}</p>
         }
-        <span class="focus-actions-spacer"></span>
-        @if (showContinue()) {
-          <button mat-flat-button color="primary" (click)="continueToNext()">
-            Continuer
-          </button>
-        } @else if (showSkip()) {
-          <button mat-stroked-button (click)="continueToNext()">
-            Passer cette étape
-          </button>
-        }
+
+        <app-step-section
+          [id]="'step-section-' + step.id"
+          [step]="step"
+          [selectedOptionIds]="selectedIdsFor(step.id, stepSelections$ | async)"
+          [active]="true"
+          [showHeader]="false"
+          [outOfStockOptionIds]="outOfStockIdsFor(step)"
+          (optionClicked)="onOptionClicked($event)"
+        ></app-step-section>
+
+        <div class="focus-actions">
+          @if (focusStepNumber() > 1) {
+            <button mat-button class="focus-back" (click)="goPrevious()">
+              <mat-icon>arrow_back</mat-icon>
+              Retour
+            </button>
+          }
+          <span class="focus-actions-spacer"></span>
+          @if (showContinue()) {
+            <button mat-flat-button color="primary" (click)="continueToNext()">
+              Continuer
+            </button>
+          } @else if (showSkip()) {
+            <button mat-stroked-button (click)="continueToNext()">
+              Passer cette étape
+            </button>
+          }
+        </div>
       </div>
     } @else {
       <!-- REVIEW PAGE: every choice collapsed, tap to edit (FR4d — the
            page is the recap; editing returns here, never re-walks). -->
+      <div class="focus-step-page">
       @if (baseProduct$ | async; as product) {
         <h2 class="focus-title storefront-section-title">
           {{ product.name }}
@@ -66,7 +69,6 @@
             [active]="false"
             [outOfStockOptionIds]="outOfStockIdsFor(step)"
             (optionClicked)="onOptionClicked($event)"
-            (imageClicked)="onImageClicked($event)"
             (edit)="activateStep(i)"
           ></app-step-section>
         }
@@ -75,21 +77,33 @@
       <!-- Comment (optional) once the configuration is complete -->
       @if (isConfigurationComplete$ | async) {
         <div class="comment-section">
-          <mat-form-field class="comment-field">
-            <mat-label>Commentaires (optionnel)</mat-label>
-            <textarea
-              matInput
-              [ngModel]="comment()"
-              (ngModelChange)="comment.set($event)"
-              placeholder="Ex: Sans sauce épicée, cuisson bien cuite, légumes à part..."
-              rows="3"
-              maxlength="500"
+          @if (!commentOpen()) {
+            <button
+              mat-button
+              class="comment-toggle"
+              (click)="commentOpen.set(true)"
             >
-            </textarea>
-            <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
-          </mat-form-field>
+              <mat-icon>add</mat-icon>
+              Ajouter un commentaire
+            </button>
+          } @else {
+            <mat-form-field class="comment-field">
+              <mat-label>Commentaires (optionnel)</mat-label>
+              <textarea
+                matInput
+                [ngModel]="comment()"
+                (ngModelChange)="comment.set($event)"
+                placeholder="Ex: Sans sauce épicée, cuisson bien cuite, légumes à part..."
+                rows="3"
+                maxlength="500"
+              >
+              </textarea>
+              <mat-hint>Précisez vos préférences pour ce menu</mat-hint>
+            </mat-form-field>
+          }
         </div>
       }
+      </div>
     }
 
     <!-- Always-visible bar: disabled until required steps are satisfied.
@@ -101,6 +115,7 @@
       [stockLimitReached]="isStockLimitReached()"
       [stockQuantity]="baseProductStockQuantity"
       [cartQuantityForProduct]="cartQuantityForBaseProduct"
+      [showQuantityControls]="!focusStep()"
       [disabled]="!(isConfigurationComplete$ | async)"
       (increment)="incrementQuantity()"
       (decrement)="decrementQuantity()"
@@ -111,17 +126,17 @@
   </div>
 }
 
-<!-- Loading State -->
+<!-- Loading State: skeleton mirroring the focus page layout -->
 @if (loading$ | async) {
-  <div class="loading-container">
-    <mat-card class="loading-card">
-      <mat-card-content>
-        <div class="loading-content">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Chargement du menu...</p>
-        </div>
-      </mat-card-content>
-    </mat-card>
+  <div class="loading-container" aria-busy="true" aria-label="Chargement du menu">
+    <div class="skeleton skeleton-progress"></div>
+    <div class="skeleton skeleton-step-title"></div>
+    <div class="skeleton-options">
+      <div class="skeleton skeleton-option"></div>
+      <div class="skeleton skeleton-option"></div>
+      <div class="skeleton skeleton-option"></div>
+      <div class="skeleton skeleton-option"></div>
+    </div>
   </div>
 }
 

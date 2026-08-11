@@ -5,6 +5,7 @@ import {
   openCategory,
   openProduct,
   addSimpleProductToCart,
+  dismissUpsellIfOffered,
   openCartSheet,
   checkoutPayAtCounter,
 } from '../fixtures/helpers';
@@ -57,6 +58,9 @@ test.describe('view transitions — named moves', () => {
     );
 
     await page.locator('.add-to-cart-button').click();
+    // A convert offer defers the add (SPEC-UPSELL) — decline it so the
+    // product lands in the cart before asserting the badge.
+    await dismissUpsellIfOffered(page);
     // The badge is guaranteed visible once an item is in the cart.
     const badge = page.locator('app-cart-badge .cart-badge');
     await badge.waitFor({ state: 'visible' });

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, computed, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +13,6 @@ import {
   ProductStepOption,
 } from '../../../models/multi-step-product.model';
 import { MatBadgeModule } from '@angular/material/badge';
-import { LayoutService } from '../../../services/layout.service';
 import { VendorCurrencyPipe } from '../../../shared/pipes/vendor-currency.pipe';
 
 @Component({
@@ -43,16 +42,8 @@ export class ProductOptionCardComponent {
     optionId: number;
   }>();
 
-  @Output() imageClicked = new EventEmitter<{
-    imageUrl: string;
-    imageName: string;
-  }>();
-
   private store = inject(Store<AppState>);
   private productService = inject(ProductService);
-  private layout = inject(LayoutService);
-
-  readonly isMobile = computed(() => this.layout.formFactor() === 'phone');
 
   onCardClick(): void {
     if (!this.isDisabled && this.option.isAvailable) {
@@ -94,20 +85,5 @@ export class ProductOptionCardComponent {
   // Check if this is a component option
   isComponentOption(): boolean {
     return this.option.optionType === 'component';
-  }
-
-  // Handle image click to open zoom dialog (only on mobile)
-  onImageClick(event: Event): void {
-    // Only prevent card selection and zoom on mobile
-    if (this.isMobile()) {
-      event.stopPropagation();
-      if (this.option.imageUrl) {
-        this.imageClicked.emit({
-          imageUrl: this.option.imageUrl,
-          imageName: this.option.name,
-        });
-      }
-    }
-    // On desktop, let the click bubble up to the card for selection
   }
 }

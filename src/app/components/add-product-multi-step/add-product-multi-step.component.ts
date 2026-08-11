@@ -36,7 +36,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -60,15 +59,15 @@ import {
 import { VendorNavigationService } from '../../services/vendor-navigation.service';
 import { ProductOptionCardComponent } from './product-option-card/product-option-card.component';
 import { StepSectionComponent } from './step-section/step-section.component';
-import { ImageZoomDialogComponent, ImageZoomDialogData } from './image-zoom-dialog/image-zoom-dialog.component';
 import { CustomisationSelectionDialogComponent, CustomisationSelectionDialogData, CustomisationSelectionResult } from './customisation-selection-dialog/customisation-selection-dialog.component';
 import { ProductService, Product } from '../../services/product.service';
 import {
   UpsellService,
-  UpsellOffer,
   findUnambiguousPreselection,
+  productGridPath,
 } from '../../services/upsell.service';
 import { Customisation } from '../../models/customisation.interface';
+import { CartCelebrationService } from '../../services/cart-celebration.service';
 import { VendorCurrencyPipe } from '../../shared/pipes/vendor-currency.pipe';
 import { AddToCartBarComponent } from '../../shared/components/add-to-cart-bar/add-to-cart-bar.component';
 import { ActivatedRoute } from '@angular/router';
@@ -92,7 +91,6 @@ interface OptionCustomisationSelection {
     MatCardModule,
     MatRadioModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule,
     MatChipsModule,
     MatDividerModule,
     MatBadgeModule,
@@ -118,6 +116,7 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private productService = inject(ProductService);
   private upsellService = inject(UpsellService);
+  private cartCelebration = inject(CartCelebrationService);
   private actionsSubject = inject(ActionsSubject);
   private router = inject(ActivatedRoute);
   private layout = inject(LayoutService);
@@ -221,6 +220,8 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   stepForms: { [stepId: number]: FormGroup } = {};
   quantity: number = 1;
   comment = signal(''); // Comment for the menu
+  /** Comment field stays collapsed behind a toggle — most orders never use it. */
+  commentOpen = signal(false);
   /** Steps the customer has already seen active (edit-aware advance). */
   private offeredStepIds = new Set<number>();
 
@@ -362,7 +363,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   }
 
   private updateStepSelection(step: ProductStep): void {
-    console.log('updateStepSelection', step);
     const form = this.stepForms[step.id];
     if (!form) return;
 
@@ -422,43 +422,36 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
         const target =
           after !== -1 ? after : anywhere !== -1 ? anywhere : steps.length;
 
-        this.store.dispatch(
-          MultiStepProductActions.setCurrentStep({ stepIndex: target })
+        this.transitionStep(() =>
+          this.store.dispatch(
+            MultiStepProductActions.setCurrentStep({ stepIndex: target })
+          )
         );
       });
   }
 
-  goNext(): void {
-    console.log('goNext');
-    this.store.dispatch(MultiStepProductActions.nextStep());
+  /** Step changes run inside a view transition (focus-step slide, see
+   *  styles.scss); instant switch where the API is unsupported. */
+  private transitionStep(apply: () => void): void {
+    if (document.startViewTransition) {
+      document.startViewTransition(apply);
+    } else {
+      apply();
+    }
   }
 
   goPrevious(): void {
-    console.log('goPrevious');
-    this.store.dispatch(MultiStepProductActions.previousStep());
+    this.transitionStep(() =>
+      this.store.dispatch(MultiStepProductActions.previousStep())
+    );
   }
 
   private returnPathSegments(): string[] {
-    const category = this.router.snapshot.paramMap.get('category');
-    return category
-      ? ['promotional-banner', category, 'products']
-      : ['promotional-banner', 'products'];
-  }
-
-  // Menu adds only ever get the pool tier — decidePostAddOffer skips the
-  // convert tier for multi-step products (SPEC-UPSELL.md).
-  private completePostAdd(offer: UpsellOffer | null): void {
-    if (offer) {
-      this.upsellService.stageOffer(offer, this.returnPathSegments());
-      this.vendorNavigation.navigateWithVendor(['upsell']);
-    } else {
-      this.vendorNavigation.navigateWithVendor(this.returnPathSegments());
-    }
+    return productGridPath(this.router.snapshot.paramMap.get('category'));
   }
 
   // Add to cart
   addToCart(): void {
-    console.log('addToCart');
     combineLatest([this.configuration$, this.isConfigurationComplete$])
       .pipe(
         take(1),
@@ -483,19 +476,38 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
           );
           race(outcome$, timer(3000))
             .pipe(
-              switchMap((outcome) =>
-                typeof outcome !== 'number' &&
-                outcome.type ===
-                  MultiStepProductActions.addMultiStepProductToCartSuccess.type
-                  ? this.upsellService.decidePostAddOffer(
-                      configuration.baseProduct
-                    )
-                  : of(null)
-              ),
+              switchMap((outcome) => {
+                const succeeded =
+                  typeof outcome !== 'number' &&
+                  outcome.type ===
+                    MultiStepProductActions.addMultiStepProductToCartSuccess
+                      .type;
+                return (
+                  succeeded
+                    ? this.upsellService.decidePostAddOffer(
+                        configuration.baseProduct
+                      )
+                    : of(null)
+                ).pipe(map((offer) => ({ offer, succeeded })));
+              }),
               take(1),
               takeUntil(this.destroy$)
             )
-            .subscribe((offer) => this.completePostAdd(offer));
+            // Menu adds only ever get the pool tier — decidePostAddOffer
+            // skips the convert tier for multi-step products (SPEC-UPSELL.md).
+            .subscribe(({ offer, succeeded }) => {
+              // Navigate directly: the router's withViewTransitions owns the
+              // leave animation. Wrapping the navigation in a manual
+              // document.startViewTransition aborts BOTH transitions
+              // (nested startViewTransition = invalid state).
+              this.upsellService.completePostAdd(
+                offer,
+                this.returnPathSegments()
+              );
+              if (succeeded) {
+                this.cartCelebration.celebrate();
+              }
+            });
 
           // One dispatch carrying the quantity. (Dispatching N times raced
           // the effect's async metadata build and only the last add
@@ -568,7 +580,9 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
   }
 
   activateStep(stepIndex: number): void {
-    this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }));
+    this.transitionStep(() =>
+      this.store.dispatch(MultiStepProductActions.setCurrentStep({ stepIndex }))
+    );
   }
 
   /** Disabled add-to-cart tap → jump to the first incomplete step (FR4d). */
@@ -684,22 +698,6 @@ export class AddProductMultiStepComponent implements OnInit, OnDestroy {
       return form.get('options')?.get(optionId.toString())?.value || false;
     }
   }
-
-  // Open image zoom dialog
-  openImageZoom(imageUrl: string, imageName: string): void {
-    this.dialog.open(ImageZoomDialogComponent, {
-      data: { imageUrl, imageName } as ImageZoomDialogData,
-      maxWidth: '90vw',
-      maxHeight: '90vh',
-      panelClass: 'image-zoom-dialog-panel',
-    });
-  }
-
-  // Handle image click from child component
-  onImageClicked(event: { imageUrl: string; imageName: string }): void {
-    this.openImageZoom(event.imageUrl, event.imageName);
-  }
-
 
   // Customisation handling methods
   private getCustomisationKey(stepId: number, optionId: number): string {

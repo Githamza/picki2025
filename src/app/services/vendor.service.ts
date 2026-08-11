@@ -151,6 +151,28 @@ export class VendorService {
       .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   }
 
+  /**
+   * Resolve a slug to a vendor deterministically. Business names are not
+   * unique, so several vendors can share a slug: prefer active vendors,
+   * then the oldest account, so a later duplicate registration can never
+   * shadow the original storefront.
+   */
+  private findVendorBySlug(vendors: Vendor[], slug: string): Vendor | null {
+    const matches = vendors.filter(
+      (v) => this.createSlug(v.business_name) === slug
+    );
+    if (matches.length === 0) {
+      return null;
+    }
+    matches.sort((a, b) => {
+      if (a.is_active !== b.is_active) {
+        return a.is_active ? -1 : 1;
+      }
+      return (a.created_at || '').localeCompare(b.created_at || '');
+    });
+    return matches[0];
+  }
+
   // Set current vendor by slug
   setCurrentVendorBySlug(slug: string): Observable<Vendor | null> {
     return new Observable((observer) => {
@@ -159,9 +181,7 @@ export class VendorService {
       
       if (currentVendors.length > 0) {
         console.log(`🔍 Vendor data already available, searching for slug: ${slug}`);
-        const vendor = currentVendors.find(
-          (v) => this.createSlug(v.business_name) === slug
-        );
+        const vendor = this.findVendorBySlug(currentVendors, slug);
 
         if (vendor) {
           console.log(`✅ Vendor found in existing data: ${vendor.business_name}`);
@@ -179,9 +199,7 @@ export class VendorService {
         this.loadVendors()
           .then(() => {
             const vendors = this.vendorsSubject.value;
-            const vendor = vendors.find(
-              (v) => this.createSlug(v.business_name) === slug
-            );
+            const vendor = this.findVendorBySlug(vendors, slug);
 
             if (vendor) {
               console.log(`✅ Vendor found after loading: ${vendor.business_name}`);

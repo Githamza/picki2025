@@ -142,6 +142,8 @@ export class RegularProductViewComponent
   }
 
   comment = signal('');
+  /** Comment field stays collapsed behind a toggle — most orders never use it. */
+  commentOpen = signal(false);
   selectedOptionIds: number[] = [];
   currentStep: ProductStep | null = null;
   stepOptions: ProductStepOption[] = [];
@@ -382,19 +384,4 @@ export class RegularProductViewComponent
     }
   }
 
-  onImageClicked(event: { imageUrl: string; imageName: string }): void {
-    import('../../add-product-multi-step/image-zoom-dialog/image-zoom-dialog.component').then(
-      ({ ImageZoomDialogComponent }) => {
-        this.dialog.open(ImageZoomDialogComponent, {
-          data: {
-            imageUrl: event.imageUrl,
-            imageName: event.imageName,
-          },
-          maxWidth: '95vw',
-          maxHeight: '95vh',
-          panelClass: 'image-zoom-dialog',
-        });
-      }
-    );
-  }
 }

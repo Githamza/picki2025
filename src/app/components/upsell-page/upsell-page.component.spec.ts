@@ -7,8 +7,9 @@ import { VendorNavigationService } from '../../services/vendor-navigation.servic
 import { Product, ProductService } from '../../services/product.service';
 import { VendorService } from '../../services/vendor.service';
 import { DiningPreferenceService } from '../../services/dining-preference.service';
+import { CartCelebrationService } from '../../services/cart-celebration.service';
 import { selectCartItems } from '../../store/selectors/cart.selectors';
-import { addToCart, removeCartItem } from '../../store/actions/cart.actions';
+import { addToCart } from '../../store/actions/cart.actions';
 
 function product(id: number, name = `P${id}`): Product {
   return {
@@ -52,6 +53,7 @@ describe('UpsellPageComponent', () => {
           provide: DiningPreferenceService,
           useValue: { diningPreference: () => 'eat-in' },
         },
+        { provide: CartCelebrationService, useValue: { celebrate: () => {} } },
       ],
     });
     store = TestBed.inject(MockStore);
@@ -85,20 +87,44 @@ describe('UpsellPageComponent', () => {
     ]);
   });
 
-  it('accepting convert removes the simple item, stages the preselect, and opens the menu', () => {
+  it('accepting convert never touches the cart — no add, no remove', () => {
     const component = create();
     upsellService.stageOffer({
       tier: 'convert',
       menu,
-      replacedProduct: burger,
+      deferredAdd: { product: burger, quantity: 1 },
     });
     component.ngOnInit();
     const dispatchSpy = spyOn(store, 'dispatch');
     component.acceptConvert();
-    expect(dispatchSpy).toHaveBeenCalledWith(removeCartItem({ productId: 9101 }));
+    expect(dispatchSpy).not.toHaveBeenCalled();
     expect(upsellService.pendingPreselect()).toEqual({ menuId: 9103, productId: 9101 });
     expect(upsellService.pendingOffer()).toBeNull();
     expect(navSpy.navigateWithVendor).toHaveBeenCalledWith(['product', 'Menu Burger']);
+  });
+
+  it('declining convert performs the deferred add with the original payload', () => {
+    const component = create();
+    upsellService.stageOffer(
+      {
+        tier: 'convert',
+        menu,
+        deferredAdd: { product: burger, quantity: 2, comment: 'sans oignons' },
+      },
+      ['promotional-banner', 'Burgers', 'products']
+    );
+    component.ngOnInit();
+    const dispatchSpy = spyOn(store, 'dispatch');
+    component.dismiss();
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      addToCart({ product: burger, quantity: 2, comment: 'sans oignons' })
+    );
+    expect(upsellService.pendingOffer()).toBeNull();
+    expect(navSpy.navigateWithVendor).toHaveBeenCalledWith([
+      'promotional-banner',
+      'Burgers',
+      'products',
+    ]);
   });
 
   it('adding a pool suggestion dispatches a normal cart line and flips the CTA', () => {

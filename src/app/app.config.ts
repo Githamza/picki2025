@@ -39,6 +39,7 @@ import { UberDeliveryProvider } from './services/delivery/uber-delivery.provider
 import { StuartDeliveryProvider } from './services/delivery/stuart-delivery.provider';
 import { JustEatDeliveryProvider } from './services/delivery/just-eat-delivery.provider';
 import { ClarityService } from './services/clarity.service';
+import { CartCelebrationService } from './services/cart-celebration.service';
 import { environment } from '../environments/environment';
 
 // Register French locale
@@ -51,6 +52,12 @@ export const appConfig: ApplicationConfig = {
       routes,
       withViewTransitions({
         onViewTransitionCreated: ({ transition, to, from }) => {
+          // The cart badge defers its post-add roll + bounce until the page
+          // transition has finished — otherwise the celebration plays behind
+          // the transition overlay and is barely visible.
+          inject(CartCelebrationService).noteViewTransition(
+            transition.finished
+          );
           // FR3: honor reduced motion at the API level, not just in CSS.
           if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             transition.skipTransition();

@@ -51,7 +51,6 @@
           [isDisabled]="!option.isAvailable || isOutOfStock(option)"
           [isOutOfStock]="isOutOfStock(option)"
           (optionClicked)="optionClicked.emit($event)"
-          (imageClicked)="imageClicked.emit($event)"
         ></app-product-option-card>
       }
     </div>

@@ -88,7 +88,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/services/qonto-terminal.service.ts`, `src/app/services/qonto-terminal.service.spec.ts`
   - Dependencies: T4 · **Size: M**
 
-- [ ] **T11: `TerminalPaymentDialogComponent`**
+- [x] **T11: `TerminalPaymentDialogComponent`**
   - Acceptance: full-screen MatDialog (`disableClose: true`), kiosk-sized (≥64px targets, M3 tokens, French copy): waiting state shows amount + "Présentez votre carte sur le terminal" + animated indicator; refused/timeout state shows reason + **Réessayer** (restarts `startPayment` on the same order) + **Annuler** (calls `cancelOrder`, closes with `{outcome:'cancelled'}`); authorized closes with `{outcome:'authorized'}`; timeout auto-transitions to the error state (order not yet cancelled — cancel happens on Annuler or on dialog-level abandon per T12).
   - Verify: RED-first component spec — state rendering per phase, Réessayer re-invokes, Annuler cancels then closes. `ng test --include='**/terminal-payment*'`.
   - Files: `src/app/components/kiosk/terminal-payment-dialog/terminal-payment-dialog.component.{ts,html,scss,spec.ts}`

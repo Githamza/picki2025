@@ -26,7 +26,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 2 — Edge functions (mock-first, no Qonto account needed)
 
-- [ ] **T3: `qonto-terminal` skeleton + shared helper + `create-payment`**
+- [x] **T3: `qonto-terminal` skeleton + shared helper + `create-payment`**
   - Acceptance: `_shared/qonto.ts` exports base URLs from env (`QONTO_API_BASE_URL`, `QONTO_OAUTH_BASE_URL`, `QONTO_STAGING_TOKEN`, `QONTO_MOCK`), a `qontoFetch` that injects auth + staging headers, and the mock simulator (authorize after ~3 polls; total `.13` → REFUSED `card_declined`; `.99` → stays PENDING forever). `qonto-terminal/index.ts` dispatches on `action`; `create-payment` accepts `{orderId}` only, loads the order with the service role, rejects unless the vendor has `kiosk_terminal_enabled` + `kiosk_terminal_id` + a connection (mock mode: connection check stubbed), rejects unless order status is `initiated`, computes the amount **from the order row**, sends a fresh UUID `X-Qonto-Idempotency-Key`, stores `terminal_payment_id` on the order, returns `{paymentId}`. CORS headers inlined per `confirm-payment` precedent. French error strings.
   - Verify: new `scripts/test-qonto-functions.sh` (curl against `supabase functions serve` with `QONTO_MOCK=true`) — happy path returns a paymentId; client-supplied `amount` field is ignored (asserted); wrong-status order → 4xx; unknown order → 4xx. Script is the RED test: written first, fails, then the function makes it pass.
   - Files: `supabase/functions/_shared/qonto.ts`, `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`

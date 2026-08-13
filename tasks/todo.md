@@ -57,7 +57,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 3 — Admin slice
 
-- [ ] **T7: Vendor model + settings writers**
+- [x] **T7: Vendor model + settings writers**
   - Acceptance: `kiosk_terminal_enabled/_id/_label` flow through the vendor select list + model (`supabase-auth.service.ts:153,182` pattern); new writer `updateVendorKioskTerminal(...)` modeled on `updateVendorOnlinePaymentsEnabled` (`:463-480`); `vendor.service.ts` facade options extended (`saveRestaurantInfo`, `:621-634`) with store refresh.
   - Verify: `ng test --include='**/vendor*'` (new focused spec for the writer mapping) or build + manual SQL check that a save round-trips all three columns.
   - Files: `src/app/services/supabase-auth.service.ts`, `src/app/services/vendor.service.ts`, `src/app/models/*` (vendor interface)

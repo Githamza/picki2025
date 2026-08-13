@@ -36,10 +36,10 @@ assert_eq() { # actual expected label
 
 sql() { psql "$DB_URL" -tA -c "$1"; }
 
-fn() { # action body_json [key]  -> stdout: http_code + body separated by \n
-  local body="$1" key="${2:-$ANON_KEY}"
+fn() { # body_json [bearer]  -> stdout: body + http_code separated by \n
+  local body="$1" bearer="${2:-$ANON_KEY}"
   curl -s -w '\n%{http_code}' -X POST "$FN_URL/qonto-terminal" \
-    -H "apikey: $key" -H "Authorization: Bearer $key" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer $bearer" \
     -H "Content-Type: application/json" -d "$body"
 }
 
@@ -229,6 +229,118 @@ if [[ "$OLD_STOCK" == "NULL" ]]; then
 else
   sql "update products set stock_quantity = $OLD_STOCK where id = $STOCK_PRODUCT;" > /dev/null
 fi
+
+# ---------------------------------------------------------------------------
+# T6 — qonto-oauth + token refresh
+# ---------------------------------------------------------------------------
+log "T6: qonto-oauth"
+
+AUTH_URL="http://127.0.0.1:54321/auth/v1"
+ADMIN_EMAIL="qonto-admin-test@picki.test"
+ADMIN_PASSWORD="qonto-test-password-1"
+# GoTrue on this CLI verifies JWT apikeys asymmetrically — the legacy demo
+# JWTs fail there. Use the fixed local sb_* keys for auth endpoints only.
+# GoTrue keys come from the running local stack (same values on every
+# machine, but deriving them avoids hardcoding scanner-triggering strings).
+SB_SECRET="$(supabase status -o json 2>/dev/null | python3 -c 'import sys,json;print(json.load(sys.stdin).get("SECRET_KEY",""))')"
+SB_PUBLISHABLE="$(supabase status -o json 2>/dev/null | python3 -c 'import sys,json;print(json.load(sys.stdin).get("PUBLISHABLE_KEY",""))')"
+
+oauth() { # body key -> http_code \n body
+  curl -s -w '\n%{http_code}' -X POST "$FN_URL/qonto-oauth" \
+    -H "apikey: $ANON_KEY" -H "Authorization: Bearer ${2:-$ANON_KEY}" \
+    -H "Content-Type: application/json" -d "$1"
+}
+
+# Throwaway admin user bound to the kiosk vendor.
+curl -s -X POST "$AUTH_URL/admin/users" \
+  -H "apikey: $SB_SECRET" -H "Authorization: Bearer $SB_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\",\"email_confirm\":true}" > /dev/null
+ADMIN_UID=$(sql "select id from auth.users where email = '$ADMIN_EMAIL';")
+sql "insert into vendor_admin_users (vendor_id, user_id, email, first_name, last_name)
+     values ('$KIOSK_VENDOR', '$ADMIN_UID', '$ADMIN_EMAIL', 'Qonto', 'Test')
+     on conflict do nothing;" > /dev/null
+USER_JWT=$(curl -s -X POST "$AUTH_URL/token?grant_type=password" \
+  -H "apikey: $SB_PUBLISHABLE" -H "Content-Type: application/json" \
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" | python3 -c "import sys,json;print(json.load(sys.stdin).get('access_token',''))")
+[[ -n "$USER_JWT" ]] && ok "admin user signs in" || bad "could not sign in test admin"
+
+# authorize-url
+RES=$(oauth "{\"action\":\"authorize-url\",\"vendorId\":\"$KIOSK_VENDOR\",\"redirectUri\":\"http://localhost:4300/admin/qonto/callback\"}" "$USER_JWT")
+CODE=$(tail -n1 <<< "$RES"); BODY=$(sed '$d' <<< "$RES")
+assert_eq "$CODE" "200" "authorize-url returns 200 for the vendor admin"
+AUTHORIZE_URL=$(json_field "$BODY" url)
+[[ "$AUTHORIZE_URL" == *"client_id=mock-client-id"* && "$AUTHORIZE_URL" == *"terminal.read"* ]] \
+  && ok "authorize url carries client_id + scopes" || bad "authorize url malformed: $AUTHORIZE_URL"
+STATE=$(python3 -c "
+from urllib.parse import urlparse, parse_qs
+import sys
+print(parse_qs(urlparse(sys.argv[1]).query).get('state', [''])[0])" "$AUTHORIZE_URL")
+[[ -n "$STATE" ]] && ok "state present" || bad "no state in authorize url"
+
+RES=$(oauth "{\"action\":\"authorize-url\",\"vendorId\":\"$KIOSK_VENDOR\"}")
+assert_eq "$(tail -n1 <<< "$RES")" "401" "anon caller is rejected (401)"
+
+# exchange
+RES=$(oauth "{\"action\":\"exchange\",\"vendorId\":\"$KIOSK_VENDOR\",\"code\":\"mock-code\",\"state\":\"$STATE\",\"redirectUri\":\"http://localhost:4300/admin/qonto/callback\"}" "$USER_JWT")
+CODE=$(tail -n1 <<< "$RES"); BODY=$(sed '$d' <<< "$RES")
+assert_eq "$CODE" "200" "exchange succeeds with a valid state"
+assert_eq "$(json_field "$BODY" connected)" "True" "exchange reports connected"
+assert_eq "$(sql "select count(*) from vendor_qonto_connections where vendor_id = '$KIOSK_VENDOR';")" \
+  "1" "connection row upserted"
+[[ "$BODY" != *"token"* ]] && ok "tokens never leave the function" || bad "response leaks tokens: $BODY"
+
+RES=$(oauth "{\"action\":\"exchange\",\"vendorId\":\"$KIOSK_VENDOR\",\"code\":\"mock-code\",\"state\":\"tampered\",\"redirectUri\":\"x\"}" "$USER_JWT")
+assert_eq "$(tail -n1 <<< "$RES")" "400" "tampered state is rejected (400)"
+
+# status
+RES=$(oauth "{\"action\":\"status\",\"vendorId\":\"$KIOSK_VENDOR\"}" "$USER_JWT")
+assert_eq "$(json_field "$(sed '$d' <<< "$RES")" connected)" "True" "status reports connected"
+
+# list-terminals (admin, via qonto-terminal)
+RES=$(fn "{\"action\":\"list-terminals\",\"vendorId\":\"$KIOSK_VENDOR\"}" "$USER_JWT")
+CODE=$(tail -n1 <<< "$RES"); BODY=$(sed '$d' <<< "$RES")
+assert_eq "$CODE" "200" "list-terminals returns 200 for the vendor admin"
+TERMINAL_COUNT=$(python3 -c "
+import sys, json
+try:
+    print(len(json.loads(sys.argv[1]).get('terminals', [])))
+except Exception:
+    print(0)" "$BODY")
+[[ "$TERMINAL_COUNT" -ge 1 ]] && ok "mock terminals listed" || bad "no terminals in: $BODY"
+RES=$(fn "{\"action\":\"list-terminals\",\"vendorId\":\"$KIOSK_VENDOR\"}")
+assert_eq "$(tail -n1 <<< "$RES")" "401" "anon list-terminals rejected (401)"
+
+# Row-locked refresh: expire the token, hit two refreshing calls in parallel.
+sql "update vendor_qonto_connections
+     set access_token = 'stale', access_token_expires_at = now() - interval '1 hour',
+         refresh_token = 'old-rt'
+     where vendor_id = '$KIOSK_VENDOR';" > /dev/null
+fn "{\"action\":\"list-terminals\",\"vendorId\":\"$KIOSK_VENDOR\"}" "$USER_JWT" > /tmp/qonto-refresh-a.txt &
+PID_A=$!
+fn "{\"action\":\"list-terminals\",\"vendorId\":\"$KIOSK_VENDOR\"}" "$USER_JWT" > /tmp/qonto-refresh-b.txt &
+PID_B=$!
+wait "$PID_A" "$PID_B"
+assert_eq "$(tail -n1 /tmp/qonto-refresh-a.txt)" "200" "concurrent refresh call A succeeds"
+assert_eq "$(tail -n1 /tmp/qonto-refresh-b.txt)" "200" "concurrent refresh call B succeeds"
+NEW_RT=$(sql "select refresh_token from vendor_qonto_connections where vendor_id = '$KIOSK_VENDOR';")
+[[ "$NEW_RT" != "old-rt" && -n "$NEW_RT" ]] && ok "refresh token rotated exactly once" \
+  || bad "refresh token not rotated (still '$NEW_RT')"
+NEW_AT=$(sql "select access_token from vendor_qonto_connections where vendor_id = '$KIOSK_VENDOR';")
+[[ "$NEW_AT" != "stale" ]] && ok "access token refreshed" || bad "access token still stale"
+
+# disconnect
+RES=$(oauth "{\"action\":\"disconnect\",\"vendorId\":\"$KIOSK_VENDOR\"}" "$USER_JWT")
+assert_eq "$(tail -n1 <<< "$RES")" "200" "disconnect returns 200"
+assert_eq "$(sql "select count(*) from vendor_qonto_connections where vendor_id = '$KIOSK_VENDOR';")" \
+  "0" "connection row deleted"
+RES=$(oauth "{\"action\":\"status\",\"vendorId\":\"$KIOSK_VENDOR\"}" "$USER_JWT")
+assert_eq "$(json_field "$(sed '$d' <<< "$RES")" connected)" "False" "status reports disconnected"
+
+# Cleanup the throwaway admin.
+sql "delete from vendor_admin_users where user_id = '$ADMIN_UID';" > /dev/null
+curl -s -X DELETE "$AUTH_URL/admin/users/$ADMIN_UID" \
+  -H "apikey: $SB_SECRET" -H "Authorization: Bearer $SB_SECRET" > /dev/null
 
 # ---------------------------------------------------------------------------
 log ""

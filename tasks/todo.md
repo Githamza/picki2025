@@ -44,7 +44,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`
   - Dependencies: T4 · **Size: S**
 
-- [ ] **T6: `qonto-oauth` — connection lifecycle + row-locked refresh**
+- [x] **T6: `qonto-oauth` — connection lifecycle + refresh rotation** *(landed as an atomic CAS on the refresh token instead of `select … for update` — same lost-update guarantee, no extra SQL; concurrency asserted by the harness)*
   - Acceptance: admin-JWT-authenticated actions `authorize-url` (builds oauth.qonto.com URL with scopes `terminal.read terminal.write offline_access organization.read`, signed `state` binding vendor_id), `exchange` (verifies state, exchanges code — mock mode fakes Qonto's token response — upserts `vendor_qonto_connections`, never returns tokens), `status`, `disconnect` (deletes row). `_shared/qonto.ts` gains `getValidAccessToken(vendorId)`: refreshes when expired under `select … for update`, persists the new access+refresh pair atomically; `qonto-terminal` switches to it (mock mode: bypass).
   - Verify: test script — full mock connect: authorize-url contains client_id/scopes/state; exchange with valid state creates the row (SQL assert), bad state → 4xx; status flips connected true/false around disconnect; unauthenticated (anon) calls → 401. Two parallel `getValidAccessToken` calls on an expired token leave exactly one valid refresh token (no lost update).
   - Files: `supabase/functions/qonto-oauth/index.ts`, `supabase/functions/_shared/qonto.ts`, `scripts/test-qonto-functions.sh`

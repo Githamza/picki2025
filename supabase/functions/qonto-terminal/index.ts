@@ -10,9 +10,12 @@ declare const Deno: any;
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   getQontoEnv,
+  getValidAccessToken,
   mockCreatePayment,
   mockGetPayment,
+  mockListTerminals,
   qontoFetch,
+  requireVendorAdmin,
   type TerminalPaymentResult,
 } from '../_shared/qonto.ts';
 
@@ -285,6 +288,35 @@ async function handleCancelOrder(body: any) {
   return json({ cancelled: true });
 }
 
+async function handleListTerminals(body: any, req: Request) {
+  const supabase = createServiceClient();
+  const vendorId = String(body.vendorId || '');
+  if (!vendorId) {
+    return json({ error: 'vendorId est requis' }, { status: 400 });
+  }
+  await requireVendorAdmin(supabase, req, vendorId);
+
+  const env = getQontoEnv();
+  // Even in mock mode this goes through the token path (requires a
+  // connection + exercises the one-time refresh rotation).
+  const accessToken = await getValidAccessToken(supabase, env, vendorId);
+
+  if (env.mock) {
+    return json({ terminals: mockListTerminals() });
+  }
+  const response = await qontoFetch(env, accessToken, '/v2/terminals?per_page=100');
+  const text = await response.text();
+  if (!response.ok) {
+    console.error('Qonto list terminals failed:', response.status, text);
+    return json({ error: 'Impossible de lister les terminaux' }, { status: 502 });
+  }
+  const terminals = (JSON.parse(text)?.terminals ?? []).map((t: any) => ({
+    id: t.id,
+    poi_id: t.poi_id,
+  }));
+  return json({ terminals });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -305,6 +337,7 @@ Deno.serve(async (req: Request) => {
     if (action === 'create-payment') return await handleCreatePayment(body);
     if (action === 'get-payment') return await handleGetPayment(body);
     if (action === 'cancel-order') return await handleCancelOrder(body);
+    if (action === 'list-terminals') return await handleListTerminals(body, req);
     return json({ error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error: any) {
     console.error('qonto-terminal error:', error);

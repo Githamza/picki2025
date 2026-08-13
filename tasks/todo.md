@@ -1,88 +1,129 @@
-# Task List: Upsell Suggestions (FR4c)
+# Task List: Qonto Payment Terminal on Kiosk
 
-Source: `SPEC-UPSELL.md` + `tasks/plan.md`. Statuses: `[ ]` todo · `[x]` done.
+Source: `SPEC-QONTO-TERMINAL.md` + `tasks/plan.md`. Statuses: `[ ]` todo · `[x]` done.
 Run order is top-to-bottom; dependencies noted per task.
 
 ---
 
-## Phase A — Data foundation
+## Phase 1 — Foundation
 
-- [x] **T1: `category_type` migration + regenerated types**
-  - Acceptance: new migration adds nullable `categories.category_type text` with CHECK over `('entree','plat','boisson','dessert','sauce','accompagnement','autre')`; `supabase db reset --yes --local` applies cleanly; `supabase.types.ts` regenerated in the same change; no RLS policy changes needed (verify storefront still reads categories anonymously).
-  - Verify: `supabase db reset --yes --local`; `npm run build` (types compile); quick storefront smoke on dev server.
-  - Files: `supabase/migrations/<ts>_add_category_type.sql`, `src/app/types/supabase.types.ts`
+- [ ] **T1: Migration + regenerated types**
+  - Acceptance: one migration creates `vendor_qonto_connections` (PK `vendor_id` FK→vendors, `organization_id`, `access_token`, `access_token_expires_at`, `refresh_token`, `connected_at`, `updated_at`; RLS enabled, **zero policies**), adds `vendors.kiosk_terminal_enabled boolean not null default false`, `vendors.kiosk_terminal_id text`, `vendors.kiosk_terminal_label text`, and `orders.terminal_payment_id text`, `orders.terminal_payment_method text`, `orders.terminal_card_summary text`; `supabase.types.ts` regenerated in the same change.
+  - Verify: `supabase db reset --yes --local` applies cleanly; `npm run build` compiles; SQL probe with anon key reads `kiosk_terminal_enabled` from vendors and gets **zero rows / permission denied** on `vendor_qonto_connections`; service-role reads both.
+  - Files: `supabase/migrations/<ts>_add_qonto_terminal.sql`, `src/app/types/supabase.types.ts`
   - Dependencies: none · **Size: S**
 
-- [x] **T2: Seed fixtures for upsell e2e**
-  - Acceptance: `seed.sql` additions only — a `boisson` category with ≥2 available drinks, a `dessert` category with ≥1 dessert, and one multi-step "menu" product whose step options include an existing simple seeded product (so convert-to-menu triggers). Existing seed rows untouched.
-  - Verify: `supabase db reset --yes --local`; full existing Playwright suite still green (`npx playwright test`).
-  - Files: `supabase/seed.sql`
+- [ ] **T2: E2E fixture for the terminal toggle**
+  - Acceptance: an e2e helper (in `e2e/fixtures/`) can set/unset `kiosk_terminal_enabled` + `kiosk_terminal_id`/`label` on the seeded kiosk vendor via the local service-role client, and restores the previous state after the test; seed data itself stays toggle-OFF so every existing spec is untouched.
+  - Verify: existing kiosk journey `npx playwright test e2e/journeys/kiosk.spec.ts` still green with the fixture merely imported.
+  - Files: `e2e/fixtures/<helper>.ts`
   - Dependencies: T1 · **Size: S**
 
-- [x] **T3: Category admin — type select**
-  - Acceptance: category create/edit UI gains a required-on-create select with French labels (Entrée, Plat, Boisson, Dessert, Sauce, Accompagnement, Autre); editing an untyped category prompts for the type; category list shows a subtle hint on untyped rows; value persists through the existing category service path.
-  - Verify: `npm test` (new component spec for required-on-create); manual create + edit in admin.
-  - Files: category dialog/component under `src/app/components/product-manager/`, category model/service mapping (2–3 files)
+### Checkpoint — Foundation
+- [ ] db reset + build green; RLS probe passes both directions; existing kiosk e2e green.
+
+---
+
+## Phase 2 — Edge functions (mock-first, no Qonto account needed)
+
+- [ ] **T3: `qonto-terminal` skeleton + shared helper + `create-payment`**
+  - Acceptance: `_shared/qonto.ts` exports base URLs from env (`QONTO_API_BASE_URL`, `QONTO_OAUTH_BASE_URL`, `QONTO_STAGING_TOKEN`, `QONTO_MOCK`), a `qontoFetch` that injects auth + staging headers, and the mock simulator (authorize after ~3 polls; total `.13` → REFUSED `card_declined`; `.99` → stays PENDING forever). `qonto-terminal/index.ts` dispatches on `action`; `create-payment` accepts `{orderId}` only, loads the order with the service role, rejects unless the vendor has `kiosk_terminal_enabled` + `kiosk_terminal_id` + a connection (mock mode: connection check stubbed), rejects unless order status is `initiated`, computes the amount **from the order row**, sends a fresh UUID `X-Qonto-Idempotency-Key`, stores `terminal_payment_id` on the order, returns `{paymentId}`. CORS headers inlined per `confirm-payment` precedent. French error strings.
+  - Verify: new `scripts/test-qonto-functions.sh` (curl against `supabase functions serve` with `QONTO_MOCK=true`) — happy path returns a paymentId; client-supplied `amount` field is ignored (asserted); wrong-status order → 4xx; unknown order → 4xx. Script is the RED test: written first, fails, then the function makes it pass.
+  - Files: `supabase/functions/_shared/qonto.ts`, `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`
   - Dependencies: T1 · **Size: M**
 
-## Phase B — Services (parallel after T1)
+- [ ] **T4: `get-payment` — status proxy + server-side success**
+  - Acceptance: `{orderId, paymentId}` → proxies status (mock: simulator). On `AUTHORIZED`: atomically updates the order (status `initiated→todo`, `payAtCheckout=false`, `terminal_payment_method`, `terminal_card_summary`) — idempotent if polled again after success. On `REFUSED`: returns `{status:'REFUSED', failureReason}`, order untouched. `PENDING` passthrough. Rejects mismatched order/payment pairs.
+  - Verify: test script cases — poll loop reaches AUTHORIZED and the order row is `todo` with payment fields set (checked via SQL); `.13` order polls to REFUSED and order stays `initiated`; re-poll after AUTHORIZED returns AUTHORIZED without double-update.
+  - Files: `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`
+  - Dependencies: T3 · **Size: M**
 
-- [x] **T4: Pool query + `getUpsellPool`**
-  - Acceptance: `SupabaseService.getUpsellProducts(vendorId, orderType, types)` filters `is_available`, `applicable_order_types` contains orderType, category's `category_type` in the passed set, ordered by `display_order`; `ProductService.getUpsellPool(vendorId, orderType)` wraps it with the accessories-style 10-min cache and the exported `UPSELLABLE_CATEGORY_TYPES = ['boisson', 'dessert']` constant (single definition site).
-  - Verify: new unit specs green; `npm test` baseline unchanged.
-  - Files: `src/app/services/supabase.service.ts`, `src/app/services/product.service.ts`, `src/app/services/product.service.spec.ts`
+- [ ] **T5: `cancel-order` — cancellation + stock release**
+  - Acceptance: `{orderId}` → only orders still `initiated` (with a terminal-enabled vendor) are cancelled; sets status `cancelled` then calls the existing `restore_stock_for_order` RPC; already-`todo`/`cancelled` orders → 4xx without side effects.
+  - Verify: test script — cancel a refused-payment order: status becomes `cancelled` and a stock-tracked product's quantity is restored (SQL assert); cancelling an AUTHORIZED (`todo`) order fails.
+  - Files: `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`
+  - Dependencies: T4 · **Size: S**
+
+- [ ] **T6: `qonto-oauth` — connection lifecycle + row-locked refresh**
+  - Acceptance: admin-JWT-authenticated actions `authorize-url` (builds oauth.qonto.com URL with scopes `terminal.read terminal.write offline_access organization.read`, signed `state` binding vendor_id), `exchange` (verifies state, exchanges code — mock mode fakes Qonto's token response — upserts `vendor_qonto_connections`, never returns tokens), `status`, `disconnect` (deletes row). `_shared/qonto.ts` gains `getValidAccessToken(vendorId)`: refreshes when expired under `select … for update`, persists the new access+refresh pair atomically; `qonto-terminal` switches to it (mock mode: bypass).
+  - Verify: test script — full mock connect: authorize-url contains client_id/scopes/state; exchange with valid state creates the row (SQL assert), bad state → 4xx; status flips connected true/false around disconnect; unauthenticated (anon) calls → 401. Two parallel `getValidAccessToken` calls on an expired token leave exactly one valid refresh token (no lost update).
+  - Files: `supabase/functions/qonto-oauth/index.ts`, `supabase/functions/_shared/qonto.ts`, `scripts/test-qonto-functions.sh`
+  - Dependencies: T3 · **Size: M**
+
+### Checkpoint — Edge functions
+- [ ] `scripts/test-qonto-functions.sh` fully green against served functions, `QONTO_MOCK=true`.
+
+---
+
+## Phase 3 — Admin slice
+
+- [ ] **T7: Vendor model + settings writers**
+  - Acceptance: `kiosk_terminal_enabled/_id/_label` flow through the vendor select list + model (`supabase-auth.service.ts:153,182` pattern); new writer `updateVendorKioskTerminal(...)` modeled on `updateVendorOnlinePaymentsEnabled` (`:463-480`); `vendor.service.ts` facade options extended (`saveRestaurantInfo`, `:621-634`) with store refresh.
+  - Verify: `ng test --include='**/vendor*'` (new focused spec for the writer mapping) or build + manual SQL check that a save round-trips all three columns.
+  - Files: `src/app/services/supabase-auth.service.ts`, `src/app/services/vendor.service.ts`, `src/app/models/*` (vendor interface)
   - Dependencies: T1 · **Size: M**
 
-- [x] **T5: `UpsellService` — trigger logic + session state**
-  - Acceptance: `cartHasPoolItem()` detects pool-category products including those nested in menu metadata (reuse the `selectCartQuantityMap` walk); one-shot signals per tier per session; both reset when the cart empties/clears; `shouldShowPoolTier()` short-circuits on empty pool; no NgRx state added.
-  - Verify: new unit specs cover nested detection, one-shot behavior, reset, empty-pool short-circuit.
-  - Files: `src/app/services/upsell.service.ts`, `src/app/services/upsell.service.spec.ts`
-  - Dependencies: T1, T4 · **Size: M**
+- [ ] **T8: Paiement page — "Terminal de paiement (Qonto)" section**
+  - Acceptance: new section in `paiement.component`: connection status via `qonto-oauth/status`; **Connecter** opens the `authorize-url` in the same tab; **Déconnecter** confirms then calls `disconnect` and force-disables the toggle (server value saved); terminal dropdown populated via `qonto-terminal/list-terminals` (id + poi_id label) only when connected; activation toggle disabled unless connected ∧ terminal selected ∧ vendor currency EUR, with French helper text per blocked reason; save persists via T7 writer + snackbar, matching the existing section UX (`:1049-1054` pattern).
+  - Verify: `ng test --include='**/paiement*'` for the guard logic (toggle-disabled truth table); manual walkthrough with mock mode on local stack.
+  - Files: `src/app/components/restaurant-info-admin/children/paiement/paiement.component.{ts,html,scss}`
+  - Dependencies: T6, T7 · **Size: M**
 
-- [x] **T6: Menu-containment lookup (cheapest menu)**
-  - Acceptance: given a simple product id, returns the cheapest available multi-step product of the same vendor whose `step_options` reference it (or null); cached like the pool; exposed via `UpsellService`.
-  - Verify: unit specs — none/one/many menus, unavailable menu excluded, cheapest wins.
-  - Files: `src/app/services/supabase.service.ts`, `src/app/services/upsell.service.ts` (+ spec)
-  - Dependencies: T1 · **Size: M**
+- [ ] **T9: OAuth callback route**
+  - Acceptance: `/admin/qonto/callback` (admin-guarded, standalone component) reads `?code&state`, invokes `qonto-oauth/exchange`, shows success/error state in French, then routes back to the Paiement page; on error offers "Réessayer" (restarts authorize-url flow).
+  - Verify: `ng test --include='**/qonto-callback*'` (exchange invoked with code+state; error path renders retry); manual mock walkthrough.
+  - Files: `src/app/components/admin/qonto-callback/qonto-callback.component.ts`, `src/app/app.routes.ts` (admin children)
+  - Dependencies: T6 · **Size: S**
 
-## Phase C — Surfaces
+### Checkpoint — Admin slice
+- [ ] Mock-mode walkthrough: connect → dropdown lists mock terminals → select + enable → disconnect force-disables. `npm run build` green.
 
-- [x] **T7: "Pour accompagner" strip on simple product pages**
-  - Acceptance: strip renders below the description on simple product pages only (never multi-step), reusing `AccessoriesStripComponent`; hidden entirely when pool is empty or product itself is in the pool; adding from the strip dispatches a normal `addToCart` line at normal price; layout matches the flat calm card recipe.
-  - Verify: component spec (hidden-when-empty, add dispatches); visual check on dev server.
-  - Files: `src/app/components/product-add/regular-product-view/*` (component + template), possibly `accessories-strip.component.ts` (new inputs only)
+---
+
+## Phase 4 — Kiosk slice
+
+- [ ] **T10: `QontoTerminalService` polling state machine**
+  - Acceptance: `startPayment(orderId)` emits `TerminalPaymentState` phases (`pushing → waiting-card → authorized | refused | timeout`), polling `get-payment` at 1s × 10 then 2s, hard stop at 120s (overridable via `window.__KIOSK_TERMINAL_TIMEOUT_MS__`, same pattern as `__KIOSK_IDLE_MS__`); `cancelOrder(orderId)` wraps the edge action; errors from `create-payment` surface as `refused` with a generic French reason.
+  - Verify: RED-first Karma spec with `fakeAsync` — phase sequences for authorized/refused/timeout, backoff timing, unsubscribe stops polling. `ng test --include='**/qonto-terminal*'`.
+  - Files: `src/app/services/qonto-terminal.service.ts`, `src/app/services/qonto-terminal.service.spec.ts`
   - Dependencies: T4 · **Size: M**
 
-- [x] **T8: Upsell page (focus shell) + route**
-  - Acceptance: routed page under the vendor context (`.../upsell`) rendering either tier — convert-to-menu ("Et si vous en faisiez un menu ?", menu card, accept/decline) or pool suggestions ("Une petite soif ? 🥤", 3–4 pool items with add controls, prominent "Non merci"); focus-shell styling (centered title, one decision per screen, no shadows/accent borders); guards redirect to the grid if entered with nothing to show.
-  - Verify: component spec for both tiers + empty-state redirect; visual check both tiers.
-  - Files: `src/app/components/upsell-page/upsell-page.component.ts` (+ template/styles if split), `src/app/app.routes.ts`
-  - Dependencies: T4, T5, T6 · **Size: M**
+- [ ] **T11: `TerminalPaymentDialogComponent`**
+  - Acceptance: full-screen MatDialog (`disableClose: true`), kiosk-sized (≥64px targets, M3 tokens, French copy): waiting state shows amount + "Présentez votre carte sur le terminal" + animated indicator; refused/timeout state shows reason + **Réessayer** (restarts `startPayment` on the same order) + **Annuler** (calls `cancelOrder`, closes with `{outcome:'cancelled'}`); authorized closes with `{outcome:'authorized'}`; timeout auto-transitions to the error state (order not yet cancelled — cancel happens on Annuler or on dialog-level abandon per T12).
+  - Verify: RED-first component spec — state rendering per phase, Réessayer re-invokes, Annuler cancels then closes. `ng test --include='**/terminal-payment*'`.
+  - Files: `src/app/components/kiosk/terminal-payment-dialog/terminal-payment-dialog.component.{ts,html,scss,spec.ts}`
+  - Dependencies: T10 · **Size: M**
 
-## Phase D — Wiring
+- [ ] **T12: Checkout gating in `checkout.service.ts`**
+  - Acceptance: in the pay-at-checkout branch (`:406-427`), `useTerminal = kioskMode.active() && vendor.kiosk_terminal_enabled`; order created with status `initiated` when true (`todo` unchanged when false — toggle-OFF path byte-for-byte identical); on true, opens the dialog and on `{outcome:'authorized'}` runs the exact existing success sequence (print fire-and-forget → clearCart → reset preference → navigate `successPayment`); on `{outcome:'cancelled'}` the cart is **kept** and the user returns to the cart view; success screen shows "Paiement accepté" instead of "Payez au comptoir" for terminal-paid orders. Verify locally that `create_full_order` accepts `initiated` on this path (fallback per plan risk table if not).
+  - Verify: RED-first spec for the branch truth table (kiosk × toggle → status + dialog opened y/n) with dialog/service mocked. `ng test --include='**/checkout*'` (new spec only; baseline failures untouched).
+  - Files: `src/app/services/checkout.service.ts`, `src/app/services/checkout.service.qonto.spec.ts`, `src/app/components/payment-success/payment-success.component.ts` (copy variant)
+  - Dependencies: T10, T11 · **Size: M**
 
-- [x] **T9: Post-add wiring — simple products (both tiers)**
-  - Acceptance: after `addToCart` in `product-add`, navigation goes grid → upsell page when a tier should fire (inside the existing `document.startViewTransition`), else straight to grid as today; decline → grid, no second prompt on the same add; convert accept → simple item removed from cart, cheapest menu flow entered with the matching option preselected when unambiguous (single matching option in a single-select step), otherwise unselected — fallback documented in code if preselection is cut per plan decision 6.
-  - Verify: unit spec for the routing decision; hand-run the full journey on dev server (phone viewport).
-  - Files: `src/app/components/product-add/product-add.component.ts`, `src/app/services/upsell.service.ts`, `src/app/components/add-product-multi-step/add-product-multi-step.component.ts` (preselect entry only), max 2 more
-  - Dependencies: T5, T6, T8 · **Size: L (riskiest — everything else lands first)**
+### Checkpoint — Kiosk slice
+- [ ] Manual kiosk run, mock mode: normal total → authorized → print + order-number screen; `.13` total → refused → Réessayer works; Annuler → cart intact, order `cancelled` in DB.
 
-- [x] **T10: Post-add wiring — multi-step adds (pool tier only)** _(verify note: decision semantics covered by UpsellService unit specs; glue covered by the T11 e2e menu-add journey — a dedicated component harness for this component was disproportionate)_
-  - Acceptance: after a menu is added, pool tier fires only if the cart (nested-aware) still lacks a pool item; never offers convert-to-menu; same one-shot session rule.
-  - Verify: unit spec; hand-run menu-with-drink (no prompt) vs menu-without-drink (prompt).
-  - Files: `src/app/components/add-product-multi-step/add-product-multi-step.component.ts`
-  - Dependencies: T9 · **Size: S**
+---
 
-## Phase E — Verification
+## Phase 5 — Verification & hardening
 
-- [x] **T11: E2E journeys**
-  - Acceptance: new spec(s) in `e2e/journeys/` — (a) full upsell journey: add menu-contained simple product → convert offer → decline → add other item → pool offer → accept drink → checkout completes; (b) untyped-categories run asserts zero upsell UI anywhere. Green on all four viewport projects.
-  - Verify: `npx playwright test` fully green.
-  - Files: `e2e/journeys/upsell.spec.ts`, possibly `e2e/fixtures/*`
-  - Dependencies: T2, T9, T10 · **Size: M**
+- [ ] **T13: Playwright `kiosk-terminal.spec.ts`**
+  - Acceptance: kiosk-landscape project, edge responses stubbed via route interception on `/functions/v1/qonto-terminal`; scenarios: (a) toggle OFF → existing `kiosk.spec.ts` journey passes unchanged **and** zero qonto-terminal network calls; (b) authorized → waiting state visible → success screen, print path reached only after authorized stub; (c) refused → French error + Réessayer → authorized → success; (d) timeout (timeout override + stub stuck on PENDING) → error state → cancel-order fired → cart still populated; (e) Annuler → back at cart, cart intact.
+  - Verify: `npx playwright test --project=kiosk-landscape` green.
+  - Files: `e2e/journeys/kiosk-terminal.spec.ts`, `e2e/fixtures/<helper>.ts` (from T2)
+  - Dependencies: T2, T12 · **Size: M**
 
-- [x] **T12: Final gates + spec bookkeeping** _(remaining human steps: manual kiosk idle-warning walkthrough on the upsell page; approve applying the category_type migration to prod)_
-  - Acceptance: `npm run build` clean; `npm test` at 5-failure baseline; manual kiosk idle-warning check on the upsell page done; `SPEC.md` FR4c note updated to point at `SPEC-UPSELL.md` (deferral lifted); `SPEC-UPSELL.md` success criteria 1–7 each checked off.
-  - Verify: all listed commands + the success-criteria checklist itself.
-  - Files: `SPEC.md`, `SPEC-UPSELL.md`
-  - Dependencies: everything · **Size: S**
+- [ ] **T14: Hardening, copy, docs**
+  - Acceptance: French copy pass on all new surfaces; `SPEC-QONTO-TERMINAL.md` updated (status → implemented-pending-Phase-6, Open Question #2 marked resolved); `CLAUDE.md` edge-function table + key-services list gain the two functions and `QontoTerminalService`; `scripts/test-qonto-functions.sh` documented in the spec Commands section; no TODOs left in new code.
+  - Verify: `npm run build` clean; full kiosk e2e project green; grep for stray `TODO|FIXME` in new files empty.
+  - Files: `SPEC-QONTO-TERMINAL.md`, `CLAUDE.md`, misc copy touch-ups
+  - Dependencies: T13 · **Size: S**
+
+### Checkpoint — Complete
+- [ ] Spec Success Criteria 1, 3–11 verified locally (mock); criterion 2 verified except the physical-terminal part (user-gated Phase 6).
+
+---
+
+## Excluded from this run (user-gated — spec Phase 6)
+
+- Qonto Developer Portal app registration, `QONTO_CLIENT_ID/SECRET` + staging-token secrets on staging/prod, sandbox validation, real-terminal pilot. Blocked on the user owning the Qonto relationship; nothing above depends on it thanks to mock mode.

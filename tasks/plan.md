@@ -1,50 +1,96 @@
-# Implementation Plan: Upsell Suggestions (FR4c)
+# Implementation Plan: Qonto Payment Terminal on Kiosk
 
-**Source spec:** `SPEC-UPSELL.md` (approved 2026-08-09)
+**Source spec:** `SPEC-QONTO-TERMINAL.md` (2026-08-13)
 **Task list:** `tasks/todo.md`
-**Replaces:** the completed Storefront UI Redesign plan (all its phases shipped per `SPEC.md`).
+**Replaces:** the completed Upsell plan (shipped 2026-08-09 per `SPEC-UPSELL.md`).
 
 ## Overview
 
-Five phases along the dependency graph: data foundation (migration + seed + admin) → services (pool, trigger, menu-containment) → surfaces (strip, upsell page) → wiring (post-add hooks) → e2e + gates. Each phase is independently verifiable; nothing customer-visible ships until Phase C, and until a vendor types a category the entire feature is invisible by design — so every phase can merge to `main` behind that natural gate without a feature flag.
+Five phases along the dependency graph: data foundation (migration + types + e2e fixture) → edge functions built mock-first (`QONTO_MOCK` simulates Qonto, so every phase is fully testable with zero Qonto credentials) → admin settings slice (connect, pick terminal, toggle) → kiosk payment slice (polling service, full-screen dialog, checkout gating) → e2e journeys + hardening. The feature is invisible until a vendor connects Qonto *and* enables the toggle, so every phase can merge to `main` behind that natural gate. **Spec Phase 6 (Qonto Developer Portal registration, sandbox validation, prod smoke test) is user-gated and excluded from the autonomous run.**
 
 ## Architecture Decisions
 
-1. **`category_type` is `text` + CHECK constraint, nullable, no backfill.** Untyped categories never enter the pool: the failure mode is "no upsell", never "wrong upsell". Extending the enum later is a constraint swap, not a type migration.
-2. **The upsellable set is one exported constant** — `UPSELLABLE_CATEGORY_TYPES = ['boisson', 'dessert']` — referenced by the pool query only through the service layer. Making it vendor-configurable later means swapping the constant for a vendor setting at exactly one call site.
-3. **A new `UpsellService` owns trigger logic and session state** (signals, not NgRx). The cart stays NgRx; upsell session state ("convert tier shown", "pool tier shown") is ephemeral UI flow state, same category as what `CheckoutService` already owns. It resets on `clearCart` (subscribe to the action stream or watch the cart-empty selector).
-4. **Nested-aware pool detection reuses the `selectCartQuantityMap` walk** (it already counts products inside multi-step menus) rather than reimplementing metadata traversal. A drink inside a purchased menu counts as "cart has a drink".
-5. **Post-add is a routed page inside the vendor context** (`.../upsell`), navigated to inside the same `document.startViewTransition` that today goes straight back to the grid. Never a dialog (kiosk idle-warning counts open dialogs; focus-shell design language).
-6. **Convert-to-menu preselection is best-effort, contained.** Preselect only when exactly one option in a single-select step matches the product; otherwise enter the menu flow unselected. If preselection turns out to fight the focus-shell's `offeredStepIds` edit-awareness, ship the fallback and file a follow-up — it must not block the phase.
-7. **E2E over manual.** The Playwright suite (four viewports, seeded local Supabase, pay-at-counter vendor) is the verification harness; `supabase/seed.sql` gains typed categories and a menu that contains a simple product. Only the kiosk idle-timer interplay stays manual.
+1. **Trust boundary at the edge function.** Tokens, client secret, and the charged amount live server-side only. `create-payment` reads the amount from the order row; `get-payment` is the sole writer of payment success (order `initiated → todo`). The kiosk client never self-declares an outcome. Precedent: `confirm-payment/index.ts`.
+2. **Mock-first edge functions.** `QONTO_MOCK=true` makes `qonto-terminal` simulate Qonto in-process: payments authorize after ~3 polls; a total ending in `.13` refuses (`failure_reason: 'card_declined'`); `.99` never resolves (timeout path). This gives deterministic local/CI behavior and lets the admin + kiosk slices be built and e2e-tested before any Qonto account exists.
+3. **Stock release is explicit, not a trigger.** `restore_stock_for_order(p_order_id)` is an existing SECURITY DEFINER RPC called explicitly by current cancel/refuse paths (`orders.service.ts:344,400`). The `cancel-order` edge action calls the same RPC after setting `cancelled`. (Resolves spec Open Question #2.)
+4. **One shared Qonto helper module** — `supabase/functions/_shared/qonto.ts` — owns base URLs, token refresh (row-locked `select … for update`; one-time-use refresh tokens make a lost update fatal), and the mock simulator. Both functions import it; neither duplicates auth code.
+5. **Settings copy the `online_payments_enabled` pattern end-to-end** (column → types → `supabase-auth.service` writer → `vendor.service` facade → `paiement.component` UI → `checkout.service` runtime check). No new state pattern.
+6. **The payment dialog is a full-screen MatDialog with `disableClose: true`**, like `IdleWarningDialogComponent`. Open dialogs already re-arm the kiosk idle timer (`kiosk-mode.service.ts:169-172`), so the payment can't be idle-reset mid-card; the dialog owns its own 120s timeout and cancels the order before closing on abandon.
+7. **Polling lives in a dedicated `QontoTerminalService`** (RxJS: 1s × 10 then 2s, hard stop 120s) emitting a typed `TerminalPaymentState`. `checkout.service.ts` consumes phases; it never talks to the edge function directly.
+8. **Retry = new payment push on the same order** with a fresh idempotency key. The order stays `initiated` across retries; only Annuler/timeout cancels it (cart preserved).
+9. **Verification split by layer:** edge functions get a curl-based test script against `supabase functions serve` with `QONTO_MOCK=true` (no Deno test infra exists and none is added); Angular logic gets Karma specs (`--include` to dodge the 5 known baseline failures); journeys get Playwright with route-stubbed edge responses. CI never touches real Qonto.
 
 ## Phase Order & Parallelism
 
 ```
-A: Data foundation        B: Services              C: Surfaces        D: Wiring          E: Verification
-T1 migration+types ──┬──▶ T4 pool query/service ─▶ T7 strip ────────┐
-T2 seed fixtures ────┤    T5 UpsellService ──────▶ T8 upsell page ──┼─▶ T9 simple wiring ─▶ T11 e2e journeys
-T3 category admin ───┘    T6 menu containment ───────────────────────┘   T10 menu wiring     T12 gates+SPEC note
+1: Foundation           2: Edge functions          3: Admin slice        4: Kiosk slice         5: Verification
+T1 migration+types ─┬─▶ T3 qonto-terminal core ─▶ T4 get-payment ─┐
+T2 e2e fixture ─────┤                             T5 cancel-order ─┼─▶ T10 polling service ─▶ T13 e2e journeys
+                    └─▶ T6 qonto-oauth ─────────▶ T7 settings plumbing  T11 payment dialog      T14 hardening+docs
+                                                  T8 paiement UI        T12 checkout gating
+                                                  T9 oauth callback
 ```
 
-- T1 blocks everything (types regen). T2 and T3 can proceed in parallel with Phase B once T1 lands.
-- T4/T5/T6 are mutually independent. T7 needs T4; T8 needs T4+T5+T6.
-- T9 is the riskiest task (preselection, cart mutation, view transition) — everything else is deliberately de-risked before it starts.
+T1 blocks everything (types regen). T3–T6 are sequential (shared helper evolves). The admin slice (T7–T9) and kiosk slice (T10–T12) are independent of each other and both need only Phase 2; the run executes them in listed order.
 
-## Risks & Mitigations
+## Task List
 
-| Risk | Mitigation |
-|---|---|
-| Convert-to-menu preselection fights the focus-shell step machinery | Decision 6: unambiguous-only, documented fallback, follow-up ticket instead of scope creep |
-| Post-add route breaks the view-transition polish from the redesign | T9 acceptance explicitly includes transition continuity; e2e asserts no dead-end navigation |
-| Seed changes destabilize the existing e2e baseline | T2 only *adds* rows (new categories, one new menu); run the full existing suite as its verify step |
-| Session state leaks across orders | Reset tied to cart-clear in `UpsellService`; unit-tested in T5 |
-| Untyped-category day-one regression for live vendors | Success criterion 4 has its own e2e run (no typed categories → zero upsell UI) |
+### Phase 1: Foundation
+- [ ] T1: Migration (connections table, vendor + order columns) + regenerated types
+- [ ] T2: E2E fixture: enable/disable the terminal toggle on the seeded kiosk vendor
 
-## Verification Checkpoints
+### Checkpoint: Foundation
+- [ ] `supabase db reset --yes --local` green; `npm run build` green; anon can read `kiosk_terminal_enabled`, cannot read `vendor_qonto_connections`
 
-- **After Phase A:** `supabase db reset --yes --local` clean; existing Playwright suite green (seed additions are non-breaking); category create requires a type.
-- **After Phase B:** new unit specs green; `npm test` failure count unchanged from the 5-spec baseline.
-- **After Phase C:** strip and page render against seeded data in the dev server; still zero behavior change for untyped vendors.
-- **After Phase D:** full journey works by hand on the dev server (phone viewport).
-- **Phase E:** new e2e journeys green on all four viewport projects; `npm run build` clean; kiosk idle manual check; `SPEC.md` FR4c note flipped to point here.
+### Phase 2: Edge functions (mock-first)
+- [ ] T3: `qonto-terminal` skeleton + `_shared/qonto.ts` + mock simulator + `create-payment`
+- [ ] T4: `get-payment` — poll proxy; AUTHORIZED flips order server-side
+- [ ] T5: `cancel-order` — cancelled + `restore_stock_for_order`
+- [ ] T6: `qonto-oauth` — authorize-url / exchange / status / disconnect + row-locked token refresh
+
+### Checkpoint: Edge functions
+- [ ] `scripts/test-qonto-functions.sh` passes end-to-end against served functions with `QONTO_MOCK=true` (incl. amount-integrity and refused/timeout mock paths)
+
+### Phase 3: Admin slice
+- [ ] T7: Vendor model + settings writers (`supabase-auth.service`, `vendor.service`)
+- [ ] T8: Paiement page "Terminal de paiement (Qonto)" section (connect, dropdown, guarded toggle)
+- [ ] T9: `/admin/qonto/callback` OAuth landing route
+
+### Checkpoint: Admin slice
+- [ ] Manual walkthrough on local stack with mock mode: connect → list terminals → select → enable toggle; disconnect force-disables
+
+### Phase 4: Kiosk slice
+- [ ] T10: `QontoTerminalService` polling state machine (+ fakeAsync spec)
+- [ ] T11: `TerminalPaymentDialogComponent` full-screen states (+ spec)
+- [ ] T12: `checkout.service.ts` gating: `useTerminal` branch, `initiated` status, dialog orchestration (+ spec)
+
+### Checkpoint: Kiosk slice
+- [ ] Manual kiosk run on local stack, mock mode: authorized → print+success; `.13` total → refused → retry; Annuler → cart intact
+
+### Phase 5: Verification & hardening
+- [ ] T13: Playwright `kiosk-terminal.spec.ts` (authorized, refused→retry, timeout, abandon) + toggle-off regression gate
+- [ ] T14: Hardening + copy + spec/doc updates (success-screen variant, CLAUDE.md, spec status)
+
+### Checkpoint: Complete
+- [ ] All spec Success Criteria 1–11 except the real-terminal parts of 2 (sandbox/prod = user-gated Phase 6)
+- [ ] `npm run build` clean; kiosk e2e project green
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| RLS lockdown blocks anon read of `kiosk_terminal_enabled` or leaks the connections table | High | T1 explicitly tests both directions with anon + service clients before anything builds on it |
+| One-time-use refresh token lost on concurrent refresh → vendor must reconnect | High | Row-locked refresh in `_shared/qonto.ts` (T6); concurrency exercised in the test script |
+| Anon `cancel-order`/`create-payment` abused against arbitrary orders | Med | Actions only accept orders that are `initiated`, belong to a terminal-enabled vendor, and (cancel) carry a known `terminal_payment_id` lineage; amounts always from DB. Rate limiting explicitly out of scope v1 |
+| Karma baseline (5 pre-existing failures) muddies RED/GREEN | Med | New specs run via `ng test --include='**/qonto*' --include='**/checkout*'`; baseline failures documented, never "fixed" by deletion |
+| `create_full_order` RPC may not accept `initiated` for kiosk path without side effects | Med | T12 verifies the RPC path with `initiated` locally before wiring the dialog; falls back to post-create status update only if needed (and documents it) |
+| Playwright clock-mocking the 120s timeout is brittle | Low | Timeout duration is injectable (`window.__KIOSK_TERMINAL_TIMEOUT_MS__`, same pattern as `__KIOSK_IDLE_MS__`) |
+
+## Out of Scope (this run)
+
+- Spec Phase 6: Qonto Developer Portal registration, staging-token secrets, sandbox validation, prod pilot — **requires the user** (Qonto account ownership, production secrets).
+- Webhook (`v1/terminal-payments`) hardening, tips handling, printing `card_summary` on the ticket, rate limiting.
+
+## Open Questions
+
+- None blocking. Spec Open Question #2 (stock release) is resolved by Architecture Decision 3; #1/#3/#4 only matter at Phase 6.

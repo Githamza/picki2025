@@ -15,6 +15,12 @@ import { ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { VendorService } from '../../../../services/vendor.service';
 import { SupabaseAuthService } from '../../../../services/supabase-auth.service';
+import {
+  QontoAdminService,
+  QontoConnectionStatus,
+  QontoTerminalInfo,
+  qontoToggleBlockedReason,
+} from '../../../../services/qonto-admin.service';
 import { StripeService } from '../../../../services/stripe.service';
 import { PaygreenBackendService } from '../../../../services/paygreen-backend.service';
 import { RestaurantInfoDataService } from '../../restaurant-info-data.service';
@@ -282,6 +288,83 @@ export interface PaymentProviderStatus {
               </span>
             </div>
           </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Qonto payment terminal (kiosk) -->
+      <mat-card class="info-section">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>point_of_sale</mat-icon>
+          <mat-card-title>Terminal de paiement (Qonto)</mat-card-title>
+          <mat-card-subtitle>Encaissez les commandes de la borne sur un terminal Qonto</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="payment-providers-loading" *ngIf="isLoadingQonto()">
+            <mat-spinner diameter="24"></mat-spinner>
+            <span>Chargement...</span>
+          </div>
+
+          <ng-container *ngIf="!isLoadingQonto()">
+            <div class="qonto-connection-row">
+              <span
+                class="provider-status"
+                [class.configured]="qontoStatus()?.connected"
+                [class.not-configured]="!qontoStatus()?.connected"
+              >
+                {{ qontoStatus()?.connected ? 'Compte Qonto connecté' : 'Compte Qonto non connecté' }}
+              </span>
+              <button
+                *ngIf="!qontoStatus()?.connected"
+                mat-stroked-button
+                color="primary"
+                type="button"
+                [disabled]="isQontoBusy()"
+                (click)="onQontoConnect()"
+              >
+                <mat-spinner *ngIf="isQontoBusy()" diameter="18" class="button-spinner"></mat-spinner>
+                <mat-icon *ngIf="!isQontoBusy()">link</mat-icon>
+                Connecter Qonto
+              </button>
+              <button
+                *ngIf="qontoStatus()?.connected"
+                mat-stroked-button
+                color="warn"
+                type="button"
+                [disabled]="isQontoBusy()"
+                (click)="onQontoDisconnect()"
+              >
+                <mat-icon>link_off</mat-icon>
+                Déconnecter
+              </button>
+            </div>
+
+            <div formGroupName="kioskTerminal" class="qonto-terminal-settings" *ngIf="qontoStatus()?.connected">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Terminal utilisé par la borne</mat-label>
+                <mat-select formControlName="terminalId">
+                  <mat-option [value]="null">Aucun terminal</mat-option>
+                  <mat-option *ngFor="let terminal of qontoTerminals()" [value]="terminal.id">
+                    {{ terminal.poi_id }}
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Le numéro de série est inscrit sur le terminal.</mat-hint>
+              </mat-form-field>
+
+              <mat-checkbox formControlName="enabled">
+                Exiger le paiement sur le terminal avant l'impression du ticket (borne)
+              </mat-checkbox>
+            </div>
+
+            <p class="hint-text" *ngIf="qontoBlockedReason(); else qontoReadyHint">
+              {{ qontoBlockedReason() }}
+            </p>
+            <ng-template #qontoReadyHint>
+              <p class="hint-text">
+                Si activé : la borne demande le paiement par carte sur le terminal,
+                puis imprime le ticket une fois le paiement accepté.
+              </p>
+            </ng-template>
+          </ng-container>
         </mat-card-content>
       </mat-card>
 
@@ -704,6 +787,21 @@ export interface PaymentProviderStatus {
         margin-top: 4px;
       }
 
+      .qonto-connection-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .qonto-terminal-settings {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
       .address-hint {
         font: var(--mat-sys-body-small);
       }
@@ -717,6 +815,7 @@ export class PaiementComponent implements OnInit {
   private stripeService = inject(StripeService);
   private paygreenBackendService = inject(PaygreenBackendService);
   private dataService = inject(RestaurantInfoDataService);
+  private qontoService = inject(QontoAdminService);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
@@ -737,13 +836,31 @@ export class PaiementComponent implements OnInit {
   currentPaygreenMode = signal<'independent' | 'marketplace'>('independent');
   isUpdatingPaygreenMode = signal(false);
 
+  qontoStatus = signal<QontoConnectionStatus | null>(null);
+  qontoTerminals = signal<QontoTerminalInfo[]>([]);
+  isLoadingQonto = signal(true);
+  isQontoBusy = signal(false);
+
   ngOnInit() {
     const info = this.dataService.restaurantInfo();
     this.form = this.fb.group({
       payments: this.fb.group({
         onlinePaymentsEnabled: [info?.vendor.online_payments_enabled ?? true],
       }),
+      kioskTerminal: this.fb.group({
+        enabled: [
+          {
+            value: info?.vendor.kiosk_terminal_enabled ?? false,
+            disabled: true,
+          },
+        ],
+        terminalId: [info?.vendor.kiosk_terminal_id ?? null],
+      }),
     });
+    this.form
+      .get('kioskTerminal.terminalId')
+      ?.valueChanges.subscribe(() => this.updateQontoToggleState());
+    this.loadQontoState();
 
     // Pre-fill address fields from existing data
     if (info?.address) {
@@ -1042,11 +1159,126 @@ export class PaiementComponent implements OnInit {
     }
   }
 
+  // --- Qonto payment terminal (SPEC-QONTO-TERMINAL.md T8) ---
+
+  private async loadQontoState() {
+    const vendor = this.vendorService.getCurrentVendor();
+    if (!vendor) {
+      this.isLoadingQonto.set(false);
+      return;
+    }
+    try {
+      const status = await this.qontoService.status(vendor.id);
+      this.qontoStatus.set(status);
+      if (status.connected) {
+        this.qontoTerminals.set(await this.qontoService.listTerminals(vendor.id));
+      } else {
+        this.qontoTerminals.set([]);
+      }
+    } catch (error) {
+      console.error('Error loading Qonto state:', error);
+      this.qontoStatus.set({ connected: false, organizationId: null, connectedAt: null });
+    } finally {
+      this.isLoadingQonto.set(false);
+      this.updateQontoToggleState();
+      this.cdr.detectChanges();
+    }
+  }
+
+  qontoBlockedReason(): string | null {
+    return qontoToggleBlockedReason({
+      connected: !!this.qontoStatus()?.connected,
+      terminalId: this.form?.get('kioskTerminal.terminalId')?.value ?? null,
+      currency: this.vendorService.getCurrentVendor()?.currency,
+    });
+  }
+
+  private updateQontoToggleState() {
+    const enabledControl = this.form?.get('kioskTerminal.enabled');
+    if (!enabledControl) return;
+    if (this.qontoBlockedReason()) {
+      enabledControl.setValue(false, { emitEvent: false });
+      enabledControl.disable({ emitEvent: false });
+    } else {
+      enabledControl.enable({ emitEvent: false });
+    }
+  }
+
+  async onQontoConnect() {
+    const vendor = this.vendorService.getCurrentVendor();
+    if (!vendor) return;
+    this.isQontoBusy.set(true);
+    try {
+      const redirectUri = `${window.location.origin}/admin/qonto/callback`;
+      const url = await this.qontoService.authorizeUrl(vendor.id, redirectUri);
+      window.location.href = url;
+    } catch (error) {
+      console.error('Error starting Qonto connection:', error);
+      this.snackBar.open('Erreur lors de la connexion à Qonto', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+      this.isQontoBusy.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  async onQontoDisconnect() {
+    const vendor = this.vendorService.getCurrentVendor();
+    if (!vendor) return;
+    if (!confirm('Déconnecter le compte Qonto ? Le paiement sur terminal sera désactivé.')) {
+      return;
+    }
+    this.isQontoBusy.set(true);
+    try {
+      await this.qontoService.disconnect(vendor.id);
+      // Force-disable server-side too: a disconnected vendor must never
+      // leave the kiosk waiting on a terminal that can't be reached.
+      await this.vendorService.saveRestaurantInfo({
+        kioskTerminal: { enabled: false, terminalId: null, terminalLabel: null },
+      });
+      await this.dataService.refreshVendor();
+      this.qontoStatus.set({ connected: false, organizationId: null, connectedAt: null });
+      this.qontoTerminals.set([]);
+      this.form.get('kioskTerminal.terminalId')?.setValue(null, { emitEvent: false });
+      this.updateQontoToggleState();
+      this.snackBar.open('Compte Qonto déconnecté', 'Fermer', {
+        duration: 3000,
+        panelClass: ['success-snackbar'],
+      });
+    } catch (error) {
+      console.error('Error disconnecting Qonto:', error);
+      this.snackBar.open('Erreur lors de la déconnexion de Qonto', 'Fermer', {
+        duration: 5000,
+        panelClass: ['error-snackbar'],
+      });
+    } finally {
+      this.isQontoBusy.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
   async onSave() {
     this.isSaving.set(true);
     try {
+      const kioskTerminalValue = this.form.getRawValue().kioskTerminal;
+      const terminalLabel =
+        this.qontoTerminals().find((t) => t.id === kioskTerminalValue?.terminalId)
+          ?.poi_id ?? null;
       await this.vendorService.saveRestaurantInfo({
         onlinePaymentsEnabled: !!this.form.value.payments?.onlinePaymentsEnabled,
+        // Only touch the terminal settings once their state has loaded —
+        // never clobber the stored binding from a half-initialized form.
+        ...(this.isLoadingQonto()
+          ? {}
+          : {
+              kioskTerminal: {
+                enabled:
+                  !!kioskTerminalValue?.enabled && !this.qontoBlockedReason(),
+                terminalId: kioskTerminalValue?.terminalId ?? null,
+                terminalLabel,
+              },
+            }),
       });
       await this.dataService.refreshVendor();
       this.snackBar.open('Paiement sauvegardé', 'Fermer', { duration: 3000, panelClass: ['success-snackbar'] });
@@ -1063,7 +1295,12 @@ export class PaiementComponent implements OnInit {
       payments: {
         onlinePaymentsEnabled: info?.vendor.online_payments_enabled ?? true,
       },
+      kioskTerminal: {
+        enabled: info?.vendor.kiosk_terminal_enabled ?? false,
+        terminalId: info?.vendor.kiosk_terminal_id ?? null,
+      },
     });
+    this.updateQontoToggleState();
     this.snackBar.open('Modifications annulées', 'Fermer', { duration: 2000 });
   }
 }

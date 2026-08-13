@@ -63,7 +63,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/services/supabase-auth.service.ts`, `src/app/services/vendor.service.ts`, `src/app/models/*` (vendor interface)
   - Dependencies: T1 · **Size: M**
 
-- [ ] **T8: Paiement page — "Terminal de paiement (Qonto)" section**
+- [x] **T8: Paiement page — "Terminal de paiement (Qonto)" section**
   - Acceptance: new section in `paiement.component`: connection status via `qonto-oauth/status`; **Connecter** opens the `authorize-url` in the same tab; **Déconnecter** confirms then calls `disconnect` and force-disables the toggle (server value saved); terminal dropdown populated via `qonto-terminal/list-terminals` (id + poi_id label) only when connected; activation toggle disabled unless connected ∧ terminal selected ∧ vendor currency EUR, with French helper text per blocked reason; save persists via T7 writer + snackbar, matching the existing section UX (`:1049-1054` pattern).
   - Verify: `ng test --include='**/paiement*'` for the guard logic (toggle-disabled truth table); manual walkthrough with mock mode on local stack.
   - Files: `src/app/components/restaurant-info-admin/children/paiement/paiement.component.{ts,html,scss}`

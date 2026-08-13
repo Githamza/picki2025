@@ -120,6 +120,16 @@ export const routes: Routes = [
         data: { permission: { resource: 'vendor', action: 'read' } },
       },
       {
+        // Qonto OAuth redirect target (SPEC-QONTO-TERMINAL.md). Must match
+        // the redirect_uri sent by the Paiement page byte-for-byte.
+        path: 'qonto/callback',
+        loadComponent: () =>
+          import('./components/admin/qonto-callback/qonto-callback.component').then(
+            (m) => m.QontoCallbackComponent
+          ),
+        data: { permission: { resource: 'vendor', action: 'read' } },
+      },
+      {
         path: 'product-manager',
         data: { permission: { resource: 'products', action: 'read' } },
         children: [

@@ -69,7 +69,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/components/restaurant-info-admin/children/paiement/paiement.component.{ts,html,scss}`
   - Dependencies: T6, T7 · **Size: M**
 
-- [ ] **T9: OAuth callback route**
+- [x] **T9: OAuth callback route**
   - Acceptance: `/admin/qonto/callback` (admin-guarded, standalone component) reads `?code&state`, invokes `qonto-oauth/exchange`, shows success/error state in French, then routes back to the Paiement page; on error offers "Réessayer" (restarts authorize-url flow).
   - Verify: `ng test --include='**/qonto-callback*'` (exchange invoked with code+state; error path renders retry); manual mock walkthrough.
   - Files: `src/app/components/admin/qonto-callback/qonto-callback.component.ts`, `src/app/app.routes.ts` (admin children)

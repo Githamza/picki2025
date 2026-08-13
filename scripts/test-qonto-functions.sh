@@ -140,6 +140,58 @@ assert_eq "$(tail -n1 <<< "$RES")" "403" "terminal-disabled vendor is rejected (
 sql "update vendors set kiosk_terminal_enabled = true where id = '$KIOSK_VENDOR';" > /dev/null
 
 # ---------------------------------------------------------------------------
+# T4 — get-payment
+# ---------------------------------------------------------------------------
+log "T4: get-payment"
+
+poll_until_settled() { # orderId paymentId -> last body on stdout
+  local body status
+  for _ in $(seq 1 20); do
+    local res
+    res=$(fn "{\"action\":\"get-payment\",\"orderId\":\"$1\",\"paymentId\":\"$2\"}")
+    body=$(sed '$d' <<< "$res")
+    status=$(json_field "$body" status)
+    [[ "$status" != "PENDING" && -n "$status" ]] && break
+    sleep 0.5
+  done
+  printf '%s' "$body"
+}
+
+# Happy path: the T3 order (12.50) authorizes ~3s after creation.
+BODY=$(poll_until_settled "$ORDER" "$PAYMENT_ID")
+assert_eq "$(json_field "$BODY" status)" "AUTHORIZED" "payment authorizes"
+assert_eq "$(sql "select status from orders where id = '$ORDER';")" "todo" \
+  "order flips initiated -> todo on AUTHORIZED"
+assert_eq "$(sql "select pay_at_checkout from orders where id = '$ORDER';")" "f" \
+  "pay_at_checkout cleared on AUTHORIZED"
+assert_eq "$(sql "select terminal_payment_method from orders where id = '$ORDER';")" \
+  "cartebancaire" "payment method recorded"
+assert_eq "$(sql "select terminal_card_summary from orders where id = '$ORDER';")" \
+  "4242" "card summary recorded"
+
+# Idempotent re-poll after success
+RES=$(fn "{\"action\":\"get-payment\",\"orderId\":\"$ORDER\",\"paymentId\":\"$PAYMENT_ID\"}")
+CODE=$(tail -n1 <<< "$RES"); BODY=$(sed '$d' <<< "$RES")
+assert_eq "$CODE" "200" "re-poll after success returns 200"
+assert_eq "$(json_field "$BODY" status)" "AUTHORIZED" "re-poll still AUTHORIZED"
+assert_eq "$(sql "select status from orders where id = '$ORDER';")" "todo" \
+  "re-poll does not re-update the order"
+
+# Refused path: total ending .13 refuses ~2s in; order stays initiated.
+ORDER_REFUSED=$(create_order 7.13 initiated); CLEANUP_ORDER_IDS+=("$ORDER_REFUSED")
+RES=$(fn "{\"action\":\"create-payment\",\"orderId\":\"$ORDER_REFUSED\"}")
+REFUSED_PAYMENT=$(json_field "$(sed '$d' <<< "$RES")" paymentId)
+BODY=$(poll_until_settled "$ORDER_REFUSED" "$REFUSED_PAYMENT")
+assert_eq "$(json_field "$BODY" status)" "REFUSED" "declined card reports REFUSED"
+assert_eq "$(json_field "$BODY" failureReason)" "card_declined" "failure reason surfaced"
+assert_eq "$(sql "select status from orders where id = '$ORDER_REFUSED';")" "initiated" \
+  "refused order stays initiated"
+
+# Mismatched order/payment pair
+RES=$(fn "{\"action\":\"get-payment\",\"orderId\":\"$ORDER_REFUSED\",\"paymentId\":\"$PAYMENT_ID\"}")
+assert_eq "$(tail -n1 <<< "$RES")" "409" "mismatched order/payment pair is rejected (409)"
+
+# ---------------------------------------------------------------------------
 log ""
 log "Results: $PASS passed, $FAIL failed"
 [[ "$FAIL" == "0" ]]

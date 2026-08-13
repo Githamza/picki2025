@@ -171,6 +171,77 @@ async function handleCreatePayment(body: any) {
   return json({ paymentId, amount });
 }
 
+async function handleGetPayment(body: any) {
+  const supabase = createServiceClient();
+  const context = await loadTerminalOrder(supabase, String(body.orderId || ''));
+  if (context instanceof Response) return context;
+  const { order, vendor } = context;
+
+  const paymentId = String(body.paymentId || '');
+  if (!paymentId) {
+    return json({ error: 'paymentId est requis' }, { status: 400 });
+  }
+  // The payment must be the one this order's latest attempt created —
+  // a client cannot settle order A with order B's payment.
+  if (order.terminal_payment_id !== paymentId) {
+    return json(
+      { error: 'Paiement inconnu pour cette commande' },
+      { status: 409 }
+    );
+  }
+
+  const env = getQontoEnv();
+  let payment: TerminalPaymentResult;
+  if (env.mock) {
+    payment = mockGetPayment(paymentId);
+  } else {
+    const accessToken = await getAccessToken(supabase, vendor.id);
+    const response = await qontoFetch(
+      env,
+      accessToken,
+      `/v2/terminal_payments/${encodeURIComponent(paymentId)}`
+    );
+    const text = await response.text();
+    if (!response.ok) {
+      console.error('Qonto get payment failed:', response.status, text);
+      return json(
+        { error: 'Impossible de vérifier le paiement' },
+        { status: 502 }
+      );
+    }
+    const raw = JSON.parse(text)?.terminal_payment ?? {};
+    payment = {
+      id: raw.id ?? paymentId,
+      status: raw.status,
+      failure_reason: raw.failure_reason ?? null,
+      payment_method: raw.payment_method ?? null,
+      card_summary: raw.card_summary ?? null,
+    };
+  }
+
+  // Server-side success: flip initiated -> todo exactly once. The status
+  // guard makes replays no-ops, so re-polls after success are idempotent.
+  if (payment.status === 'AUTHORIZED' && order.status === 'initiated') {
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        status: 'todo',
+        pay_at_checkout: false,
+        terminal_payment_method: payment.payment_method,
+        terminal_card_summary: payment.card_summary,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', order.id)
+      .eq('status', 'initiated');
+    if (error) throw error;
+  }
+
+  return json({
+    status: payment.status,
+    failureReason: payment.failure_reason,
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -189,6 +260,7 @@ Deno.serve(async (req: Request) => {
   try {
     const action = String(body.action || '');
     if (action === 'create-payment') return await handleCreatePayment(body);
+    if (action === 'get-payment') return await handleGetPayment(body);
     return json({ error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error: any) {
     console.error('qonto-terminal error:', error);

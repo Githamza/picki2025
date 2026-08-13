@@ -32,7 +32,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `supabase/functions/_shared/qonto.ts`, `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`
   - Dependencies: T1 · **Size: M**
 
-- [ ] **T4: `get-payment` — status proxy + server-side success**
+- [x] **T4: `get-payment` — status proxy + server-side success**
   - Acceptance: `{orderId, paymentId}` → proxies status (mock: simulator). On `AUTHORIZED`: atomically updates the order (status `initiated→todo`, `payAtCheckout=false`, `terminal_payment_method`, `terminal_card_summary`) — idempotent if polled again after success. On `REFUSED`: returns `{status:'REFUSED', failureReason}`, order untouched. `PENDING` passthrough. Rejects mismatched order/payment pairs.
   - Verify: test script cases — poll loop reaches AUTHORIZED and the order row is `todo` with payment fields set (checked via SQL); `.13` order polls to REFUSED and order stays `initiated`; re-poll after AUTHORIZED returns AUTHORIZED without double-update.
   - Files: `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`

@@ -107,7 +107,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 5 — Verification & hardening
 
-- [ ] **T13: Playwright `kiosk-terminal.spec.ts`**
+- [x] **T13: Playwright `kiosk-terminal.spec.ts`** *(toggle enabled per-page via vendors-response rewrite instead of the T2 db fixture — the db toggle would race the parallel toggle-OFF journeys; the stub applies the real function's db writes so success/cancel assertions read real rows)*
   - Acceptance: kiosk-landscape project, edge responses stubbed via route interception on `/functions/v1/qonto-terminal`; scenarios: (a) toggle OFF → existing `kiosk.spec.ts` journey passes unchanged **and** zero qonto-terminal network calls; (b) authorized → waiting state visible → success screen, print path reached only after authorized stub; (c) refused → French error + Réessayer → authorized → success; (d) timeout (timeout override + stub stuck on PENDING) → error state → cancel-order fired → cart still populated; (e) Annuler → back at cart, cart intact.
   - Verify: `npx playwright test --project=kiosk-landscape` green.
   - Files: `e2e/journeys/kiosk-terminal.spec.ts`, `e2e/fixtures/<helper>.ts` (from T2)

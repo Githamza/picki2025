@@ -666,6 +666,9 @@ export type Database = {
           scheduled_time: string | null
           status: Database["public"]["Enums"]["order_status"] | null
           table_number: string | null
+          terminal_card_summary: string | null
+          terminal_payment_id: string | null
+          terminal_payment_method: string | null
           timing: Database["public"]["Enums"]["order_timing"] | null
           total_amount: number
           updated_at: string | null
@@ -693,6 +696,9 @@ export type Database = {
           scheduled_time?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           table_number?: string | null
+          terminal_card_summary?: string | null
+          terminal_payment_id?: string | null
+          terminal_payment_method?: string | null
           timing?: Database["public"]["Enums"]["order_timing"] | null
           total_amount: number
           updated_at?: string | null
@@ -720,6 +726,9 @@ export type Database = {
           scheduled_time?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           table_number?: string | null
+          terminal_card_summary?: string | null
+          terminal_payment_id?: string | null
+          terminal_payment_method?: string | null
           timing?: Database["public"]["Enums"]["order_timing"] | null
           total_amount?: number
           updated_at?: string | null
@@ -1459,6 +1468,44 @@ export type Database = {
           },
         ]
       }
+      vendor_qonto_connections: {
+        Row: {
+          access_token: string
+          access_token_expires_at: string
+          connected_at: string
+          organization_id: string | null
+          refresh_token: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          access_token: string
+          access_token_expires_at: string
+          connected_at?: string
+          organization_id?: string | null
+          refresh_token: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          access_token?: string
+          access_token_expires_at?: string
+          connected_at?: string
+          organization_id?: string | null
+          refresh_token?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_qonto_connections_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_stuart_settings: {
         Row: {
           created_at: string
@@ -1519,6 +1566,9 @@ export type Database = {
           info_message_enabled: boolean
           is_active: boolean | null
           kiosk_enabled: boolean
+          kiosk_terminal_enabled: boolean
+          kiosk_terminal_id: string | null
+          kiosk_terminal_label: string | null
           logo_url: string | null
           online_payments_enabled: boolean
           orders_suspended_at: string | null
@@ -1556,6 +1606,9 @@ export type Database = {
           info_message_enabled?: boolean
           is_active?: boolean | null
           kiosk_enabled?: boolean
+          kiosk_terminal_enabled?: boolean
+          kiosk_terminal_id?: string | null
+          kiosk_terminal_label?: string | null
           logo_url?: string | null
           online_payments_enabled?: boolean
           orders_suspended_at?: string | null
@@ -1593,6 +1646,9 @@ export type Database = {
           info_message_enabled?: boolean
           is_active?: boolean | null
           kiosk_enabled?: boolean
+          kiosk_terminal_enabled?: boolean
+          kiosk_terminal_id?: string | null
+          kiosk_terminal_label?: string | null
           logo_url?: string | null
           online_payments_enabled?: boolean
           orders_suspended_at?: string | null

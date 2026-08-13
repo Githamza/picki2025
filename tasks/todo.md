@@ -7,7 +7,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 1 — Foundation
 
-- [ ] **T1: Migration + regenerated types**
+- [x] **T1: Migration + regenerated types**
   - Acceptance: one migration creates `vendor_qonto_connections` (PK `vendor_id` FK→vendors, `organization_id`, `access_token`, `access_token_expires_at`, `refresh_token`, `connected_at`, `updated_at`; RLS enabled, **zero policies**), adds `vendors.kiosk_terminal_enabled boolean not null default false`, `vendors.kiosk_terminal_id text`, `vendors.kiosk_terminal_label text`, and `orders.terminal_payment_id text`, `orders.terminal_payment_method text`, `orders.terminal_card_summary text`; `supabase.types.ts` regenerated in the same change.
   - Verify: `supabase db reset --yes --local` applies cleanly; `npm run build` compiles; SQL probe with anon key reads `kiosk_terminal_enabled` from vendors and gets **zero rows / permission denied** on `vendor_qonto_connections`; service-role reads both.
   - Files: `supabase/migrations/<ts>_add_qonto_terminal.sql`, `src/app/types/supabase.types.ts`

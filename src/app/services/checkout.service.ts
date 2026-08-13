@@ -30,6 +30,39 @@ import { KioskModeService } from './kiosk-mode.service';
 import { TicketPrintService } from './ticket-print.service';
 import { getDefaultVatRate } from '../shared/utils/vat-rates.util';
 import { generateOrderNumber } from '../shared/utils/order-number.util';
+import {
+  TerminalPaymentDialogComponent,
+  TerminalPaymentDialogData,
+  TerminalPaymentDialogResult,
+} from '../components/kiosk/terminal-payment-dialog/terminal-payment-dialog.component';
+
+/**
+ * How a kiosk/offline order is paid (SPEC-QONTO-TERMINAL.md T12).
+ * Terminal OFF keeps the FR4a flow byte-for-byte (todo + pay at counter);
+ * terminal ON creates the order as 'initiated' so it reaches the vendor
+ * board only after the Qonto terminal authorizes.
+ */
+export interface KioskPaymentPlan {
+  payAtCheckout: boolean;
+  useTerminal: boolean;
+  orderStatus: 'initiated' | 'todo';
+  dbPayAtCheckout: boolean;
+}
+
+export function kioskPaymentPlan(input: {
+  kioskActive: boolean;
+  onlinePaymentsEnabled: boolean;
+  kioskTerminalEnabled: boolean;
+}): KioskPaymentPlan {
+  const payAtCheckout = !input.onlinePaymentsEnabled || input.kioskActive;
+  const useTerminal = input.kioskActive && input.kioskTerminalEnabled;
+  return {
+    payAtCheckout,
+    useTerminal,
+    orderStatus: payAtCheckout && !useTerminal ? 'todo' : 'initiated',
+    dbPayAtCheckout: payAtCheckout && !useTerminal,
+  };
+}
 
 export interface CheckoutHostOptions {
   /** Called before redirect/navigation so the host surface can close. */
@@ -214,10 +247,15 @@ export class CheckoutService {
       const currentVendor = this.vendorService.getCurrentVendor();
       const onlinePaymentsEnabled =
         currentVendor?.online_payments_enabled ?? true;
-      // FR4a: kiosk orders are ALWAYS paid at the counter, even when the
-      // vendor has online payments enabled. Stripe/PayGreen are never
-      // entered from a kiosk.
-      const payAtCheckout = !onlinePaymentsEnabled || this.kioskMode.active();
+      // FR4a: kiosk orders never enter Stripe/PayGreen. With the vendor's
+      // Qonto terminal enabled, the kiosk requires a card payment on the
+      // terminal before the ticket prints (SPEC-QONTO-TERMINAL.md).
+      const plan = kioskPaymentPlan({
+        kioskActive: this.kioskMode.active(),
+        onlinePaymentsEnabled,
+        kioskTerminalEnabled: !!currentVendor?.kiosk_terminal_enabled,
+      });
+      const payAtCheckout = plan.payAtCheckout;
 
       // Choose payment provider based on vendor preference + Stripe configuration
       if (!payAtCheckout) {
@@ -326,10 +364,10 @@ export class CheckoutService {
         },
         items: orderItems,
         totalAmount,
-        status: payAtCheckout ? 'todo' : 'initiated',
+        status: plan.orderStatus,
         orderType: diningPref as any,
         timing: timing as any,
-        payAtCheckout,
+        payAtCheckout: plan.dbPayAtCheckout,
         scheduledTime: scheduledDateTime,
         tableNumber:
           diningPref === 'eat-in'
@@ -403,10 +441,21 @@ export class CheckoutService {
         console.warn('Failed to persist delivery selection:', e);
       }
 
-      // Offline payment flow: order is created and paid at checkout/pickup.
+      // Offline payment flow: order is created and paid at checkout/pickup —
+      // or, terminal ON, on the vendor's Qonto terminal before printing.
       if (payAtCheckout) {
+        if (plan.useTerminal) {
+          const authorized = await this.collectTerminalPayment(createdOrder);
+          if (!authorized) {
+            // Cancelled/abandoned: the order is already cancelled server-side
+            // and the CART IS KEPT so the customer (or staff) can retry.
+            return;
+          }
+        }
+
         // FR4: kiosk orders print their ticket immediately. Fire and forget —
         // the service is best-effort and must not delay the confirmation.
+        // With the terminal, this line is only reached after AUTHORIZED.
         if (this.kioskMode.active()) {
           void this.ticketPrint.printKioskOrderTicket(createdOrder);
         }
@@ -418,7 +467,9 @@ export class CheckoutService {
           this.vendorNavigation.getVendorUrl('successPayment');
         const url = `${successBaseUrl}?orderId=${encodeURIComponent(createdOrder.id)}`;
         this.snackBar.open(
-          'Commande enregistrée. Paiement à effectuer au retrait.',
+          plan.useTerminal
+            ? 'Paiement accepté. Commande enregistrée.'
+            : 'Commande enregistrée. Paiement à effectuer au retrait.',
           'OK',
           { duration: 5000 }
         );
@@ -548,6 +599,35 @@ export class CheckoutService {
         );
       }
     }
+  }
+
+  /**
+   * Full-screen terminal payment gate (SPEC-QONTO-TERMINAL.md T12). Resolves
+   * true only when the edge function reported AUTHORIZED (the order is
+   * already 'todo' server-side by then). disableClose keeps the kiosk idle
+   * reset at bay — the open dialog re-arms the idle timer.
+   */
+  private async collectTerminalPayment(order: Order): Promise<boolean> {
+    const dialogRef = this.dialog.open<
+      TerminalPaymentDialogComponent,
+      TerminalPaymentDialogData,
+      TerminalPaymentDialogResult
+    >(TerminalPaymentDialogComponent, {
+      disableClose: true,
+      maxWidth: '95vw',
+      data: {
+        orderId: order.id,
+        amount: Number(order.totalAmount).toFixed(2),
+      },
+    });
+    const result = await new Promise<TerminalPaymentDialogResult | undefined>(
+      (resolve) =>
+        dialogRef
+          .afterClosed()
+          .pipe(take(1))
+          .subscribe((value) => resolve(value))
+    );
+    return result?.outcome === 'authorized';
   }
 
   private showInsufficientStockError(

@@ -94,7 +94,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `src/app/components/kiosk/terminal-payment-dialog/terminal-payment-dialog.component.{ts,html,scss,spec.ts}`
   - Dependencies: T10 · **Size: M**
 
-- [ ] **T12: Checkout gating in `checkout.service.ts`**
+- [x] **T12: Checkout gating in `checkout.service.ts`** *(`create_full_order` verified to accept `initiated` — no fallback needed)*
   - Acceptance: in the pay-at-checkout branch (`:406-427`), `useTerminal = kioskMode.active() && vendor.kiosk_terminal_enabled`; order created with status `initiated` when true (`todo` unchanged when false — toggle-OFF path byte-for-byte identical); on true, opens the dialog and on `{outcome:'authorized'}` runs the exact existing success sequence (print fire-and-forget → clearCart → reset preference → navigate `successPayment`); on `{outcome:'cancelled'}` the cart is **kept** and the user returns to the cart view; success screen shows "Paiement accepté" instead of "Payez au comptoir" for terminal-paid orders. Verify locally that `create_full_order` accepts `initiated` on this path (fallback per plan risk table if not).
   - Verify: RED-first spec for the branch truth table (kiosk × toggle → status + dialog opened y/n) with dialog/service mocked. `ng test --include='**/checkout*'` (new spec only; baseline failures untouched).
   - Files: `src/app/services/checkout.service.ts`, `src/app/services/checkout.service.qonto.spec.ts`, `src/app/components/payment-success/payment-success.component.ts` (copy variant)

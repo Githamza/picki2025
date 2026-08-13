@@ -37,14 +37,18 @@ import { shortOrderNumber } from '../../shared/utils/order-number.util';
   template: `
     <!-- FR4a: kiosk full-screen confirmation — giant order number,
          pay-at-counter instruction, auto-return to the attract screen. -->
-    @if (kioskMode.active() && orderDetails?.payAtCheckout) {
+    @if (kioskMode.active() && (orderDetails?.payAtCheckout || orderDetails?.terminalPaymentId)) {
       <div class="kiosk-confirmation">
         <mat-icon class="kiosk-confirmation-icon">receipt_long</mat-icon>
         <p class="kiosk-confirmation-label">Votre numéro de commande</p>
         <p class="kiosk-order-number">{{ shortNumber(orderDetails?.orderNumber) }}</p>
         <p class="kiosk-order-number-full">Réf. {{ orderDetails?.orderNumber }}</p>
         <p class="kiosk-confirmation-instruction">
-          Payez au comptoir en donnant ce numéro.
+          @if (orderDetails?.terminalPaymentId) {
+            Paiement accepté. Présentez ce numéro au comptoir.
+          } @else {
+            Payez au comptoir en donnant ce numéro.
+          }
         </p>
         <button mat-flat-button color="primary" (click)="finishKioskOrder()">
           Terminer

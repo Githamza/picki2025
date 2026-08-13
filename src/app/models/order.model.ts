@@ -52,6 +52,12 @@ export interface Order {
    * and no online payment session is expected.
    */
   payAtCheckout?: boolean;
+  /**
+   * Qonto terminal payment id when the order was (or is being) paid on the
+   * kiosk's physical terminal (SPEC-QONTO-TERMINAL.md). Presence means
+   * "terminal flow", not success — success is the order reaching 'todo'.
+   */
+  terminalPaymentId?: string;
   scheduledTime?: Date; // For 'later' orders
   tableNumber?: string; // For dine-in orders
   createdAt: Date;

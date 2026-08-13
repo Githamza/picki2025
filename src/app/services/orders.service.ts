@@ -525,6 +525,7 @@ export class OrdersService {
       orderType: dbOrder.order_type,
       timing: dbOrder.timing,
       payAtCheckout: !!dbOrder.pay_at_checkout,
+      terminalPaymentId: dbOrder.terminal_payment_id || undefined,
       scheduledTime: dbOrder.scheduled_time
         ? new Date(dbOrder.scheduled_time)
         : undefined,

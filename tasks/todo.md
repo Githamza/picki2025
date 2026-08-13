@@ -13,7 +13,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `supabase/migrations/<ts>_add_qonto_terminal.sql`, `src/app/types/supabase.types.ts`
   - Dependencies: none · **Size: S**
 
-- [ ] **T2: E2E fixture for the terminal toggle**
+- [x] **T2: E2E fixture for the terminal toggle**
   - Acceptance: an e2e helper (in `e2e/fixtures/`) can set/unset `kiosk_terminal_enabled` + `kiosk_terminal_id`/`label` on the seeded kiosk vendor via the local service-role client, and restores the previous state after the test; seed data itself stays toggle-OFF so every existing spec is untouched.
   - Verify: existing kiosk journey `npx playwright test e2e/journeys/kiosk.spec.ts` still green with the fixture merely imported.
   - Files: `e2e/fixtures/<helper>.ts`

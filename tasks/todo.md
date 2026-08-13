@@ -82,7 +82,7 @@ Run order is top-to-bottom; dependencies noted per task.
 
 ## Phase 4 — Kiosk slice
 
-- [ ] **T10: `QontoTerminalService` polling state machine**
+- [x] **T10: `QontoTerminalService` polling state machine**
   - Acceptance: `startPayment(orderId)` emits `TerminalPaymentState` phases (`pushing → waiting-card → authorized | refused | timeout`), polling `get-payment` at 1s × 10 then 2s, hard stop at 120s (overridable via `window.__KIOSK_TERMINAL_TIMEOUT_MS__`, same pattern as `__KIOSK_IDLE_MS__`); `cancelOrder(orderId)` wraps the edge action; errors from `create-payment` surface as `refused` with a generic French reason.
   - Verify: RED-first Karma spec with `fakeAsync` — phase sequences for authorized/refused/timeout, backoff timing, unsubscribe stops polling. `ng test --include='**/qonto-terminal*'`.
   - Files: `src/app/services/qonto-terminal.service.ts`, `src/app/services/qonto-terminal.service.spec.ts`

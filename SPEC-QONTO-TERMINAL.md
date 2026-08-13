@@ -1,7 +1,7 @@
 # Spec: Qonto Payment Terminal on Kiosk
 
-**Status:** DRAFT — awaiting review
-**Date:** 2026-08-13
+**Status:** IMPLEMENTED (Phases 1–5, mock mode) — Phase 6 (Qonto Developer Portal registration, sandbox validation, prod pilot) pending, user-gated
+**Date:** 2026-08-13 (implemented same day; see "As-built notes" at the end)
 **Scope:** Kiosk checkout payment via a physical Qonto card terminal, plus the admin-side Qonto connection and activation settings. Non-kiosk storefront, Stripe, and PayGreen paths are untouched.
 **Related specs:** `SPEC.md` FR4/FR4a (kiosk mode, pay-at-counter), `SPEC-UPSELL.md` (precedent for feature-scoped specs).
 
@@ -324,8 +324,21 @@ Phases 1–5 need no Qonto account at all (mock mode) — Phase 6 is the only ex
 ## Open Questions
 
 1. **Qonto Developer Portal access** — registering the OAuth app requires a Qonto business account. Who owns it (Picki as a platform integrator, or the pilot vendor)? Qonto's model is "POS vendor" = platform, so likely a Picki-owned app serving all vendors — confirm before Phase 6.
-2. **Stock release on `cancelled`** — `create_full_order` reserves stock atomically; the spec assumes setting status `cancelled` releases it via the existing path. Verify in Phase 1 whether release is a trigger/RPC or must be called explicitly by `cancel-order`.
+2. ~~**Stock release on `cancelled`**~~ — RESOLVED during planning: release is the existing explicit SECURITY DEFINER RPC `restore_stock_for_order` (no trigger); `cancel-order` calls it after setting `cancelled`, mirroring `orders.service.ts:344,400`.
 3. **Tips** — Qonto reports `tip_amount`/`authorized_amount` (may exceed the order total). v1 proposal: leave terminal tipping disabled/ignored, record `authorized_amount` for accounting only. Confirm.
 4. **Receipt** — the card receipt is the terminal's business; our thermal ticket stays the kitchen/pickup ticket. Should the last-4 (`card_summary`) be printed on the ticket? v1 proposal: no.
 
 *(None of these block Phases 1–5.)*
+
+---
+
+## As-built notes (2026-08-13)
+
+Deviations from the letter of the spec, none from its intent:
+
+- **Refresh serialization is a CAS, not a row lock.** `getValidAccessToken` rotates the one-time refresh token with `update … where refresh_token = <old>`; the loser of a concurrent refresh re-reads and adopts the winner's pair. Same lost-update guarantee, no extra SQL function. Concurrency is asserted by the test harness.
+- **`list-terminals` lives in `qonto-terminal`** (admin-JWT-guarded action) rather than `qonto-oauth`, and deliberately goes through the token path even in mock mode so the refresh rotation is exercised end-to-end.
+- **Terminal orders are created with `pay_at_checkout = false`** (they are paid before pickup); the kiosk confirmation screen recognizes them via `orders.terminal_payment_id` (`Order.terminalPaymentId`) and swaps the counter copy for "Paiement accepté".
+- **E2E enables the toggle by rewriting the vendors REST response per page** instead of mutating the shared local db — the db toggle would race the parallel toggle-OFF kiosk journeys. The edge-function stub applies the real function's db writes so assertions read real rows.
+- **Verification harness:** `scripts/test-qonto-functions.sh` (48 assertions, serves the functions itself with `QONTO_MOCK=true`), 35 Karma specs (`--include='**/qonto*' --include='**/vendor.service*' --include='**/checkout.service.qonto*' --include='**/terminal-payment-dialog*' --include='**/qonto-callback*'`), and `e2e/journeys/kiosk-terminal.spec.ts` (5 journeys on kiosk-landscape).
+- **Still pending besides Phase 6:** an in-browser manual walkthrough of the admin Paiement section against locally served mock functions (the section's logic is spec-covered; the walkthrough needs `supabase functions serve` + an admin login).

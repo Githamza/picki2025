@@ -113,14 +113,14 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `e2e/journeys/kiosk-terminal.spec.ts`, `e2e/fixtures/<helper>.ts` (from T2)
   - Dependencies: T2, T12 · **Size: M**
 
-- [ ] **T14: Hardening, copy, docs**
+- [x] **T14: Hardening, copy, docs**
   - Acceptance: French copy pass on all new surfaces; `SPEC-QONTO-TERMINAL.md` updated (status → implemented-pending-Phase-6, Open Question #2 marked resolved); `CLAUDE.md` edge-function table + key-services list gain the two functions and `QontoTerminalService`; `scripts/test-qonto-functions.sh` documented in the spec Commands section; no TODOs left in new code.
   - Verify: `npm run build` clean; full kiosk e2e project green; grep for stray `TODO|FIXME` in new files empty.
   - Files: `SPEC-QONTO-TERMINAL.md`, `CLAUDE.md`, misc copy touch-ups
   - Dependencies: T13 · **Size: S**
 
 ### Checkpoint — Complete
-- [ ] Spec Success Criteria 1, 3–11 verified locally (mock); criterion 2 verified except the physical-terminal part (user-gated Phase 6).
+- [x] Spec Success Criteria 1, 3–11 verified locally (mock); criterion 2 verified except the physical-terminal part (user-gated Phase 6). Pending: in-browser manual walkthrough of the admin Paiement section (needs served mock functions + admin login).
 
 ---
 

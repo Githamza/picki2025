@@ -115,6 +115,8 @@ Timing: `asap`, `later` (scheduled)
 - `PaymentService` - Payment orchestration
 - `StripeService` - Stripe checkout integration
 - `PaygreenBackendService` - PayGreen integration
+- `QontoAdminService` - Admin-side Qonto connection + terminal selection
+- `QontoTerminalService` - Kiosk terminal payment polling (SPEC-QONTO-TERMINAL.md)
 
 ### Auth
 - `SupabaseAuthService` - Authentication with Supabase Auth
@@ -135,6 +137,8 @@ Timing: `asap`, `later` (scheduled)
 | `capture-paygreen-order` | Capture PayGreen payment |
 | `get-paygreen-order` | Get PayGreen order status |
 | `create-vendor-account` | Vendor registration |
+| `qonto-oauth` | Qonto connection lifecycle (OAuth, tokens server-side only) |
+| `qonto-terminal` | Kiosk terminal payments: create/poll/cancel + list terminals |
 | `stuart-delivery` | Stuart delivery integration |
 | `stuart-webhook` | Stuart webhook handler |
 | `uber-direct-delivery` | Uber Direct integration |
@@ -245,4 +249,5 @@ Note: For local edge functions, use `http://kong:8000` instead of `http://127.0.
 - `business_hours` - Vendor operating hours
 - `banners` - Promotional banners
 - `vendor_metadata` - Additional vendor settings
+- `vendor_qonto_connections` - Qonto OAuth tokens (service-role-only, zero RLS policies)
 - `product_steps` / `step_options` - Multi-step product configuration

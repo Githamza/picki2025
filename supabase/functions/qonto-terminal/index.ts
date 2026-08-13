@@ -242,6 +242,49 @@ async function handleGetPayment(body: any) {
   });
 }
 
+async function handleCancelOrder(body: any) {
+  const supabase = createServiceClient();
+  const context = await loadTerminalOrder(supabase, String(body.orderId || ''));
+  if (context instanceof Response) return context;
+  const { order } = context;
+
+  // Only an order still waiting for its terminal payment can be abandoned
+  // from the kiosk. Anything authorized (todo and beyond) belongs to staff.
+  if (order.status !== 'initiated') {
+    return json(
+      { error: `La commande ne peut plus être annulée (${order.status})` },
+      { status: 409 }
+    );
+  }
+
+  const { data: updated, error } = await supabase
+    .from('orders')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', order.id)
+    .eq('status', 'initiated')
+    .select('id');
+  if (error) throw error;
+  if (!updated?.length) {
+    // Lost a race with a concurrent settle/cancel — report conflict.
+    return json(
+      { error: 'La commande ne peut plus être annulée' },
+      { status: 409 }
+    );
+  }
+
+  // Stock release is explicit (no trigger): same RPC the storefront's own
+  // cancel/refuse paths call (orders.service.ts).
+  const { error: stockError } = await supabase.rpc('restore_stock_for_order', {
+    p_order_id: order.id,
+  });
+  if (stockError) {
+    // The cancellation stands; a failed restore is logged for reconciliation.
+    console.error('restore_stock_for_order failed:', stockError);
+  }
+
+  return json({ cancelled: true });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -261,6 +304,7 @@ Deno.serve(async (req: Request) => {
     const action = String(body.action || '');
     if (action === 'create-payment') return await handleCreatePayment(body);
     if (action === 'get-payment') return await handleGetPayment(body);
+    if (action === 'cancel-order') return await handleCancelOrder(body);
     return json({ error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error: any) {
     console.error('qonto-terminal error:', error);

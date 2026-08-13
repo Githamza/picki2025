@@ -192,6 +192,45 @@ RES=$(fn "{\"action\":\"get-payment\",\"orderId\":\"$ORDER_REFUSED\",\"paymentId
 assert_eq "$(tail -n1 <<< "$RES")" "409" "mismatched order/payment pair is rejected (409)"
 
 # ---------------------------------------------------------------------------
+# T5 — cancel-order
+# ---------------------------------------------------------------------------
+log "T5: cancel-order"
+
+# Simulate the real flow's stock reservation: give a product stock, attach it
+# to the refused order, and decrement as create_full_order would have.
+STOCK_PRODUCT=$(sql "select id from products where vendor_id = '$KIOSK_VENDOR' order by id limit 1;")
+OLD_STOCK=$(sql "select coalesce(stock_quantity::text, 'NULL') from products where id = $STOCK_PRODUCT;")
+sql "update products set stock_quantity = 8 where id = $STOCK_PRODUCT;" > /dev/null # 10 - 2 reserved
+sql "insert into order_items (order_id, product_id, vendor_id, product_name, quantity, unit_price, total_price)
+     values ('$ORDER_REFUSED', $STOCK_PRODUCT, '$KIOSK_VENDOR', 'Stock Test', 2, 3.50, 7.00);" > /dev/null
+
+RES=$(fn "{\"action\":\"cancel-order\",\"orderId\":\"$ORDER_REFUSED\"}")
+assert_eq "$(tail -n1 <<< "$RES")" "200" "refused order cancels (200)"
+assert_eq "$(sql "select status from orders where id = '$ORDER_REFUSED';")" "cancelled" \
+  "order status becomes cancelled"
+assert_eq "$(sql "select stock_quantity from products where id = $STOCK_PRODUCT;")" "10" \
+  "reserved stock is restored"
+
+# An authorized (todo) order must not be cancellable through the kiosk.
+RES=$(fn "{\"action\":\"cancel-order\",\"orderId\":\"$ORDER\"}")
+assert_eq "$(tail -n1 <<< "$RES")" "409" "authorized (todo) order cannot be cancelled (409)"
+assert_eq "$(sql "select status from orders where id = '$ORDER';")" "todo" \
+  "authorized order untouched"
+
+# Cancelling twice is rejected without a second stock restore.
+RES=$(fn "{\"action\":\"cancel-order\",\"orderId\":\"$ORDER_REFUSED\"}")
+assert_eq "$(tail -n1 <<< "$RES")" "409" "double cancel is rejected (409)"
+assert_eq "$(sql "select stock_quantity from products where id = $STOCK_PRODUCT;")" "10" \
+  "stock not restored twice"
+
+# Restore the product's original stock value.
+if [[ "$OLD_STOCK" == "NULL" ]]; then
+  sql "update products set stock_quantity = null where id = $STOCK_PRODUCT;" > /dev/null
+else
+  sql "update products set stock_quantity = $OLD_STOCK where id = $STOCK_PRODUCT;" > /dev/null
+fi
+
+# ---------------------------------------------------------------------------
 log ""
 log "Results: $PASS passed, $FAIL failed"
 [[ "$FAIL" == "0" ]]

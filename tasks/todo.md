@@ -38,7 +38,7 @@ Run order is top-to-bottom; dependencies noted per task.
   - Files: `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`
   - Dependencies: T3 · **Size: M**
 
-- [ ] **T5: `cancel-order` — cancellation + stock release**
+- [x] **T5: `cancel-order` — cancellation + stock release**
   - Acceptance: `{orderId}` → only orders still `initiated` (with a terminal-enabled vendor) are cancelled; sets status `cancelled` then calls the existing `restore_stock_for_order` RPC; already-`todo`/`cancelled` orders → 4xx without side effects.
   - Verify: test script — cancel a refused-payment order: status becomes `cancelled` and a stock-tracked product's quantity is restored (SQL assert); cancelling an AUTHORIZED (`todo`) order fails.
   - Files: `supabase/functions/qonto-terminal/index.ts`, `scripts/test-qonto-functions.sh`

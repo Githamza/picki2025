@@ -83,3 +83,95 @@ describe('VendorService — kiosk terminal settings', () => {
     );
   });
 });
+
+/**
+ * The admin "Suspendre les commandes" toggle must only write
+ * orders_suspended_at, never is_active: RLS used to hide inactive vendors
+ * from anonymous customers, which broke printed QR links pointing at the
+ * storefront (Allo Couscous incident, 2026-08-11).
+ */
+describe('VendorService — toggleOrdersSuspension', () => {
+  let service: VendorService;
+  let authSpy: jasmine.SpyObj<SupabaseAuthService>;
+
+  // Time-of-day 00:00 → suspended all day, whatever the current time.
+  const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+
+  const makeVendor = (overrides: Partial<Vendor>): Vendor =>
+    ({
+      id: 'vendor-1',
+      business_name: 'Test',
+      is_active: true,
+      orders_suspended_at: null,
+      ...overrides,
+    } as Vendor);
+
+  beforeEach(() => {
+    authSpy = jasmine.createSpyObj<SupabaseAuthService>('SupabaseAuthService', [
+      'updateVendorOrdersSuspendedAt',
+      'updateVendorStatus',
+    ]);
+    authSpy.updateVendorOrdersSuspendedAt.and.resolveTo(
+      {} as Awaited<ReturnType<SupabaseAuthService['updateVendorOrdersSuspendedAt']>>
+    );
+    authSpy.updateVendorStatus.and.resolveTo(
+      {} as Awaited<ReturnType<SupabaseAuthService['updateVendorStatus']>>
+    );
+
+    TestBed.configureTestingModule({
+      providers: [
+        VendorService,
+        { provide: SupabaseAuthService, useValue: authSpy },
+        { provide: SupabaseService, useValue: {} },
+        { provide: AuthStateService, useValue: {} },
+      ],
+    });
+    service = TestBed.inject(VendorService);
+  });
+
+  it('suspends by stamping orders_suspended_at, leaving is_active alone', async () => {
+    spyOn(service, 'getCurrentVendor').and.returnValue(makeVendor({}));
+
+    const nowOpen = await service.toggleOrdersSuspension();
+
+    expect(nowOpen).toBeFalse();
+    expect(authSpy.updateVendorOrdersSuspendedAt).toHaveBeenCalledOnceWith(
+      'vendor-1',
+      jasmine.any(String)
+    );
+    expect(authSpy.updateVendorStatus).not.toHaveBeenCalled();
+  });
+
+  it('resumes by clearing orders_suspended_at', async () => {
+    spyOn(service, 'getCurrentVendor').and.returnValue(
+      makeVendor({ orders_suspended_at: startOfToday })
+    );
+
+    const nowOpen = await service.toggleOrdersSuspension();
+
+    expect(nowOpen).toBeTrue();
+    expect(authSpy.updateVendorOrdersSuspendedAt).toHaveBeenCalledOnceWith(
+      'vendor-1',
+      null
+    );
+    expect(authSpy.updateVendorStatus).not.toHaveBeenCalled();
+  });
+
+  it('self-heals a vendor left inactive by the old toggle when resuming', async () => {
+    spyOn(service, 'getCurrentVendor').and.returnValue(
+      makeVendor({ is_active: false })
+    );
+
+    const nowOpen = await service.toggleOrdersSuspension();
+
+    expect(nowOpen).toBeTrue();
+    expect(authSpy.updateVendorOrdersSuspendedAt).toHaveBeenCalledOnceWith(
+      'vendor-1',
+      null
+    );
+    expect(authSpy.updateVendorStatus).toHaveBeenCalledOnceWith(
+      'vendor-1',
+      true
+    );
+  });
+});

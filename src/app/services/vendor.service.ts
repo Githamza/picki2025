@@ -331,23 +331,39 @@ export class VendorService {
         throw new Error('No current vendor selected');
       }
 
-      // Toggle the current vendor's status
-      const newStatus = !currentVendor.is_active;
-
-      // Update only the current vendor
-      await this.supabaseAuthService.updateVendorStatus(
-        currentVendor.id,
-        newStatus
+      // Suspension is an order-level state (orders_suspended_at), never the
+      // account-level is_active flag: RLS used to hide inactive vendors from
+      // anonymous customers, so writing is_active here took the whole
+      // storefront offline and broke printed QR links (Allo Couscous
+      // incident, 2026-08-11).
+      const wasSuspended = this.isVendorOrdersSuspended(
+        currentVendor,
+        Date.now()
       );
+      const ordersSuspendedAt = wasSuspended ? null : new Date().toISOString();
+
+      await this.supabaseAuthService.updateVendorOrdersSuspendedAt(
+        currentVendor.id,
+        ordersSuspendedAt
+      );
+
+      const vendorPatch: Partial<Vendor> = {
+        orders_suspended_at: ordersSuspendedAt,
+      };
+
+      // Resuming also self-heals vendors left inactive by the old toggle
+      // (which wrote is_active): without this they would stay suspended
+      // forever with no way out from the admin UI.
+      if (wasSuspended && !currentVendor.is_active) {
+        await this.supabaseAuthService.updateVendorStatus(
+          currentVendor.id,
+          true
+        );
+        vendorPatch.is_active = true;
+      }
 
       // Clear cache since data has changed
       this.clearCache();
-
-      // When activating, also clear orders_suspended_at to match DB state
-      const vendorPatch: Partial<Vendor> = { is_active: newStatus };
-      if (newStatus) {
-        vendorPatch.orders_suspended_at = null;
-      }
 
       // Update the current vendor's local state
       const updatedVendor = { ...currentVendor, ...vendorPatch };
@@ -365,7 +381,8 @@ export class VendorService {
       // Update orders suspended status
       this.updateOrdersSuspendedStatus(updatedVendors);
 
-      return newStatus;
+      // true = orders are now open
+      return wasSuspended;
     } catch (error) {
       console.error('Error toggling orders suspension:', error);
       throw error;

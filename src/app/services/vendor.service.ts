@@ -86,13 +86,19 @@ export class VendorService {
       this.vendorsSubject.next([...this.vendorsCache!]);
       this.updateOrdersSuspendedStatus(this.vendorsCache!);
       
-      // Set current vendor if not already set
-      if (!this.currentVendorSubject.value && this.vendorsCache!.length > 0) {
+      // Set current vendor if not already set — only when the authenticated
+      // user's vendor is known. Never default to an arbitrary list entry:
+      // the list is unordered, and an admin session that loads vendors
+      // before auth restores would act on someone else's restaurant
+      // (KON'NICHIWA/Allo Couscous incident, 2026-08-14).
+      if (!this.currentVendorSubject.value) {
         const authVendorId = this.authStateService.vendorId();
         const preferredVendor = authVendorId
           ? this.vendorsCache!.find(v => v.id === authVendorId)
           : null;
-        this.currentVendorSubject.next(preferredVendor || this.vendorsCache![0]);
+        if (preferredVendor) {
+          this.currentVendorSubject.next(preferredVendor);
+        }
       }
       return;
     }
@@ -125,13 +131,16 @@ export class VendorService {
       this.vendorsSubject.next(vendorsData);
       this.updateOrdersSuspendedStatus(vendorsData);
 
-      // If no current vendor is set and we have vendors, prefer the authenticated user's vendor
-      if (!this.currentVendorSubject.value && vendorsData.length > 0) {
+      // If no current vendor is set, adopt the authenticated user's vendor.
+      // Same rule as the cache branch above: no arbitrary-first-row default.
+      if (!this.currentVendorSubject.value) {
         const authVendorId = this.authStateService.vendorId();
         const preferredVendor = authVendorId
           ? vendorsData.find(v => v.id === authVendorId)
           : null;
-        this.currentVendorSubject.next(preferredVendor || vendorsData[0]);
+        if (preferredVendor) {
+          this.currentVendorSubject.next(preferredVendor);
+        }
       }
       
       console.log(`✅ Vendors loaded successfully: ${vendorsData.length} vendors (API Call #${this.apiCallCount})`);

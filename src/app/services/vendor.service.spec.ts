@@ -175,3 +175,45 @@ describe('VendorService — toggleOrdersSuspension', () => {
     );
   });
 });
+
+/**
+ * loadVendors must never adopt an arbitrary list entry as the current
+ * vendor: the vendors query has no ORDER BY, and an admin session that
+ * loads vendors before auth restores would then display — and write to —
+ * someone else's restaurant (KON'NICHIWA/Allo Couscous incident,
+ * 2026-08-14). The current vendor is only set from the authenticated
+ * user's vendorId.
+ */
+describe('VendorService — loadVendors current-vendor selection', () => {
+  const vendors = [
+    { id: 'other-vendor', business_name: 'Someone Else', is_active: true },
+    { id: 'my-vendor', business_name: 'Mine', is_active: true },
+  ] as Vendor[];
+
+  const setup = (authVendorId: string | undefined) => {
+    TestBed.configureTestingModule({
+      providers: [
+        VendorService,
+        { provide: SupabaseAuthService, useValue: {} },
+        {
+          provide: SupabaseService,
+          useValue: { getAllVendors: () => Promise.resolve(vendors) },
+        },
+        { provide: AuthStateService, useValue: { vendorId: () => authVendorId } },
+      ],
+    });
+    return TestBed.inject(VendorService);
+  };
+
+  it('leaves the current vendor unset when no admin vendor is known', async () => {
+    const service = setup(undefined);
+    await service.loadVendors();
+    expect(service.getCurrentVendor()).toBeNull();
+  });
+
+  it('adopts the authenticated admin vendor, not the first list entry', async () => {
+    const service = setup('my-vendor');
+    await service.loadVendors();
+    expect(service.getCurrentVendor()?.id).toBe('my-vendor');
+  });
+});

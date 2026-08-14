@@ -249,7 +249,7 @@ export async function exchangeCodeForTokens(
   }
   const response = await fetch(`${env.oauthBaseUrl}/oauth2/token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: tokenEndpointHeaders(env),
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: env.clientId,
@@ -265,7 +265,28 @@ export async function exchangeCodeForTokens(
       status: 502,
     });
   }
-  return JSON.parse(text);
+  return parseTokenResponse(text, 'exchange');
+}
+
+/** The sandbox requires X-Qonto-Staging-Token on the OAUTH TOKEN endpoint
+ *  too, not just the API — without it the answer is an HTML error page. */
+function tokenEndpointHeaders(env: QontoEnv): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  };
+  if (env.stagingToken) headers['X-Qonto-Staging-Token'] = env.stagingToken;
+  return headers;
+}
+
+function parseTokenResponse(text: string, context: string): TokenPair {
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error(`Qonto ${context}: non-JSON token response:`, text.slice(0, 300));
+    throw Object.assign(new Error('Réponse inattendue du serveur Qonto'), {
+      status: 502,
+    });
+  }
 }
 
 async function refreshTokens(env: QontoEnv, refreshToken: string): Promise<TokenPair> {
@@ -278,7 +299,7 @@ async function refreshTokens(env: QontoEnv, refreshToken: string): Promise<Token
   }
   const response = await fetch(`${env.oauthBaseUrl}/oauth2/token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: tokenEndpointHeaders(env),
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       client_id: env.clientId,
@@ -291,7 +312,7 @@ async function refreshTokens(env: QontoEnv, refreshToken: string): Promise<Token
     console.error('Qonto token refresh failed:', response.status, text);
     throw Object.assign(new Error('refresh_failed'), { status: 502 });
   }
-  return JSON.parse(text);
+  return parseTokenResponse(text, 'refresh');
 }
 
 /**

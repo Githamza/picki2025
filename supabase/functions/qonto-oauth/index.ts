@@ -41,7 +41,13 @@ function createServiceClient() {
   return createClient(url, key);
 }
 
-const OAUTH_SCOPES = 'terminal.read terminal.write offline_access organization.read';
+// organization.read is a "sensitive" scope not granted to our app —
+// requesting it makes the sandbox reject the whole request (invalid_scope,
+// observed 2026-08-14). Override via QONTO_OAUTH_SCOPES if the app's
+// granted scopes ever change.
+const OAUTH_SCOPES =
+  Deno.env.get('QONTO_OAUTH_SCOPES') ||
+  'terminal.read terminal.write offline_access';
 
 async function handleAuthorizeUrl(body: any, supabase: any) {
   const env = getQontoEnv();
